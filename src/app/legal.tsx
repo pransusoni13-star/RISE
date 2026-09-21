@@ -2,6 +2,7 @@ import React from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { deleteAllRiseData } from "../services/localData";
+import { cancelDailyReminder } from "../services/reminders";
 
 export default function LegalScreen() {
   const deleteLocalData = () => Alert.alert(
@@ -11,6 +12,7 @@ export default function LegalScreen() {
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: async () => {
         try {
+          await cancelDailyReminder();
           await deleteAllRiseData();
           Alert.alert("Local data deleted", "RISE has removed its saved data from this device.", [{ text: "Start over", onPress: () => router.replace("/" as any) }]);
         } catch {
@@ -31,6 +33,9 @@ export default function LegalScreen() {
     </Section>
     <Section title="Photos, camera, and video">
       RISE asks for access only after you choose an upload or camera action. The selected local file URI and proof type are stored so the app can remember completion. Do not attach private information you do not want retained on this device.
+    </Section>
+    <Section title="Daily reminders">
+      Phone reminders are optional and scheduled on your device after you choose a time and grant notification permission. Their text does not reveal your goal or proof. You can turn them off in Settings. Browser beta check-ins appear only while using the website; RISE does not send remote push notifications in this beta.
     </Section>
     <Section title="What proof review means">
       RISE checks attachment metadata, reflection quality, your mission-specific explanation, and your ownership confirmation before unlocking progress. These local consistency checks do not authenticate an image, identify who created it, detect every edited or unrelated file, or replace human review. Do not describe a proof as independently verified.

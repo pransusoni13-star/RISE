@@ -1,10 +1,20 @@
 import "@/global.css";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 import { getUsageAnalyticsConsent, getUsageAnalyticsEnabledAt, isUsageAnalyticsEnabled, recordProgressEvent } from "../services/auth";
+import { initializeReminderNavigation } from "../services/reminders";
 
 export default function RootLayout() {
+  useEffect(() => {
+    let dispose: (() => void) | undefined;
+    let mounted = true;
+    void initializeReminderNavigation(() => router.push("/(tabs)/today" as never)).then((cleanup) => {
+      if (mounted) dispose = cleanup;
+      else cleanup();
+    }).catch(() => undefined);
+    return () => { mounted = false; dispose?.(); };
+  }, []);
   useEffect(() => {
     void getUsageAnalyticsConsent();
     let activeSince = AppState.currentState === "active" ? Date.now() : 0;

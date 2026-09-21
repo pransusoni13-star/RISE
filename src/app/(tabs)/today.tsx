@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import {
   RISEProgress,
@@ -23,10 +23,14 @@ import {
   loadProfile,
   RiseProfile,
 } from "../../services/personalization";
+import { getReminderState, ReminderState } from "../../services/reminders";
 
 export default function TodayTabScreen() {
   const [progress, setProgress] = useState<RISEProgress>(createDefaultProgress());
   const [profile, setProfile] = useState<RiseProfile | null>(null);
+  const [reminder, setReminder] = useState<ReminderState | null>(null);
+
+  useFocusEffect(useCallback(() => { void getReminderState().then(setReminder); }, []));
 
   useEffect(() => {
     const loadProgress = async () => {
@@ -99,6 +103,12 @@ export default function TodayTabScreen() {
           <Text style={styles.primaryButtonText}>Start Mission</Text>
         </Pressable>
       </View>
+
+      <Pressable style={styles.reminderCard} accessibilityRole="button" onPress={() => router.push("/settings" as never)}>
+        <Text style={styles.reminderTitle}>YOUR DAILY CHECK-IN</Text>
+        <Text style={styles.reminderText}>{reminder?.enabled ? `Phone reminder set for ${reminder.time}. Your mission is here whenever you're ready.` : "Your mission is always here. Set an optional phone reminder in Settings to help you return."}</Text>
+        <Text style={styles.reminderAction}>Reminder settings →</Text>
+      </Pressable>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>YOUR PATH</Text>
@@ -369,4 +379,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
   },
+  reminderCard:{backgroundColor:"#071B16",borderRadius:18,borderWidth:1,borderColor:"#1E3A31",padding:17,marginBottom:20},
+  reminderTitle:{color:"#7AF5B8",fontSize:11,fontWeight:"900",letterSpacing:1.2},
+  reminderText:{color:"#C8EED9",fontSize:13,lineHeight:20,marginTop:7},
+  reminderAction:{color:"#7AF5B8",fontSize:12,fontWeight:"800",marginTop:10},
 });

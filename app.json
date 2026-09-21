@@ -52,6 +52,12 @@
         }
       ],
       "expo-image",
+      [
+        "expo-notifications",
+        {
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
       "expo-web-browser",
       "expo-secure-store"
     ],

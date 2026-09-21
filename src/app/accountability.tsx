@@ -13,7 +13,7 @@ const options = [
   "Daily check-in with myself",
   "Text a friend for support",
   "Make it public with a streak",
-  "Use reminders and habit cues",
+  "Use reminders (set up after onboarding)",
 ];
 
 export default function AccountabilityScreen() {
@@ -65,7 +65,7 @@ export default function AccountabilityScreen() {
         </Text>
 
         <Text style={styles.subtitle}>
-          Optional: pick the support style that makes consistency easier.
+          Optional: pick the support style that makes consistency easier. Phone reminders are turned on separately in Settings, with your permission.
         </Text>
 
         <View style={styles.infoCard}>

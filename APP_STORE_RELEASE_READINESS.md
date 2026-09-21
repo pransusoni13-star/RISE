@@ -21,6 +21,7 @@ Updated: 2026-09-21
 - Quiz gate, progress, proof reflection, and mission review behavior.
 - Static web export and mobile/desktop responsive public landing experience.
 - EAS preview, TestFlight, and production build profiles.
+- Optional on-device daily notification, in-app Today check-in, and notification settings; no remote push system or delivery guarantee.
 - Expo lint configuration plus a single `npm run check` release-quality command.
 - Proof file type, size, and video-duration restrictions.
 - Static-host and Vercel security-header policies plus documented security status.
@@ -64,7 +65,7 @@ These values cannot be invented or safely selected by code:
 - Advertising: None.
 - Analytics SDK: None.
 - First-party account progress metrics: Yes, for the user's own synced experience. Optional operator analytics includes mission activity and signup/app-use timing when opted in. Complete Apple's privacy questionnaire accordingly.
-- RISE cloud upload: None.
+- RISE proof-file cloud upload: None. Account and progress metadata do sync with the first-party API.
 - User-generated public content: None.
 
 Re-evaluate every declaration before submission. Adding authentication, analytics, crash reporting, cloud proof storage, community sharing, or payments changes the privacy and review answers.

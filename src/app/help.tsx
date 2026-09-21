@@ -4,6 +4,10 @@ import { router } from "expo-router";
 
 const resources = [
   {
+    title: "A daily reminder did not appear",
+    text: "Open RISE Settings to check whether your reminder is on. Then check the phone's RISE notification permission and Focus settings. Your mission remains available on Today even when a phone alert is delayed or silenced.",
+  },
+  {
     title: "Fix photo or camera access",
     text: "Open your phone Settings, choose RISE, then review Photos, Camera, and Microphone access. Return to RISE and tap the proof button again.",
   },
