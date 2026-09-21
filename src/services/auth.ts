@@ -43,7 +43,15 @@ let webSession: AuthResponse | null = null;
 let usageAnalyticsConsent = false;
 let usageAnalyticsEnabledAt = 0;
 
-export const isApiConfigured = () => Boolean(API_URL);
+function isSafeReleaseApiUrl(): boolean {
+  try {
+    const parsed = new URL(API_URL);
+    const host = parsed.hostname.toLowerCase();
+    return parsed.protocol === "https:" && host !== "localhost" && host !== "127.0.0.1" && !host.endsWith(".local") && !/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  } catch { return false; }
+}
+
+export const isApiConfigured = () => Boolean(API_URL) && (__DEV__ || isSafeReleaseApiUrl());
 
 async function getStored(key: string): Promise<string | null> {
   if (Platform.OS === "web") {
@@ -83,7 +91,7 @@ class ApiError extends Error {
 }
 
 async function rawRequest<T>(path: string, init: RequestInit = {}, accessToken?: string | null): Promise<T> {
-  if (!API_URL) throw new Error("RISE account service is not configured for this build.");
+  if (!isApiConfigured()) throw new Error("RISE account service needs a public HTTPS API for this build.");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
