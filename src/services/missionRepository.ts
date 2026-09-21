@@ -18,7 +18,7 @@ export type ProofMetadata = {
   review?: {
     passed: boolean;
     checkedAt: string;
-    checks: Array<{ id: string; label: string; passed: boolean; detail: string }>;
+    checks: { id: string; label: string; passed: boolean; detail: string }[];
   };
 };
 

@@ -162,7 +162,7 @@ export default function CommitmentScreen() {
             </Text>
 
             <Text style={styles.messageText}>
-              RISE will use everything you've told us to
+              RISE will use everything you’ve told us to
               build your personalized system.
             </Text>
           </View>

@@ -77,12 +77,12 @@ export default function FocusScreen() {
     })}</View>
 
     <Text style={styles.label}>OR CREATE YOUR OWN SKILL</Text>
-    <TextInput value={customSkill} onChangeText={(value) => { setCustomSkill(value); if (value.trim()) setSelectedSkills((current) => current.slice(0, 2)); }} placeholder="Optional: make one of the three your own" placeholderTextColor="#668577" style={styles.input} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
+    <TextInput value={customSkill} onChangeText={(value) => { setCustomSkill(value); if (value.trim()) setSelectedSkills((current) => current.slice(0, 2)); }} maxLength={80} placeholder="Optional: make one of the three your own" placeholderTextColor="#668577" style={styles.input} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
 
     <View style={styles.optionalCard}>
       <Text style={styles.optionalTitle}>Personalize even more — optional</Text>
       <Text style={styles.optionalText}>How experienced are you with this skill?</Text>
-      <TextInput value={experience} onChangeText={setExperience} placeholder="Example: beginner, tried it twice, intermediate…" placeholderTextColor="#668577" style={styles.optionalInput} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
+      <TextInput value={experience} onChangeText={setExperience} maxLength={160} placeholder="Example: beginner, tried it twice, intermediate…" placeholderTextColor="#668577" style={styles.optionalInput} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
     </View>
 
     {isSpiritual ? <View style={styles.faithCard}>
@@ -91,7 +91,7 @@ export default function FocusScreen() {
       <Text style={styles.optionalText}>Choose a tradition only if you want. RISE will not guess your religion or say one tradition is better.</Text>
       <View style={styles.traditions}>{traditions.map((item) => <Pressable accessibilityRole="radio" accessibilityState={{ selected: spiritualTradition === item }} key={item} onPress={() => setSpiritualTradition(item)} style={[styles.tradition, spiritualTradition === item && styles.traditionActive]}><Text style={[styles.traditionText, spiritualTradition === item && styles.traditionTextActive]}>{item}</Text></Pressable>)}</View>
       <Text style={styles.sourceLabel}>BOOKS, TEXTS, TEACHERS, OR COMMUNITIES YOU TRUST · OPTIONAL</Text>
-      <TextInput value={trustedSources} onChangeText={setTrustedSources} placeholder="Example: a primary scripture, a local leader, or a teacher I already trust" placeholderTextColor="#668577" style={styles.sourceInput} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
+      <TextInput value={trustedSources} onChangeText={setTrustedSources} maxLength={300} placeholder="Example: a primary scripture, a local leader, or a teacher I already trust" placeholderTextColor="#668577" style={styles.sourceInput} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
       <Text style={styles.sourceHelp}>RISE uses these words to narrow resources. YouTube results remain third-party content and should be verified.</Text>
     </View> : null}
 

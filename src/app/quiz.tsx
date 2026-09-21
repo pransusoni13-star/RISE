@@ -17,6 +17,7 @@ import {
 import { progressRepository } from "../services/progressRepository";
 import { getCycleQuestions } from "../services/cycleQuiz";
 import { loadProfile, updateProfile } from "../services/personalization";
+import { recordProgressEvent } from "../services/auth";
 
 type Question = {
   question: string;
@@ -290,6 +291,13 @@ export default function QuizScreen() {
        * --------------------------------------------------
        */
       await progressRepository.save(progress);
+      await recordProgressEvent({
+        clientEventId: `quiz:${cycleGate ? cycleId : `${skillId}:${Date.now()}`}`,
+        eventType: "quiz_completed",
+        skillSlug: skillId.trim().toLowerCase().replace(/\s+/g, "-"),
+        value: percentage,
+        metadata: { goal: primaryGoal, passed, cycleGate, difficulty },
+      }).catch(() => undefined);
 
       /*
        * --------------------------------------------------

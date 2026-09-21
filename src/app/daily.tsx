@@ -1,7 +1,6 @@
 import React, {
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
@@ -329,14 +328,11 @@ export default function DailyScreen() {
   const [savingTask, setSavingTask] =
     useState<string | null>(null);
 
-  const [selectedTask, setSelectedTask] =
-    useState<SelectedTask | null>(null);
+  const [fadeAnim] =
+    useState(() => new Animated.Value(0));
 
-  const fadeAnim =
-    useRef(new Animated.Value(0)).current;
-
-  const slideAnim =
-    useRef(new Animated.Value(12)).current;
+  const [slideAnim] =
+    useState(() => new Animated.Value(12));
 
   // ==========================================================
   // GOALS
@@ -739,10 +735,9 @@ export default function DailyScreen() {
   // SELECTED TASK FROM ROUTE
   // ==========================================================
 
-  useEffect(() => {
+  const selectedTask = useMemo<SelectedTask | null>(() => {
     if (!params.task) {
-      setSelectedTask(null);
-      return;
+      return null;
     }
 
     try {
@@ -751,7 +746,7 @@ export default function DailyScreen() {
           ? params.task[0]
           : params.task;
 
-      setSelectedTask({
+      return {
         task: String(rawTask),
 
         title:
@@ -782,9 +777,9 @@ export default function DailyScreen() {
           Array.isArray(params.emoji)
             ? params.emoji[0]
             : params.emoji,
-      });
+      };
     } catch {
-      setSelectedTask(null);
+      return null;
     }
   }, [
     params.task,
@@ -985,31 +980,6 @@ export default function DailyScreen() {
   const getTaskKey = (
     task: DailyTask
   ) => task.id;
-
-  // ==========================================================
-  // CHECK IF TASK WAS ALREADY REWARDED TODAY
-  // ==========================================================
-
-  const wasTaskRewarded =
-    (
-      currentProgress: RISEProgress,
-      task: DailyTask
-    ) => {
-      const dateKey =
-        getLocalDateKey();
-
-      const rewardSource =
-        getDailyRewardSource(
-          dateKey,
-          task
-        );
-
-      return currentProgress.events.some(
-        (event) =>
-          event.metadata?.source ===
-          rewardSource
-      );
-    };
 
   // ==========================================================
   // TOGGLE TASK
@@ -1645,7 +1615,7 @@ export default function DailyScreen() {
         </Text>
 
         <Text style={styles.tabPageSubtitle}>
-          Every action adds to the person you're becoming.
+          Every action adds to the person you’re becoming.
         </Text>
 
         <View style={styles.bigProgressCard}>
@@ -1689,7 +1659,7 @@ export default function DailyScreen() {
             </Text>
 
             <Text style={styles.gridLabel}>
-              Today's Tasks
+              Today’s Tasks
             </Text>
           </View>
 
@@ -1699,7 +1669,7 @@ export default function DailyScreen() {
             </Text>
 
             <Text style={styles.gridLabel}>
-              Today's XP
+              Today’s XP
             </Text>
           </View>
 
@@ -1767,7 +1737,7 @@ export default function DailyScreen() {
         <View style={styles.coinStatsCard}>
           <View style={styles.coinStatRow}>
             <Text style={styles.coinStatLabel}>
-              Today's earnings
+              Today’s earnings
             </Text>
 
             <Text style={styles.coinStatValue}>

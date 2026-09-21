@@ -643,7 +643,7 @@ export default function ProjectScreen() {
         </Text>
 
         <Text style={styles.successSubtitle}>
-          You didn't just learn something.
+          You didn’t just learn something.
           {"\n"}
           You built something.
         </Text>
@@ -699,7 +699,7 @@ export default function ProjectScreen() {
         </Text>
 
         <Text style={styles.subtitle}>
-          RISE turns what you're learning into a real-world
+          RISE turns what you’re learning into a real-world
           project you can actually show.
         </Text>
 
@@ -809,6 +809,7 @@ export default function ProjectScreen() {
           placeholder="Write at least 20 characters about what you learned..."
           placeholderTextColor="#999999"
           multiline
+          maxLength={1200}
           style={styles.input}
         />
 

@@ -20,7 +20,7 @@ export default function OnboardingScreen() {
 
   return <View style={styles.page}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.top}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>PRIVATE BETA</Text></View>
+      <View style={styles.top}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>FREE BETA</Text></View>
       <Text style={styles.eyebrow}>ONE SMALL STEP AT A TIME</Text>
       <Text style={styles.title}>A personal path that learns with you.</Text>
       <Text style={styles.subtitle}>Choose one future direction and one life direction, build three connected skills, and complete clear missions with reviewed proof.</Text>
@@ -31,12 +31,12 @@ export default function OnboardingScreen() {
         <Path number="3" title="Do, prove, improve" text="Attach real work, reflect briefly, and let the next mission adapt." />
       </View>
 
-      <View style={styles.privacy}><Text style={styles.privacyTitle}>Private by default</Text><Text style={styles.privacyText}>This beta stores your profile, proof references, progress, belief preferences, and feedback locally on this device. It has no cloud account or advertising tracker.</Text></View>
+      <View style={styles.privacy}><Text style={styles.privacyTitle}>Private by default</Text><Text style={styles.privacyText}>Your proof photos and videos stay on this device. If you sign in, RISE can sync your selected skills and progress; a guest plan remains on this device. RISE has no advertising tracker.</Text></View>
 
-      <Check checked={ageConfirmed} onPress={() => setAgeConfirmed((value) => !value)} title="I am 13 or older" text="RISE’s current beta is not designed for children under 13." />
-      <Check checked={limitsConfirmed} onPress={() => setLimitsConfirmed((value) => !value)} title="I understand the beta limits" text="RISE provides educational suggestions, not medical, legal, financial, religious, or other professional advice." />
+      <Check checked={ageConfirmed} onPress={() => setAgeConfirmed((value) => !value)} title="I am 13 or older" text="RISE is not designed for children under 13." />
+      <Check checked={limitsConfirmed} onPress={() => setLimitsConfirmed((value) => !value)} title="I understand the safety limits" text="RISE provides educational suggestions, not medical, legal, financial, religious, or other professional advice." />
 
-      <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as any)} style={styles.policyLink}><Text style={styles.policyText}>Read Privacy, Safety & Beta Terms →</Text></Pressable>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as any)} style={styles.policyLink}><Text style={styles.policyText}>Read Privacy, Safety & Terms →</Text></Pressable>
     </ScrollView>
     <View style={styles.footer}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || saving }} disabled={!valid || saving} onPress={continueNext} style={[styles.button, (!valid || saving) && styles.disabled]}><Text style={styles.buttonText}>{saving ? "Saving..." : "Personalize My RISE →"}</Text></Pressable></View>
   </View>;

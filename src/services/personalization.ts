@@ -1,4 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loadSensitiveProfile, saveSensitiveProfile, SensitiveProfile } from "./sensitiveStorage";
+import { syncUserProfile } from "./auth";
 
 export const PERSONALIZATION_KEY = "RISE_PERSONALIZATION";
 
@@ -103,14 +105,31 @@ export function getRecommendedSkills(goal: string): string[] {
 export async function loadProfile(): Promise<RiseProfile> {
   try {
     const raw = await AsyncStorage.getItem(PERSONALIZATION_KEY);
-    if (!raw) return fallbackProfile;
-    const saved = JSON.parse(raw) as Partial<RiseProfile>;
+    const saved = raw ? JSON.parse(raw) as Partial<RiseProfile> : {};
+    const legacySensitive: SensitiveProfile = {
+      spiritualTradition: saved.spiritualTradition,
+      trustedSources: saved.trustedSources,
+    };
+    const safeSaved = { ...saved };
+    delete safeSaved.spiritualTradition;
+    delete safeSaved.trustedSources;
+    const protectedSensitive = await loadSensitiveProfile();
+    const sensitive = Object.keys(protectedSensitive).length > 0 ? protectedSensitive : legacySensitive;
+
+    if (saved.spiritualTradition || saved.trustedSources) {
+      await Promise.all([
+        AsyncStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(safeSaved)),
+        saveSensitiveProfile(sensitive),
+      ]);
+    }
+
     return {
       ...fallbackProfile,
-      ...saved,
+      ...safeSaved,
+      ...sensitive,
       selectedGoals:
-        Array.isArray(saved.selectedGoals) && saved.selectedGoals.length
-          ? saved.selectedGoals.slice(0, 2)
+        Array.isArray(safeSaved.selectedGoals) && safeSaved.selectedGoals.length
+          ? safeSaved.selectedGoals.slice(0, 2)
           : fallbackProfile.selectedGoals,
     };
   } catch {
@@ -119,7 +138,12 @@ export async function loadProfile(): Promise<RiseProfile> {
 }
 
 export async function saveProfile(profile: RiseProfile): Promise<void> {
-  await AsyncStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(profile));
+  const { spiritualTradition, trustedSources, ...safeProfile } = profile;
+  await Promise.all([
+    AsyncStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(safeProfile)),
+    saveSensitiveProfile({ spiritualTradition, trustedSources }),
+  ]);
+  await syncUserProfile(profile).catch(() => undefined);
 }
 
 export async function updateProfile(

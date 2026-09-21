@@ -5,7 +5,7 @@ import { router } from "expo-router";
 const resources = [
   {
     title: "Fix photo or camera access",
-    text: "Open your phone Settings, choose RISE or Expo Go, then allow Photos, Camera, and Microphone. Return and tap the proof button again.",
+    text: "Open your phone Settings, choose RISE, then review Photos, Camera, and Microphone access. Return to RISE and tap the proof button again.",
   },
   {
     title: "A mission feels unsafe",

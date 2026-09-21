@@ -164,8 +164,6 @@ export default function SkillTreeScreen() {
         progress
       );
 
-    let previousMastered = true;
-
     return goalSkills.map(
       (skill, index) => {
         const xp = Math.max(
@@ -188,15 +186,20 @@ export default function SkillTreeScreen() {
 
         let status: SkillStatus;
 
+        const priorSkillsAreMastered = goalSkills
+          .slice(0, index)
+          .every((priorSkill) =>
+            Math.max(0, Number(priorSkill.xp) || 0) >=
+            Math.max(1, Number(priorSkill.requiredXP) || 1)
+          );
+
         if (isMastered) {
           status = "mastered";
-        } else if (previousMastered) {
+        } else if (priorSkillsAreMastered) {
           status = "current";
         } else {
           status = "locked";
         }
-
-        previousMastered = isMastered;
 
         return {
           id:

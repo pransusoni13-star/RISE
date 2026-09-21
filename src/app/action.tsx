@@ -105,6 +105,7 @@ export default function ActionScreen() {
         reward: String(mission.reward),
         coins: String(mission.coinReward),
         missionId: mission.id,
+        duration: String(mission.duration),
         reflection: reflection.trim(),
         missionContext: [mission.title, mission.description, mission.successCriteria, ...mission.skills].join(" "),
       },
@@ -204,6 +205,7 @@ export default function ActionScreen() {
           placeholder={mission.reflectionPrompt || "What did you make, learn, or improve?"}
           placeholderTextColor="#668577"
           multiline
+          maxLength={1200}
           blurOnSubmit
           returnKeyType="done"
           onSubmitEditing={() => Keyboard.dismiss()}

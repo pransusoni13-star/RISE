@@ -2,10 +2,18 @@
 
 # dependencies
 node_modules/
+.venv/
+backend/.venv/
+backend/*.db
+backend/tests/*.db
+__pycache__/
+*.pyc
+.pytest_cache/
 
 # Expo
 .expo/
 dist/
+dist-check/
 web-build/
 expo-env.d.ts
 
@@ -30,8 +38,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# environment files (never commit secrets; use .env.example for documented names)
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo

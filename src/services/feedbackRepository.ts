@@ -29,7 +29,7 @@ export const feedbackRepository = {
       ...input,
       id: `feedback-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      appVersion: "1.0.0-beta",
+      appVersion: "1.0.0",
     };
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([feedback, ...current].slice(0, 25)));
     return feedback;

@@ -25,7 +25,7 @@ export default function RewardsScreen() {
     <Text style={styles.eyebrow}>PROOF EARNS PROGRESS</Text>
     <Text style={styles.title}>RISE Rewards</Text>
     <Text style={styles.subtitle}>Small, healthy rewards for completed work—not endless screen time.</Text>
-    <View style={styles.balance}><Text style={styles.balanceLabel}>YOUR BALANCE</Text><Text style={styles.balanceValue}>{progress.coins} 🪙</Text><Text style={styles.balanceHint}>Coins have no cash value and cannot be purchased in this beta.</Text></View>
+    <View style={styles.balance}><Text style={styles.balanceLabel}>YOUR BALANCE</Text><Text style={styles.balanceValue}>{progress.coins} 🪙</Text><Text style={styles.balanceHint}>Coins have no cash value and cannot currently be purchased.</Text></View>
 
     {COIN_REWARDS.map((reward) => {
       const owned = redeemed.includes(reward.id);

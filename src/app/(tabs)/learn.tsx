@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { createSevenDayPlan, loadProfile, RiseProfile } from "../../services/personalization";
 import { missionRepository } from "../../services/missionRepository";
@@ -18,6 +18,16 @@ export default function LearnTabScreen() {
   const plan = useMemo(() => profile ? createSevenDayPlan(profile) : [], [profile]);
   const mission = plan.find((item) => !completedIds.includes(item.id)) || plan[plan.length - 1];
 
+  const openLearningResource = async () => {
+    try {
+      const supported = await Linking.canOpenURL(mission.resourceUrl);
+      if (!supported) throw new Error("Unsupported URL");
+      await Linking.openURL(mission.resourceUrl);
+    } catch {
+      Alert.alert("Could not open resource", "Check your connection and try again.");
+    }
+  };
+
   if (!profile || !mission) return <View style={styles.loading}><ActivityIndicator color="#7AF5B8" /></View>;
 
   return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -27,7 +37,7 @@ export default function LearnTabScreen() {
     <Text style={styles.subtitle}>Learning here supports your exact next mission for “{profile.customGoal}.”</Text>
 
     <View style={styles.focusCard}>
-      <Text style={styles.focusLabel}>LEARN FOR TODAY'S MISSION</Text>
+      <Text style={styles.focusLabel}>LEARN FOR TODAY’S MISSION</Text>
       <Text style={styles.focusTitle}>{mission.title}</Text>
       <Text style={styles.focusText}>{mission.why}</Text>
     </View>
@@ -37,10 +47,10 @@ export default function LearnTabScreen() {
     <LearningCard number="2" title="Study a strong example" text="Notice the choices that create the result, not just the final result." />
     <LearningCard number="3" title="Apply it immediately" text="Return to RISE, complete the steps, and prove the result." />
 
-    <Pressable style={styles.resourceButton} onPress={() => Linking.openURL(mission.resourceUrl)}>
+    <Pressable accessibilityRole="link" style={styles.resourceButton} onPress={() => void openLearningResource()}>
       <Text style={styles.resourceButtonText}>Open Focused Learning Resource ↗</Text>
     </Pressable>
-    <Pressable style={styles.missionButton} onPress={() => router.push({ pathname: "/action", params: { mission: JSON.stringify(mission) } } as any)}>
+    <Pressable accessibilityRole="button" style={styles.missionButton} onPress={() => router.push({ pathname: "/action", params: { mission: JSON.stringify(mission) } } as any)}>
       <Text style={styles.missionButtonText}>Practice in Today’s Mission →</Text>
     </Pressable>
   </ScrollView>;

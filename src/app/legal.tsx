@@ -1,7 +1,7 @@
 import React from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { deleteAllRiseData } from "../services/localData";
 
 export default function LegalScreen() {
   const deleteLocalData = () => Alert.alert(
@@ -10,20 +10,24 @@ export default function LegalScreen() {
     [
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: async () => {
-        await AsyncStorage.multiRemove(["RISE_PERSONALIZATION", "RISE_PROGRESS", "RISE_MISSION_RECORDS", "RISE_REWARD_REDEMPTIONS", "RISE_SELECTED_GOALS", "RISE_PRODUCT_FEEDBACK", "RISE_BETA_CONSENT"]);
-        Alert.alert("Local data deleted", "RISE has removed its saved data from this device.", [{ text: "Start over", onPress: () => router.replace("/" as any) }]);
+        try {
+          await deleteAllRiseData();
+          Alert.alert("Local data deleted", "RISE has removed its saved data from this device.", [{ text: "Start over", onPress: () => router.replace("/" as any) }]);
+        } catch {
+          Alert.alert("Could not finish deleting data", "Some local records may remain. Restart RISE, try deletion again, and verify that onboarding starts cleanly.");
+        }
       } },
     ]
   );
 
   return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <Pressable onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
+    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
     <Text style={styles.eyebrow}>RISE • PRIVACY & SAFETY</Text>
     <Text style={styles.title}>Clear by design.</Text>
-    <Text style={styles.updated}>Beta disclosure version 2026-09-19 • legal review required before public launch</Text>
+    <Text style={styles.updated}>Beta disclosure version 2026-09-21 • professional legal review recommended before distribution</Text>
 
     <Section title="What RISE stores">
-      Your goal, focus skill, mission state, reflections, progress, coins, and proof metadata are currently stored on this device using local app storage. RISE does not currently operate a cloud account or upload your proof to a RISE server.
+      RISE stores your plan, mission state, reflections, rewards, and proof references on this device. If you create an account, the service also stores your email, display name, protected password hash, selected goals and skills, mission and quiz events, focused minutes, and founding-member status so progress can sync. RISE does not upload the attached proof photo or video in this beta.
     </Section>
     <Section title="Photos, camera, and video">
       RISE asks for access only after you choose an upload or camera action. The selected local file URI and proof type are stored so the app can remember completion. Do not attach private information you do not want retained on this device.
@@ -32,7 +36,7 @@ export default function LegalScreen() {
       RISE checks attachment metadata, reflection quality, your mission-specific explanation, and your ownership confirmation before unlocking progress. These local consistency checks do not authenticate an image, identify who created it, detect every edited or unrelated file, or replace human review. Do not describe a proof as independently verified.
     </Section>
     <Section title="Optional faith and belief preferences">
-      If you choose the Faith & Spirituality path, RISE can store the tradition and trusted-source words you voluntarily enter. This can be sensitive personal information. In this beta it stays in local app storage, is optional, is not used for advertising, and can be deleted with the control below.
+      If you choose the Faith & Spirituality path, RISE can remember the tradition and trusted-source words you voluntarily enter. This sensitive preference uses device-protected storage in the native app and session-only memory on the website. It is optional, is not used for advertising, and can be deleted with the control below.
     </Section>
     <Section title="External resources">
       YouTube and Google Maps links are supporting resources. Opening them leaves RISE and is governed by that provider’s terms and privacy practices. RISE does not claim ownership of third-party content.
@@ -49,20 +53,23 @@ export default function LegalScreen() {
     <Section title="Rewards and results">
       XP and RISE Coins are in-app progress markers with no cash value. RISE cannot promise employment, income, grades, health outcomes, audience growth, or any other specific result.
     </Section>
+    <Section title="Beta usage and optional comparison">
+      If you create an account, RISE records signup timing, chosen skills, mission and quiz events, focused minutes, and approximate foreground app-session durations to show progress and understand whether the beta is useful. The operator can view private usage summaries without proof files or reflection text. Community ranking is off by default and compares mission counts only among members who opt in. You can leave it at any time in Your Progress.
+    </Section>
     <Section title="Payments, subscriptions, and refunds">
-      RISE does not currently sell subscriptions or accept payments. The displayed three-month beta and proposed first-50 waitlist offer do not start billing. Before paid launch, RISE needs server-enforced eligibility, written promotion rules, Apple/Google purchase handling, restoration, cancellation information, an applicable refund policy, and exact pricing before confirmation. RISE Coins have no monetary value.
+      RISE does not currently sell subscriptions or accept payments. No screen in this version starts billing or automatic renewal. Any future paid version must show exact pricing and terms, use the applicable store purchase system, support restoration and cancellation, and publish promotion and refund rules. RISE Coins have no monetary value.
     </Section>
     <Section title="Cookies, analytics, and email">
-      The current native beta does not set advertising cookies, include an analytics SDK, or send marketing email. A cookie banner or unsubscribe link would be misleading today. If the future website or app adds non-essential cookies, analytics, advertising, or email marketing, RISE must add the required notice, consent, and opt-out controls before enabling them.
+      The current native app does not set advertising cookies, include an analytics SDK, or send marketing email. A cookie banner or unsubscribe link would be misleading today. If the future website or app adds non-essential cookies, analytics, advertising, or email marketing, RISE must add the required notice, consent, and opt-out controls before enabling them.
     </Section>
     <Section title="Operator and contact details">
-      Public launch is blocked until the legal person or business operating RISE publishes an accurate business name, address where legally required, support contact, Privacy Policy URL, Terms URL, and response process. Placeholder contact details are not used.
+      Before distribution, the legal person or business operating RISE must publish an accurate operator name, address where legally required, support contact, Privacy Policy URL, Terms URL, and response process. RISE does not display invented contact information.
     </Section>
     <Section title="Age and family safety">
-      This prototype does not yet include verified parental consent or age assurance. Before release to children, RISE needs age-appropriate notices, high-privacy defaults, parental controls where required, and a formal child-safety assessment.
+      RISE is intended for people age 13 and older and is not offered in the App Store Kids Category. It does not include verified parental consent. Distribution to children would require age-appropriate notices, high-privacy defaults, parental controls where required, and a formal child-safety assessment.
     </Section>
     <Section title="Your choices">
-      You can deny camera or photo permission and change it in device Settings. You can also delete all RISE data saved by this prototype using the button below.
+      You can deny camera or photo permission and change it in device Settings. Settings lets you export a readable copy of local and synced records through your device share sheet. You can delete local data, and signed-in users can delete their server account and local data from Settings without contacting support.
     </Section>
     <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={deleteLocalData}><Text style={styles.deleteText}>Delete all local RISE data</Text></Pressable>
     <Pressable accessibilityRole="button" style={styles.helpButton} onPress={() => router.push("/help" as any)}><Text style={styles.helpText}>Open Help Center →</Text></Pressable>

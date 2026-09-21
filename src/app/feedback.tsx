@@ -3,7 +3,7 @@ import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView,
 import { router } from "expo-router";
 import { feedbackRepository, ProductFeedback } from "../services/feedbackRepository";
 
-const categories: Array<[ProductFeedback["category"], string]> = [
+const categories: [ProductFeedback["category"], string][] = [
   ["idea", "Idea"], ["bug", "Something broke"], ["confusing", "Confusing"], ["mission", "Mission quality"], ["accessibility", "Accessibility"],
 ];
 

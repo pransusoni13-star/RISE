@@ -818,40 +818,6 @@ export function buildSkillTreeForGoal(
 }
 
 // ============================================================
-// FIND SKILL
-// ============================================================
-
-function findSkill(
-  progress: RISEProgress,
-  skillId: string,
-  goal?: string
-): Skill | undefined {
-  const normalizedGoal = goal
-    ? normalizeGoal(goal)
-    : undefined;
-
-  if (normalizedGoal) {
-    const goalSkill =
-      progress.skills.find(
-        (skill) =>
-          skill.id === skillId &&
-          normalizeGoal(skill.goal) ===
-            normalizedGoal
-      );
-
-    if (goalSkill) {
-      return goalSkill;
-    }
-  }
-
-  return progress.skills.find(
-    (skill) =>
-      skill.id === skillId &&
-      !skill.goal
-  );
-}
-
-// ============================================================
 // ADD XP
 // ============================================================
 

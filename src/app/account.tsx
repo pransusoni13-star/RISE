@@ -1,21 +1,97 @@
-import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
+import { claimFoundingMembership, getCurrentUser, getPublicConfig, isApiConfigured, login, register, RiseUser } from "../services/auth";
 
 export default function AccountScreen() {
-  return <View style={styles.page}><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <Text style={styles.logo}>RISE</Text><Text style={styles.eyebrow}>PRIVATE BETA ACCESS</Text>
-    <Text style={styles.title}>Your progress should belong to <Text style={styles.green}>you.</Text></Text>
-    <Text style={styles.subtitle}>A secure account will sync missions, badges, proof status, and your access plan across devices.</Text>
-    <View style={styles.offer}><Text style={styles.offerLabel}>BETA OFFER</Text><Text style={styles.offerTitle}>Claim 3 months free</Text><Text style={styles.offerText}>No payment is collected in this private beta. Final price, renewal date, and cancellation terms must be shown before any future purchase.</Text></View>
-    <Pressable accessibilityRole="button" accessibilityState={{ disabled: true }} disabled style={[styles.googleButton, styles.disabled]}><Text style={styles.googleIcon}>G</Text><Text style={styles.googleText}>Continue with Google</Text></Pressable>
-    <Text style={styles.setupText}>Google sign-in is waiting for the production OAuth client and secure account backend. RISE will not simulate a login or store fake credentials.</Text>
-    <Pressable accessibilityRole="button" onPress={() => router.push("/onboarding" as any)} style={styles.betaButton}><Text style={styles.betaText}>Continue Private Beta on This Device →</Text></Pressable>
-    <View style={styles.waitlist}><Text style={styles.waitlistTitle}>On the original waitlist?</Text><Text style={styles.waitlistText}>The first 50 verified accounts can receive a one-year promotional entitlement after secure sign-in is connected. Eligibility must be assigned on the server—not by an editable button in the app.</Text></View>
-    <Text style={styles.legal}>By continuing, you can review RISE’s beta privacy and safety terms before creating your plan. This screen does not start a paid subscription.</Text>
-  </ScrollView></View>;
+  const [mode, setMode] = useState<"create" | "login">("create");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [foundingCode, setFoundingCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [existingUser, setExistingUser] = useState<RiseUser | null>(null);
+  const [foundingOpen, setFoundingOpen] = useState(false);
+  const signupStartedAt = useRef(0);
+
+  useEffect(() => {
+    signupStartedAt.current = Date.now();
+    void getCurrentUser().then(setExistingUser).finally(() => setCheckingSession(false));
+    void getPublicConfig().then((value) => setFoundingOpen(value.founding_redemption_enabled));
+  }, []);
+  const valid = /.+@.+\..+/.test(email.trim()) && password.length >= (mode === "create" ? 10 : 1) && (mode === "login" || displayName.trim().length >= 2);
+
+  const submit = async () => {
+    if (!valid || busy) return;
+    Keyboard.dismiss(); setBusy(true); setError("");
+    try {
+      const user = mode === "create" ? await register({ email, password, displayName, foundingCode: foundingOpen ? foundingCode : undefined, signupElapsedSeconds: signupStartedAt.current ? Math.min(3600, Math.max(0, Math.round((Date.now() - signupStartedAt.current) / 1000))) : undefined }) : await login(email, password);
+      setExistingUser(user);
+      router.replace(mode === "create" ? "/popular-skills" as never : "/(tabs)/today" as never);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "RISE could not complete sign in.");
+    } finally { setBusy(false); }
+  };
+
+  const claim = async () => {
+    if (!foundingCode.trim() || busy) return;
+    setBusy(true); setError("");
+    try { setExistingUser(await claimFoundingMembership(foundingCode)); setFoundingCode(""); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not claim founding access."); }
+    finally { setBusy(false); }
+  };
+
+  if (checkingSession) {
+    return <View style={styles.loadingPage}><View style={styles.brandMark}><Text style={styles.brandLetter}>R</Text></View><ActivityIndicator color="#7DE2AD" /><Text style={styles.loadingText}>Getting your space ready…</Text></View>;
+  }
+
+  if (existingUser) {
+    return <View style={styles.page}><ScrollView contentContainerStyle={styles.content}>
+      <Brand /><Text style={styles.eyebrow}>GOOD TO SEE YOU</Text><Text style={styles.title}>Ready for your next small win, {firstName(existingUser.display_name)}?</Text>
+      <Text style={styles.subtitle}>Your plan is waiting. Pick up where you left off or explore a fresh skill.</Text>
+      {existingUser.is_founding_member ? <View style={styles.founderCard}><View style={styles.founderTop}><Text style={styles.founderLabel}>FOUNDING MEMBER</Text><Text style={styles.founderBadge}>FIRST 60</Text></View><Text style={styles.founderTitle}>You helped RISE begin.</Text><Text style={styles.founderText}>Your complimentary founding year is connected to {existingUser.email}{existingUser.founding_expires_at ? ` until ${new Date(existingUser.founding_expires_at).toLocaleDateString()}` : ""}.</Text></View> : null}
+      {foundingOpen && !existingUser.is_founding_member ? <View style={styles.founderCard}><Text style={styles.founderLabel}>WAITLIST MEMBER?</Text><Text style={styles.founderTitle}>Claim your founding year.</Text><Text style={styles.founderText}>Enter the code sent to {existingUser.email}. It works only for that email.</Text><TextInput accessibilityLabel="Founding member code" value={foundingCode} onChangeText={setFoundingCode} autoCapitalize="none" autoCorrect={false} placeholder="Your founding code" placeholderTextColor="#668577" style={styles.founderInput} /><Pressable accessibilityRole="button" disabled={!foundingCode.trim() || busy} onPress={() => void claim()} style={styles.secondaryButton}><Text style={styles.secondaryText}>{busy ? "Checking…" : "Claim founding access"}</Text></Pressable></View> : null}
+      {error ? <View accessibilityRole="alert" style={styles.errorCard}><Text style={styles.errorText}>{error}</Text></View> : null}
+      <Pressable accessibilityRole="button" onPress={() => router.replace("/(tabs)/today" as never)} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryText}>Continue my plan</Text><Text style={styles.buttonArrow}>→</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => router.push("/popular-skills" as never)} style={styles.secondaryButton}><Text style={styles.secondaryText}>Explore popular skills</Text></Pressable>
+    </ScrollView></View>;
+  }
+
+  return <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <Brand /><Text style={styles.eyebrow}>{mode === "create" ? "A BETTER 1% STARTS HERE" : "WELCOME BACK"}</Text>
+      <Text style={styles.title}>{mode === "create" ? "Build skills that move your life forward." : "Keep your momentum going."}</Text>
+      <Text style={styles.subtitle}>{mode === "create" ? "Tell us where you want to grow. RISE turns it into small, useful missions made for your schedule." : "Sign in to continue your missions, streaks, and progress."}</Text>
+      <View style={styles.tabs} accessibilityRole="tablist">
+        <Pressable accessibilityRole="tab" accessibilityState={{ selected: mode === "create" }} onPress={() => { setMode("create"); setError(""); }} style={[styles.tab, mode === "create" && styles.tabActive]}><Text style={[styles.tabText, mode === "create" && styles.tabTextActive]}>Create account</Text></Pressable>
+        <Pressable accessibilityRole="tab" accessibilityState={{ selected: mode === "login" }} onPress={() => { setMode("login"); setError(""); }} style={[styles.tab, mode === "login" && styles.tabActive]}><Text style={[styles.tabText, mode === "login" && styles.tabTextActive]}>Sign in</Text></Pressable>
+      </View>
+      {!isApiConfigured() ? <View style={styles.errorCard}><Text style={styles.errorText}>This preview needs EXPO_PUBLIC_API_URL configured before accounts can connect.</Text></View> : null}
+      {mode === "create" ? <Field label="YOUR NAME" value={displayName} onChangeText={setDisplayName} placeholder="What should RISE call you?" maxLength={80} autoComplete="name" /> : null}
+      <Field label="EMAIL" value={email} onChangeText={setEmail} placeholder="you@example.com" maxLength={320} keyboardType="email-address" autoCapitalize="none" autoComplete="email" />
+      <Field label="PASSWORD" value={password} onChangeText={setPassword} placeholder={mode === "create" ? "At least 10 characters" : "Your password"} maxLength={128} secureTextEntry={!showPassword} autoCapitalize="none" autoComplete={mode === "create" ? "new-password" : "current-password"} accessory={<Pressable accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"} hitSlop={12} onPress={() => setShowPassword((value) => !value)}><Text style={styles.showText}>{showPassword ? "Hide" : "Show"}</Text></Pressable>} hint={mode === "create" ? "Use 10+ characters. A short phrase is easier to remember." : undefined} />
+      {mode === "create" && foundingOpen ? <View style={styles.founderCard}><Text style={styles.founderLabel}>FIRST 60 WAITLIST MEMBERS</Text><Text style={styles.founderTitle}>Claim your founding year.</Text><Text style={styles.founderText}>Use the one-time code sent privately to the same email address. Codes cannot be transferred or reused.</Text><TextInput accessibilityLabel="Founding member code" value={foundingCode} onChangeText={setFoundingCode} maxLength={128} autoCapitalize="none" autoCorrect={false} placeholder="Optional founding code" placeholderTextColor="#668577" style={styles.founderInput} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} /></View> : null}
+      {error ? <View accessibilityRole="alert" style={styles.errorCard}><Text style={styles.errorText}>{error}</Text></View> : null}
+      <Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || busy || !isApiConfigured() }} disabled={!valid || busy || !isApiConfigured()} onPress={() => void submit()} style={({ pressed }) => [styles.primaryButton, (!valid || busy || !isApiConfigured()) && styles.disabled, pressed && styles.pressed]}><Text style={styles.primaryText}>{busy ? "Setting things up…" : mode === "create" ? "Create my account" : "Sign in"}</Text>{!busy ? <Text style={styles.buttonArrow}>→</Text> : null}</Pressable>
+      <Pressable accessibilityRole="button" onPress={() => router.replace("/onboarding" as never)} style={styles.secondaryButton}><Text style={styles.secondaryText}>Continue without an account</Text></Pressable>
+      <Text style={styles.guestHint}>Your plan works on this device. Create an account later if you want to sync progress.</Text>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as never)} style={styles.policyLink}><Text style={styles.policyText}>Privacy, Safety & Terms</Text></Pressable>
+      <Text style={styles.legal}>No payment collected · Delete or export data in Settings</Text>
+    </ScrollView>
+  </KeyboardAvoidingView>;
+}
+
+function Brand() { return <View style={styles.brand}><View style={styles.brandMark}><Text style={styles.brandLetter}>R</Text></View><Text style={styles.logo}>RISE</Text><View style={styles.beta}><Text style={styles.betaText}>BETA</Text></View></View>; }
+function firstName(name: string) { return name.trim().split(/\s+/)[0] || "there"; }
+
+function Field(props: React.ComponentProps<typeof TextInput> & { label: string; hint?: string; accessory?: React.ReactNode }) {
+  const { label, hint, accessory, ...inputProps } = props;
+  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><View style={styles.inputShell}><TextInput {...inputProps} accessibilityLabel={label} placeholderTextColor="#64756E" style={styles.input} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />{accessory ? <View style={styles.accessory}>{accessory}</View> : null}</View>{hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}</View>;
 }
 
 const styles = StyleSheet.create({
-  page:{flex:1,backgroundColor:"#010807"},content:{padding:24,paddingTop:54,paddingBottom:60},logo:{color:"#7AF5B8",fontSize:22,fontWeight:"900",letterSpacing:6,marginBottom:42},eyebrow:{color:"#7AF5B8",fontSize:10,fontWeight:"900",letterSpacing:1.4},title:{color:"#F5FFF9",fontSize:40,lineHeight:46,fontWeight:"900",marginTop:11},green:{color:"#7AF5B8"},subtitle:{color:"#BBD8C8",fontSize:15,lineHeight:23,marginTop:13,marginBottom:24},offer:{backgroundColor:"#071B16",borderWidth:1,borderColor:"#29483B",borderRadius:20,padding:18,marginBottom:18},offerLabel:{color:"#7AF5B8",fontSize:9,fontWeight:"900",letterSpacing:1.2},offerTitle:{color:"#F5FFF9",fontSize:22,fontWeight:"900",marginTop:7},offerText:{color:"#9FC3AF",fontSize:12,lineHeight:19,marginTop:7},googleButton:{height:58,borderRadius:29,backgroundColor:"#F5FFF9",flexDirection:"row",alignItems:"center",justifyContent:"center"},disabled:{opacity:.45},googleIcon:{color:"#2563EB",fontSize:18,fontWeight:"900",marginRight:12},googleText:{color:"#0B1712",fontSize:14,fontWeight:"900"},setupText:{color:"#789886",fontSize:10,lineHeight:16,textAlign:"center",marginTop:10,marginHorizontal:9},betaButton:{minHeight:56,borderRadius:28,borderWidth:1,borderColor:"#7AF5B8",alignItems:"center",justifyContent:"center",marginTop:18},betaText:{color:"#7AF5B8",fontSize:13,fontWeight:"900"},waitlist:{backgroundColor:"rgba(255,207,112,0.06)",borderWidth:1,borderColor:"rgba(255,207,112,0.22)",borderRadius:17,padding:15,marginTop:20},waitlistTitle:{color:"#FFCF70",fontSize:13,fontWeight:"900"},waitlistText:{color:"#E9DFC3",fontSize:11,lineHeight:18,marginTop:5},legal:{color:"#668577",fontSize:9,lineHeight:15,textAlign:"center",marginTop:18},
+  page:{flex:1,backgroundColor:"#07110D"},loadingPage:{flex:1,backgroundColor:"#07110D",alignItems:"center",justifyContent:"center",gap:14},loadingText:{color:"#92A49B",fontSize:13},content:{width:"100%",maxWidth:560,alignSelf:"center",padding:24,paddingTop:48,paddingBottom:60},brand:{flexDirection:"row",alignItems:"center",marginBottom:38},brandMark:{width:32,height:32,borderRadius:10,backgroundColor:"#7DE2AD",alignItems:"center",justifyContent:"center",marginBottom:0},brandLetter:{color:"#07110D",fontSize:16,fontWeight:"900"},logo:{color:"#F6F8F5",fontSize:16,fontWeight:"800",letterSpacing:3,marginLeft:10},beta:{borderWidth:1,borderColor:"#314039",borderRadius:6,paddingHorizontal:6,paddingVertical:3,marginLeft:8},betaText:{color:"#84968D",fontSize:8,fontWeight:"800",letterSpacing:.8},eyebrow:{color:"#7DE2AD",fontSize:10,fontWeight:"800",letterSpacing:1.5},title:{color:"#F6F8F5",fontSize:36,lineHeight:43,fontWeight:"700",letterSpacing:-.8,marginTop:11},subtitle:{color:"#AEBDB5",fontSize:15,lineHeight:23,marginTop:12,marginBottom:26},tabs:{flexDirection:"row",backgroundColor:"#0D1914",borderWidth:1,borderColor:"#1F2D27",borderRadius:12,padding:4,marginBottom:22},tab:{flex:1,minHeight:42,borderRadius:9,alignItems:"center",justifyContent:"center"},tabActive:{backgroundColor:"#1B2C24"},tabText:{color:"#788A81",fontSize:12,fontWeight:"700"},tabTextActive:{color:"#EAF4EE"},field:{marginBottom:17},fieldLabel:{color:"#B7C5BE",fontSize:11,fontWeight:"700",marginBottom:8},inputShell:{height:54,borderRadius:12,borderWidth:1,borderColor:"#2A3A32",backgroundColor:"#0B1712",flexDirection:"row",alignItems:"center"},input:{height:52,color:"#F6F8F5",paddingHorizontal:15,fontSize:14,flex:1},accessory:{paddingRight:15},showText:{color:"#7DE2AD",fontSize:12,fontWeight:"700"},fieldHint:{color:"#71837A",fontSize:10,lineHeight:16,marginTop:6},founderCard:{backgroundColor:"#17170F",borderWidth:1,borderColor:"#3B3923",borderRadius:16,padding:17,marginVertical:7,marginBottom:20},founderTop:{flexDirection:"row",alignItems:"center",justifyContent:"space-between"},founderLabel:{color:"#E5C76B",fontSize:9,fontWeight:"800",letterSpacing:1.2},founderBadge:{color:"#9D9061",fontSize:9,fontWeight:"700"},founderTitle:{color:"#FFF9E8",fontSize:17,fontWeight:"700",marginTop:7},founderText:{color:"#BDB69C",fontSize:12,lineHeight:18,marginTop:6},founderInput:{height:48,borderRadius:11,borderWidth:1,borderColor:"#4A472E",backgroundColor:"#0C1511",color:"#F5FFF9",paddingHorizontal:13,fontSize:13,marginTop:13},errorCard:{backgroundColor:"#241412",borderWidth:1,borderColor:"#5B302C",borderRadius:12,padding:13,marginBottom:15},errorText:{color:"#FFB5AA",fontSize:12,lineHeight:18},primaryButton:{minHeight:56,borderRadius:12,backgroundColor:"#7DE2AD",alignItems:"center",justifyContent:"center",flexDirection:"row",gap:10,marginTop:4},pressed:{opacity:.82,transform:[{scale:.995}]},disabled:{opacity:.36},primaryText:{color:"#07110D",fontSize:14,fontWeight:"800"},buttonArrow:{color:"#07110D",fontSize:18,fontWeight:"700"},secondaryButton:{height:52,borderRadius:12,borderWidth:1,borderColor:"#34483E",alignItems:"center",justifyContent:"center",marginTop:11},secondaryText:{color:"#CEE2D6",fontSize:13,fontWeight:"700"},guestHint:{color:"#71837A",fontSize:10,lineHeight:16,textAlign:"center",marginTop:8},policyLink:{minHeight:46,alignItems:"center",justifyContent:"center",marginTop:8},policyText:{color:"#A9C9B8",fontSize:11,fontWeight:"700"},legal:{color:"#6F8077",fontSize:9,lineHeight:15,textAlign:"center",marginTop:4},
 });

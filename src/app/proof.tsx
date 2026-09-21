@@ -21,7 +21,8 @@ import {
 } from "../services/progressEngine";
 import { MissionFeedback, missionRepository } from "../services/missionRepository";
 import { createSevenDayPlan, loadProfile, PersonalizedMission, updateProfile } from "../services/personalization";
-import { ProofAssetDetails, reviewProof } from "../services/proofValidation";
+import { ProofAssetDetails, reviewProof, validateProofAsset } from "../services/proofValidation";
+import { recordProgressEvent } from "../services/auth";
 
 export default function ProofScreen() {
   const params = useLocalSearchParams();
@@ -30,11 +31,6 @@ export default function ProofScreen() {
     typeof params.task === "string"
       ? params.task
       : "Today's Task";
-
-  const taskType =
-    typeof params.type === "string"
-      ? params.type
-      : "mission";
 
   const skillId =
     typeof params.skillId === "string"
@@ -97,6 +93,29 @@ export default function ProofScreen() {
     return `proof:${missionId}`;
   }, [missionId]);
 
+  const acceptPickedAsset = (asset: ImagePicker.ImagePickerAsset, type: "photo" | "video") => {
+    const details: ProofAssetDetails = {
+      type,
+      uri: asset.uri,
+      width: asset.width,
+      height: asset.height,
+      duration: asset.duration,
+      fileSize: asset.fileSize,
+      fileName: asset.fileName,
+      mimeType: asset.mimeType,
+    };
+    const restriction = validateProofAsset(details);
+    if (!restriction.allowed) {
+      setPickerError(restriction.reason);
+      Alert.alert("Attachment not supported", restriction.reason);
+      return;
+    }
+
+    setProofType(type);
+    setAssetUri(asset.uri);
+    setAssetDetails(details);
+  };
+
   const attachFromLibrary = async () => {
     if (saving || submitted || pickerBusy) return;
     setPickerBusy(true);
@@ -105,7 +124,7 @@ export default function ProofScreen() {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         setPickerError("Photo access is off. Enable it in your phone Settings, then try again.");
-        Alert.alert("Allow photo access", "Open your phone Settings, select RISE or Expo Go, and allow photo access.");
+        Alert.alert("Allow photo access", "Open your phone Settings, select RISE, and allow photo access.");
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -117,9 +136,7 @@ export default function ProofScreen() {
       const asset = result.canceled ? undefined : result.assets[0];
       if (asset?.uri) {
         const type = asset.type === "video" ? "video" : "photo";
-        setProofType(type);
-        setAssetUri(asset.uri);
-        setAssetDetails({ type, uri: asset.uri, width: asset.width, height: asset.height, duration: asset.duration, fileSize: asset.fileSize, fileName: asset.fileName });
+        acceptPickedAsset(asset, type);
       }
     } catch (error) {
       console.warn("Proof library picker failed", error);
@@ -138,7 +155,7 @@ export default function ProofScreen() {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
         setPickerError("Camera access is off. Enable it in your phone Settings, then try again.");
-        Alert.alert("Allow camera access", "Open your phone Settings, select RISE or Expo Go, and allow camera access.");
+        Alert.alert("Allow camera access", "Open your phone Settings, select RISE, and allow camera access.");
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -148,9 +165,7 @@ export default function ProofScreen() {
       });
       const asset = result.canceled ? undefined : result.assets[0];
       if (asset?.uri) {
-        setProofType(type);
-        setAssetUri(asset.uri);
-        setAssetDetails({ type, uri: asset.uri, width: asset.width, height: asset.height, duration: asset.duration, fileSize: asset.fileSize, fileName: asset.fileName });
+        acceptPickedAsset(asset, type);
       }
     } catch (error) {
       console.warn("Proof camera failed", error);
@@ -281,6 +296,14 @@ export default function ProofScreen() {
         proof: { uri: assetUri, type: proofType, missionId, submittedAt, description: proofDescription.trim(), review: proofReview },
         completedAt: submittedAt,
       });
+      const missionMinutes = Number(typeof params.duration === "string" ? params.duration : "0");
+      await recordProgressEvent({
+        clientEventId: `mission:${missionId}`,
+        eventType: "mission_completed",
+        skillSlug: skillId.trim().toLowerCase().replace(/\s+/g, "-"),
+        minutes: Number.isFinite(missionMinutes) ? missionMinutes : 0,
+        metadata: { goal, proofType, completedAt: submittedAt },
+      }).catch(() => undefined);
       const profile = await loadProfile();
       const plan = createSevenDayPlan(profile);
       const index = plan.findIndex((mission) => mission.id === missionId);
@@ -332,55 +355,6 @@ export default function ProofScreen() {
       Alert.alert("Feedback was not saved", "Your mission is complete. You can continue and try feedback again later.");
     } finally {
       setFeedbackSaving(false);
-    }
-  };
-
-  const skipProof = async () => {
-    if (saving || submitted) {
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const parsedReward = Number(
-        typeof params.reward === "string"
-          ? params.reward
-          : "50"
-      );
-
-      const signedReward =
-        Number.isFinite(parsedReward) && parsedReward > 0
-          ? parsedReward
-          : 50;
-
-      /*
-       * Completing without proof gives a smaller reward.
-       */
-      const xpReward = Math.max(
-        10,
-        Math.round(signedReward * 0.4)
-      );
-
-      const coinReward = 10;
-
-      await saveProofProgress(
-        xpReward,
-        coinReward,
-        `Completed without proof: ${taskTitle}`
-      );
-    } catch (error) {
-      console.log(
-        "Failed to save skipped proof reward:",
-        error
-      );
-
-      Alert.alert(
-        "Could not save progress",
-        "Please try again."
-      );
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -595,7 +569,7 @@ export default function ProofScreen() {
 
         <View style={styles.taskCard}>
           <Text style={styles.taskLabel}>
-            TODAY'S TASK
+            TODAY’S TASK
           </Text>
 
           <Text style={styles.taskTitle}>
@@ -722,6 +696,7 @@ export default function ProofScreen() {
             placeholder="Example: This screenshot shows the working React Native form and the error state I added."
             placeholderTextColor="#668577"
             multiline
+            maxLength={500}
             style={styles.reviewInput}
           />
           <ReviewCheck checked={matchesMission} onPress={() => setMatchesMission((value) => !value)} text="The attachment clearly shows the result of this mission." />

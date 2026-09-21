@@ -76,7 +76,7 @@ function GoalSection({ title, subtitle, options, selectedId, onSelect }: { title
 }
 
 function GoalInput({ value, onChangeText, placeholder }: { value: string; onChangeText: (value: string) => void; placeholder: string }) {
-  return <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor="#668577" style={styles.input} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />;
+  return <TextInput value={value} onChangeText={onChangeText} maxLength={100} placeholder={placeholder} placeholderTextColor="#668577" style={styles.input} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />;
 }
 
 const styles = StyleSheet.create({

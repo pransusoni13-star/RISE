@@ -1,6 +1,29 @@
+import "@/global.css";
 import { Stack } from "expo-router";
+import { useEffect } from "react";
+import { AppState } from "react-native";
+import { recordProgressEvent } from "../services/auth";
 
 export default function RootLayout() {
+  useEffect(() => {
+    let activeSince = AppState.currentState === "active" ? Date.now() : 0;
+    const recordElapsed = () => {
+      if (!activeSince) return;
+      const now = Date.now();
+      const duration = Math.min(3600, Math.floor((now - activeSince) / 1000));
+      if (duration < 10) return;
+      activeSince = now;
+      void recordProgressEvent({ clientEventId: `session:${now}`, eventType: "app_session", skillSlug: "app", metadata: { duration_seconds: duration } }).catch(() => undefined);
+    };
+    // Record while foregrounded too: mobile OSes may suspend a network request on background.
+    const interval = setInterval(recordElapsed, 60_000);
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") { activeSince = Date.now(); return; }
+      recordElapsed();
+      activeSince = 0;
+    });
+    return () => { clearInterval(interval); subscription.remove(); };
+  }, []);
   return (
     <Stack
       screenOptions={{
@@ -13,6 +36,10 @@ export default function RootLayout() {
       <Stack.Screen name="onboarding" />
 
       <Stack.Screen name="account" />
+
+      <Stack.Screen name="popular-skills" />
+
+      <Stack.Screen name="account-progress" />
 
       <Stack.Screen name="goals" />
 

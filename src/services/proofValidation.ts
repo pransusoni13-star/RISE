@@ -6,12 +6,13 @@ export type ProofAssetDetails = {
   duration?: number | null;
   fileSize?: number;
   fileName?: string | null;
+  mimeType?: string | null;
 };
 
 export type ProofReview = {
   passed: boolean;
   checkedAt: string;
-  checks: Array<{ id: string; label: string; passed: boolean; detail: string }>;
+  checks: { id: string; label: string; passed: boolean; detail: string }[];
 };
 
 const stopWords = new Set([
@@ -19,6 +20,37 @@ const stopWords = new Set([
   "from", "learn", "mission", "progress", "result", "show", "skill", "today",
   "using", "with", "work", "your",
 ]);
+
+const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
+const PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
+const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/quicktime", "video/webm", "video/x-m4v"]);
+const PHOTO_EXTENSION = /\.(jpe?g|png|webp|heic|heif)$/i;
+const VIDEO_EXTENSION = /\.(mp4|mov|webm|m4v)$/i;
+
+export function validateProofAsset(asset: ProofAssetDetails): { allowed: boolean; reason: string } {
+  const maxBytes = asset.type === "video" ? MAX_VIDEO_BYTES : MAX_PHOTO_BYTES;
+  if (asset.fileSize != null && asset.fileSize > maxBytes) {
+    return {
+      allowed: false,
+      reason: `${asset.type === "video" ? "Video" : "Photo"} must be smaller than ${Math.round(maxBytes / 1024 / 1024)} MB.`,
+    };
+  }
+
+  const mimeType = asset.mimeType?.toLowerCase();
+  const allowedMimeTypes = asset.type === "video" ? VIDEO_MIME_TYPES : PHOTO_MIME_TYPES;
+  if (mimeType && !allowedMimeTypes.has(mimeType)) {
+    return { allowed: false, reason: "Choose a standard photo, screenshot, or video file." };
+  }
+
+  const fileName = asset.fileName?.trim();
+  const allowedExtension = asset.type === "video" ? VIDEO_EXTENSION : PHOTO_EXTENSION;
+  if (fileName && !allowedExtension.test(fileName)) {
+    return { allowed: false, reason: "This file extension is not supported for mission proof." };
+  }
+
+  return { allowed: true, reason: "File type and size are supported." };
+}
 
 export function reflectionQuality(value: string) {
   const text = value.trim().replace(/\s+/g, " ");
@@ -78,12 +110,13 @@ export function reviewProof(input: {
   const description = input.proofDescription.toLowerCase();
   const matchedKeywords = keywords.filter((keyword) => description.includes(keyword));
   const asset = input.asset;
-  const usableAsset = !!asset?.uri && (
+  const assetRestriction = asset ? validateProofAsset(asset) : null;
+  const usableAsset = !!asset?.uri && assetRestriction?.allowed === true && (
     asset.type === "video"
       ? (asset.duration == null || (asset.duration >= 2000 && asset.duration <= 60000))
-      : (!asset.width || asset.width >= 200) && (!asset.height || asset.height >= 200)
+      : (asset.width == null || asset.width >= 200) && (asset.height == null || asset.height >= 200)
   );
-  const meaningfulFile = !asset?.fileSize || asset.fileSize >= 10_000;
+  const meaningfulFile = asset?.fileSize == null || asset.fileSize >= 10_000;
   const contextMatch = descriptionWords.length >= 8 && (
     matchedKeywords.length > 0 || keywords.length === 0
   );
@@ -94,8 +127,8 @@ export function reviewProof(input: {
       label: "Usable attachment",
       passed: usableAsset && meaningfulFile,
       detail: asset?.type === "video"
-        ? "Video must be usable and no longer than 60 seconds."
-        : "Photo or screenshot must be large enough to review.",
+        ? assetRestriction?.allowed === false ? assetRestriction.reason : "Video must be usable and no longer than 60 seconds."
+        : assetRestriction?.allowed === false ? assetRestriction.reason : "Photo or screenshot must be large enough to review.",
     },
     {
       id: "reflection",
