@@ -40,6 +40,8 @@ export type ProgressDashboard = {
 export type LeaderboardSnapshot = { opted_in: boolean; rank: number | null; participants: number; missions: number };
 
 let webSession: AuthResponse | null = null;
+let usageAnalyticsConsent = false;
+let usageAnalyticsEnabledAt = 0;
 
 export const isApiConfigured = () => Boolean(API_URL);
 
@@ -55,6 +57,7 @@ async function getStored(key: string): Promise<string | null> {
 }
 
 async function storeSession(session: AuthResponse | null): Promise<void> {
+  if (!session) { usageAnalyticsConsent = false; usageAnalyticsEnabledAt = 0; }
   if (Platform.OS === "web") {
     webSession = session;
     return;
@@ -128,15 +131,20 @@ async function authenticatedRequest<T>(path: string, init: RequestInit = {}): Pr
   }
 }
 
-export async function register(input: { email: string; password: string; displayName: string; foundingCode?: string; signupElapsedSeconds?: number }): Promise<RiseUser> {
-  const session = await rawRequest<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify({ email: input.email.trim().toLowerCase(), password: input.password, display_name: input.displayName.trim(), founding_code: input.foundingCode?.trim() || null, signup_elapsed_seconds: input.signupElapsedSeconds ?? null }) });
+export async function register(input: { email: string; password: string; displayName: string; foundingCode?: string; signupElapsedSeconds?: number; usageAnalyticsOptIn?: boolean }): Promise<RiseUser> {
+  const session = await rawRequest<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify({ email: input.email.trim().toLowerCase(), password: input.password, display_name: input.displayName.trim(), founding_code: input.foundingCode?.trim() || null, signup_elapsed_seconds: input.usageAnalyticsOptIn ? input.signupElapsedSeconds ?? null : null, usage_analytics_opt_in: input.usageAnalyticsOptIn ?? false }) });
   await storeSession(session);
+  usageAnalyticsConsent = Boolean(input.usageAnalyticsOptIn);
+  usageAnalyticsEnabledAt = usageAnalyticsConsent ? Date.now() : 0;
   return session.user;
 }
 
 export async function login(email: string, password: string): Promise<RiseUser> {
   const session = await rawRequest<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify({ email: email.trim().toLowerCase(), password }) });
+  usageAnalyticsConsent = false;
+  usageAnalyticsEnabledAt = 0;
   await storeSession(session);
+  void getUsageAnalyticsConsent();
   return session.user;
 }
 
@@ -204,6 +212,26 @@ export async function getLeaderboard(): Promise<LeaderboardSnapshot | null> {
 
 export async function setLeaderboardOptIn(optIn: boolean): Promise<LeaderboardSnapshot> {
   return authenticatedRequest("/users/me/leaderboard", { method: optIn ? "PUT" : "DELETE" });
+}
+
+export const isUsageAnalyticsEnabled = () => usageAnalyticsConsent;
+export const getUsageAnalyticsEnabledAt = () => usageAnalyticsEnabledAt;
+
+export async function getUsageAnalyticsConsent(): Promise<boolean> {
+  if (!API_URL || !(await getStored(ACCESS_KEY))) { usageAnalyticsConsent = false; return false; }
+  try {
+    const result = await authenticatedRequest<{ opted_in: boolean }>("/users/me/usage-analytics");
+    if (result.opted_in && !usageAnalyticsConsent) usageAnalyticsEnabledAt = Date.now();
+    usageAnalyticsConsent = result.opted_in;
+    return usageAnalyticsConsent;
+  } catch { usageAnalyticsConsent = false; return false; }
+}
+
+export async function setUsageAnalyticsConsent(optIn: boolean): Promise<boolean> {
+  const result = await authenticatedRequest<{ opted_in: boolean }>("/users/me/usage-analytics", { method: optIn ? "PUT" : "DELETE" });
+  if (result.opted_in && !usageAnalyticsConsent) usageAnalyticsEnabledAt = Date.now();
+  usageAnalyticsConsent = result.opted_in;
+  return usageAnalyticsConsent;
 }
 
 const FALLBACK_SKILLS: PopularSkill[] = [

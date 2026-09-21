@@ -102,3 +102,9 @@ class LeaderboardConsent(Base):
     __tablename__ = "leaderboard_consents"
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     opted_in_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
+class UsageAnalyticsConsent(Base):
+    __tablename__ = "usage_analytics_consents"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    opted_in_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)

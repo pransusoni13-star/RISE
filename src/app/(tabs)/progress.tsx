@@ -121,7 +121,7 @@ export default function ProgressTabScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>CYCLE BADGES</Text>
         {(profile?.cycleBadges || []).length ? profile!.cycleBadges!.map((badge) => <View key={badge} style={styles.listItem}><Text style={styles.listEmoji}>🏅</Text><View style={styles.listTextWrap}><Text style={styles.listTitle}>{badge}</Text><Text style={styles.listSubtitle}>Earned by passing a cycle quiz at 80% or higher.</Text></View></View>) : <Text style={styles.emptyState}>Complete your cycle and pass its quiz to earn your first badge.</Text>}
-        <Text style={styles.benchmarkNote}>RISE compares you with your own previous work. A public leaderboard would require informed consent, anti-cheat controls, moderation, and anonymized server data, so the app does not invent rankings.</Text>
+        <Text style={styles.benchmarkNote}>Your own growth matters most. Signed-in members can optionally view a private, self-reported mission comparison. It is not proof of skill or independently verified work.</Text>
       </View>
 
       <View style={styles.section}>

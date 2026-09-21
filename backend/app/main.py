@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .database import Base, engine, get_db
-from .models import FoundingInvite, LeaderboardConsent, ProgressEvent, RefreshSession, SkillCatalog, User, UserProfile, UserSkill, now_utc
+from .models import FoundingInvite, LeaderboardConsent, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
 from .schemas import AuthResponse, DashboardResponse, FoundingClaimRequest, LoginRequest, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
 
@@ -56,12 +56,18 @@ POPULAR_SKILLS = [
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    if request.method in {"POST", "PUT", "PATCH"}:
+        content_length = request.headers.get("content-length")
+        if content_length and (not content_length.isdecimal() or int(content_length) > 16384):
+            return Response(status_code=413, content="Request body too large")
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-store" if request.url.path.startswith(("/auth", "/users", "/profiles", "/progress", "/admin")) else "public, max-age=60"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    if settings.env.lower() == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
     return response
 
 
@@ -130,7 +136,9 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
         if invite:
             invite.claimed_at = now_utc()
             invite.claimed_by_user_id = user.id
-        if payload.signup_elapsed_seconds is not None:
+        if payload.usage_analytics_opt_in:
+            db.add(UsageAnalyticsConsent(user_id=user.id))
+        if payload.usage_analytics_opt_in and payload.signup_elapsed_seconds is not None:
             db.add(ProgressEvent(user_id=user.id, client_event_id="signup:completed", event_type="signup_completed", skill_slug="onboarding", value=0, minutes=0, event_metadata={"elapsed_seconds": payload.signup_elapsed_seconds}))
         db.commit()
     except IntegrityError as exc:
@@ -152,7 +160,8 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
 
 
 @app.post("/auth/refresh", response_model=AuthResponse)
-def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> AuthResponse:
+def refresh(payload: RefreshRequest, request: Request, db: Session = Depends(get_db)) -> AuthResponse:
+    enforce_rate_limit(request, "refresh", limit=30)
     token_hash = hash_token(payload.refresh_token)
     session = db.scalar(select(RefreshSession).where(RefreshSession.token_hash == token_hash, RefreshSession.revoked_at.is_(None)))
     if not session or session.expires_at.replace(tzinfo=timezone.utc) <= now_utc():
@@ -180,7 +189,8 @@ def me(user: User = Depends(get_current_user)) -> User:
 
 
 @app.post("/users/me/founding-claim", response_model=UserResponse)
-def claim_founding(payload: FoundingClaimRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
+def claim_founding(payload: FoundingClaimRequest, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
+    enforce_rate_limit(request, "founding-claim", limit=6)
     if not settings.founding_redemption_enabled:
         raise HTTPException(status_code=403, detail="Founding-member claims open after the App Store launch")
     if user.is_founding_member:
@@ -204,6 +214,7 @@ def delete_me(user: User = Depends(get_current_user), db: Session = Depends(get_
     db.execute(delete(ProgressEvent).where(ProgressEvent.user_id == user.id))
     db.execute(delete(UserSkill).where(UserSkill.user_id == user.id))
     db.execute(delete(LeaderboardConsent).where(LeaderboardConsent.user_id == user.id))
+    db.execute(delete(UsageAnalyticsConsent).where(UsageAnalyticsConsent.user_id == user.id))
     db.execute(delete(UserProfile).where(UserProfile.user_id == user.id))
     db.delete(user)
     db.commit()
@@ -252,6 +263,8 @@ def record_progress(payload: ProgressEventCreate, user: User = Depends(get_curre
         return {"created": False}
     event = ProgressEvent(user_id=user.id, client_event_id=payload.client_event_id, event_type=payload.event_type, skill_slug=payload.skill_slug, value=payload.value, minutes=payload.minutes, event_metadata=payload.metadata)
     if payload.event_type == "app_session":
+        if not db.get(UsageAnalyticsConsent, user.id):
+            raise HTTPException(status_code=403, detail="Usage analytics is off")
         seconds = payload.metadata.get("duration_seconds")
         if not isinstance(seconds, int) or not 10 <= seconds <= 3600 or payload.minutes != 0:
             raise HTTPException(status_code=422, detail="Invalid app session duration")
@@ -310,6 +323,27 @@ def my_leaderboard(user: User = Depends(get_current_user), db: Session = Depends
     return leaderboard_snapshot(db, user)
 
 
+@app.get("/users/me/usage-analytics")
+def usage_analytics_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, bool]:
+    return {"opted_in": db.get(UsageAnalyticsConsent, user.id) is not None}
+
+
+@app.put("/users/me/usage-analytics")
+def opt_in_usage_analytics(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, bool]:
+    if not db.get(UsageAnalyticsConsent, user.id):
+        db.add(UsageAnalyticsConsent(user_id=user.id))
+        db.commit()
+    return {"opted_in": True}
+
+
+@app.delete("/users/me/usage-analytics")
+def opt_out_usage_analytics(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, bool]:
+    db.execute(delete(UsageAnalyticsConsent).where(UsageAnalyticsConsent.user_id == user.id))
+    db.execute(delete(ProgressEvent).where(ProgressEvent.user_id == user.id, ProgressEvent.event_type.in_(["app_session", "signup_completed"])))
+    db.commit()
+    return {"opted_in": False}
+
+
 @app.put("/users/me/leaderboard")
 def opt_in_leaderboard(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     if not db.get(LeaderboardConsent, user.id):
@@ -330,7 +364,8 @@ def admin_analytics(x_rise_admin_key: str | None = Header(default=None), db: Ses
     if not settings.admin_api_key or not x_rise_admin_key or not compare_digest(x_rise_admin_key, settings.admin_api_key):
         raise HTTPException(status_code=403, detail="Admin access denied")
     users = list(db.scalars(select(User)))
-    events = list(db.scalars(select(ProgressEvent)))
+    consented_user_ids = set(db.scalars(select(UsageAnalyticsConsent.user_id)))
+    events = list(db.scalars(select(ProgressEvent).where(ProgressEvent.user_id.in_(consented_user_ids)))) if consented_user_ids else []
     event_by_user: dict[str, list[ProgressEvent]] = defaultdict(list)
     for event in events:
         event_by_user[event.user_id].append(event)
@@ -339,6 +374,8 @@ def admin_analytics(x_rise_admin_key: str | None = Header(default=None), db: Ses
     members = []
     first_mission_delays = []
     for user in users:
+        if user.id not in consented_user_ids:
+            continue
         user_events = event_by_user[user.id]
         missions = [event for event in user_events if event.event_type == "mission_completed"]
         minutes = sum(event.minutes for event in user_events)
@@ -349,4 +386,4 @@ def admin_analytics(x_rise_admin_key: str | None = Header(default=None), db: Ses
         last_activity = max((event.created_at for event in user_events), default=None)
         members.append({"user_id": user.id, "joined_at": user.created_at, "missions_completed": len(missions), "focused_minutes": minutes, "app_minutes": round(app_seconds / 60, 1), "active_days": len({event.created_at.date() for event in user_events}), "last_activity_at": last_activity})
     members.sort(key=lambda member: (-member["missions_completed"], -member["focused_minutes"]))
-    return {"total_members": len(users), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "members_with_mission": sum(member["missions_completed"] > 0 for member in members), "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "members": members[:100]}
+    return {"total_members": len(users), "analytics_participants": len(consented_user_ids), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "members_with_mission": sum(member["missions_completed"] > 0 for member in members), "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "members": members[:100]}

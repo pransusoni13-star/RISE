@@ -23,7 +23,7 @@ def main() -> int:
     except (HTTPError, URLError) as error:
         print(f"Could not read analytics: {error}", file=sys.stderr)
         return 1
-    print(f"Members: {report['total_members']}  |  Active last 7 days: {report['active_last_7_days']}")
+    print(f"Members: {report['total_members']}  |  Analytics opt-ins: {report['analytics_participants']}  |  Active opt-ins last 7 days: {report['active_last_7_days']}")
     print(f"Completed at least one mission: {report['members_with_mission']}  |  Total missions: {report['total_missions']}")
     print(f"Focused minutes: {report['total_focused_minutes']}")
     print(f"App minutes (foreground sessions): {report['total_app_minutes']}")

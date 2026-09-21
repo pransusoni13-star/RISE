@@ -66,7 +66,7 @@ def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkey
         assert client.get("/config/public").json()["founding_redemption_enabled"] is False
         blocked = client.post("/auth/register", json={"email": "founder@example.com", "password": "very-secure-password", "display_name": "First Founder", "founding_code": "FOUNDING-ONE"})
         assert blocked.status_code == 403
-        response = client.post("/auth/register", json={"email": "founder@example.com", "password": "very-secure-password", "display_name": "First Founder", "signup_elapsed_seconds": 48})
+        response = client.post("/auth/register", json={"email": "founder@example.com", "password": "very-secure-password", "display_name": "First Founder", "signup_elapsed_seconds": 48, "usage_analytics_opt_in": True})
         assert response.status_code == 201
         headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
         session_event = {"client_event_id": "session:first", "event_type": "app_session", "skill_slug": "app", "metadata": {"duration_seconds": 120}}
@@ -80,9 +80,15 @@ def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkey
         monkeypatch.setattr(settings, "admin_api_key", "test-admin-key-long-enough-for-a-test-123")
         analytics = client.get("/admin/analytics", headers={"X-RISE-ADMIN-KEY": settings.admin_api_key}).json()
         assert analytics["total_members"] == 1
+        assert analytics["analytics_participants"] == 1
         assert analytics["average_signup_seconds"] == 48
         assert analytics["total_app_minutes"] == 2.0
         assert analytics["total_focused_minutes"] == 0
+        assert client.delete("/users/me/usage-analytics", headers=headers).json() == {"opted_in": False}
+        assert client.get("/admin/analytics", headers={"X-RISE-ADMIN-KEY": settings.admin_api_key}).json()["analytics_participants"] == 0
+        assert client.post("/progress/events", json={**session_event, "client_event_id": "session:second"}, headers=headers).status_code == 403
+        assert client.put("/users/me/usage-analytics", headers=headers).json() == {"opted_in": True}
+        assert client.get("/admin/analytics", headers={"X-RISE-ADMIN-KEY": settings.admin_api_key}).json()["total_app_minutes"] == 0
 
 
 def test_production_settings_require_private_database_and_https_origin() -> None:
@@ -95,3 +101,17 @@ def test_production_settings_require_private_database_and_https_origin() -> None
     settings = Settings(env="production", jwt_secret="a-strong-production-secret-at-least-32", database_url="postgresql+psycopg://rise:password@db/rise", allowed_origins="https://rise.example", admin_api_key="test-admin-key-long-enough-for-a-test-123")
     settings.validate_for_startup()
     assert settings.cors_origins == ["https://rise.example"]
+
+
+def test_usage_analytics_requires_opt_in_and_metadata_is_bounded() -> None:
+    with TestClient(app) as client:
+        session = client.post("/auth/register", json={"email": "private@example.com", "password": "very-secure-password", "display_name": "Private User", "signup_elapsed_seconds": 20}).json()
+        headers = {"Authorization": f"Bearer {session['access_token']}"}
+        assert client.get("/users/me/usage-analytics", headers=headers).json() == {"opted_in": False}
+        event = {"client_event_id": "session:private", "event_type": "app_session", "skill_slug": "app", "metadata": {"duration_seconds": 60}}
+        assert client.post("/progress/events", json=event, headers=headers).status_code == 403
+        assert client.post("/progress/events", json={**event, "event_type": "mission_completed", "metadata": {"note": "x" * 3000}}, headers=headers).status_code == 422
+        assert client.put("/users/me/usage-analytics", headers=headers).json() == {"opted_in": True}
+        assert client.post("/progress/events", json=event, headers=headers).status_code == 201
+        assert client.delete("/users/me/usage-analytics", headers=headers).json() == {"opted_in": False}
+        assert all(item["event_type"] != "app_session" for item in client.get("/users/me/export", headers=headers).json()["progress_events"])

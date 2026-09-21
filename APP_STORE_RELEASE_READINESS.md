@@ -13,14 +13,14 @@ Updated: 2026-09-21
 - Permanent deletion of all keys owned by RISE from Settings and Privacy.
 - User-controlled export of local and synced account records from Settings.
 - Native protected storage for optional faith/trusted-source preferences; session-only handling on web.
-- No analytics SDK, advertising SDK, marketing email, payment flow, or RISE proof-file upload.
+- No analytics SDK, advertising SDK, marketing email, payment flow, or RISE proof-file upload. Optional first-party operator analytics is off by default. Opting out removes timing events and excludes core progress from operator reports, without deleting the member's own progress.
 - FastAPI account service with Argon2 password hashes, short-lived JWT access tokens, rotated refresh tokens, server authorization, deletion, and progress export.
 - Private operator usage report and opt-in, identity-free community comparison.
 - Founding-member redemption disabled by default until the public App Store launch.
 - Honest rewards with no cash value.
 - Quiz gate, progress, proof reflection, and mission review behavior.
 - Static web export and mobile/desktop responsive public landing experience.
-- EAS preview and production build profiles.
+- EAS preview, TestFlight, and production build profiles.
 - Expo lint configuration plus a single `npm run check` release-quality command.
 - Proof file type, size, and video-duration restrictions.
 - Static-host and Vercel security-header policies plus documented security status.
@@ -41,6 +41,7 @@ These values cannot be invented or safely selected by code:
 10. Production PostgreSQL and HTTPS API hosting, a production JWT secret, backups, migrations, and shared rate limiting.
 11. A non-expiring App Review account plus review instructions for account-gated features.
 12. A complete real-iPhone QA pass and the launch steps in `TESTFLIGHT_RUNBOOK.md`.
+13. Fix or formally assess the current moderate dependency advisories; obtain a focused authorization and security review.
 
 ## Required physical-device verification
 
@@ -62,6 +63,7 @@ These values cannot be invented or safely selected by code:
 - App tracking: No.
 - Advertising: None.
 - Analytics SDK: None.
+- First-party account progress metrics: Yes, for the user's own synced experience. Optional operator analytics includes mission activity and signup/app-use timing when opted in. Complete Apple's privacy questionnaire accordingly.
 - RISE cloud upload: None.
 - User-generated public content: None.
 

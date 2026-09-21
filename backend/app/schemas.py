@@ -1,4 +1,5 @@
 from datetime import datetime
+from json import dumps
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -10,6 +11,7 @@ class RegisterRequest(BaseModel):
     display_name: str = Field(min_length=2, max_length=80)
     founding_code: str | None = Field(default=None, max_length=128)
     signup_elapsed_seconds: int | None = Field(default=None, ge=0, le=3600)
+    usage_analytics_opt_in: bool = False
 
     @field_validator("display_name")
     @classmethod
@@ -64,6 +66,13 @@ class ProgressEventCreate(BaseModel):
     value: float = Field(default=0, ge=0, le=100)
     minutes: int = Field(default=0, ge=0, le=1440)
     metadata: dict = Field(default_factory=dict)
+
+    @field_validator("metadata")
+    @classmethod
+    def limit_metadata(cls, value: dict) -> dict:
+        if len(dumps(value, ensure_ascii=False)) > 2048 or any(not isinstance(key, str) or len(key) > 80 for key in value):
+            raise ValueError("Event metadata is too large")
+        return value
 
 
 class SkillResponse(BaseModel):

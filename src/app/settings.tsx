@@ -3,13 +3,19 @@ import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from "rea
 import { router } from "expo-router";
 import { loadProfile, RiseProfile } from "../services/personalization";
 import { createRiseDataExport, deleteAllRiseData } from "../services/localData";
-import { deleteCloudAccount, getCloudDataExport, getCurrentUser, logout, RiseUser } from "../services/auth";
+import { deleteCloudAccount, getCloudDataExport, getCurrentUser, getUsageAnalyticsConsent, logout, RiseUser, setUsageAnalyticsConsent } from "../services/auth";
 
 export default function SettingsScreen() {
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [user, setUser] = useState<RiseUser | null>(null);
+  const [usageAnalyticsOptIn, setUsageAnalyticsOptIn] = useState(false);
   useEffect(() => { void loadProfile().then(setProfile); }, []);
-  useEffect(() => { void getCurrentUser().then(setUser); }, []);
+  useEffect(() => { void getCurrentUser().then(setUser); void getUsageAnalyticsConsent().then(setUsageAnalyticsOptIn); }, []);
+
+  const toggleUsageAnalytics = async () => {
+    try { setUsageAnalyticsOptIn(await setUsageAnalyticsConsent(!usageAnalyticsOptIn)); }
+    catch { Alert.alert("Could not update privacy choice", "Check your connection and try again."); }
+  };
 
   const exportLocalData = async () => {
     try {
@@ -80,6 +86,7 @@ export default function SettingsScreen() {
     } } as any)} />
 
     <Text style={styles.section}>HELP & CONTROL</Text>
+    {user ? <Row title={`Share improvement analytics: ${usageAnalyticsOptIn ? "On" : "Off"}`} text="Optional. Turning off excludes you from operator reports and deletes past usage-time and signup-time records; your own mission progress stays." onPress={() => void toggleUsageAnalytics()} /> : null}
     {user ? <><Row title="Synced Improvement" text="Quiz baselines, completed missions, and focused minutes" onPress={() => router.push("/account-progress" as any)} /><Row title="Sign Out" text={`Signed in as ${user.email}`} onPress={() => void logout().then(() => router.replace("/account" as never))} /></> : <Row title="Create or Sign In" text="Sync skills and improvement across the beta" onPress={() => router.push("/account" as any)} />}
     <Row title="Popular Skill Quick Starts" text="Begin a proven starter path in one tap" onPress={() => router.push("/popular-skills" as any)} />
     <Row title="RISE Rewards" text="See your coin balance and honest reward rules" onPress={() => router.push("/rewards" as any)} />
