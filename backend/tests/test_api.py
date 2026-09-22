@@ -6,12 +6,26 @@ os.environ["RISE_DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
 os.environ["RISE_JWT_SECRET"] = "test-secret-that-is-long-enough-for-tests-12345"
 
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import OperationalError
 
 from app.database import Base, SessionLocal, engine
 from app.config import Settings
 from app.main import app, settings
 from app.models import FoundingInvite
 from app.security import hash_token
+
+
+def test_health_checks_database(monkeypatch) -> None:
+    with TestClient(app) as client:
+        assert client.get("/health").json() == {"status": "ok"}
+
+        def unavailable():
+            raise OperationalError("SELECT 1", {}, RuntimeError("database unavailable"))
+
+        monkeypatch.setattr(engine, "connect", unavailable)
+        response = client.get("/health")
+        assert response.status_code == 503
+        assert response.json() == {"detail": "Service temporarily unavailable"}
 
 
 def setup_function() -> None:
