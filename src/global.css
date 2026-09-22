@@ -33,7 +33,7 @@ body {
    feedback subtle so cards, links, and primary buttons all feel consistent. */
 :where(button, a, [role="button"], [role="link"], [role="tab"]):not([aria-disabled="true"]):not(:disabled) {
   cursor: pointer;
-  transition: filter 160ms ease, opacity 160ms ease, transform 160ms ease;
+  transition: filter 160ms ease, opacity 160ms ease;
 }
 
 :where(button, a, [role="button"], [role="link"], [role="tab"]):not([aria-disabled="true"]):not(:disabled):hover {
@@ -42,7 +42,6 @@ body {
 
 :where(button, a, [role="button"], [role="link"], [role="tab"]):not([aria-disabled="true"]):not(:disabled):active {
   opacity: 0.83;
-  transform: translateY(1px);
 }
 
 ::selection {
@@ -61,5 +60,9 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  :where(button, a, [role="button"], [role="link"], [role="tab"]) {
+    transform: none !important;
   }
 }

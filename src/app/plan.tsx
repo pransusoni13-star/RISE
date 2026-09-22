@@ -8,11 +8,13 @@ import {
   RiseProfile,
 } from "../services/personalization";
 import { missionRepository } from "../services/missionRepository";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const valueOf = (value: string | string[] | undefined, fallback = "") =>
   Array.isArray(value) ? value[0] || fallback : value || fallback;
 
 export default function PlanScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const [savedProfile, setSavedProfile] = useState<RiseProfile | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
@@ -72,7 +74,7 @@ export default function PlanScreen() {
 
   return (
     <View style={styles.page}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
         <Text style={styles.eyebrow}>YOUR PERSONAL 1% SYSTEM</Text>
         <Text style={styles.title}>
           One connected cycle.{"\n"}<Text style={styles.green}>Two balanced directions.</Text>
@@ -124,7 +126,7 @@ export default function PlanScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { bottom: insets.bottom + 12 }]}>
         <Pressable accessibilityRole="button" style={({ pressed }) => [styles.button, pressed && styles.pressed]} onPress={() => nextMission ? openMission(nextMission) : router.push("/(tabs)/progress" as never)}>
           <Text style={styles.buttonText}>{nextMission ? `Continue Day ${nextMission.day} →` : "View my progress →"}</Text>
         </Pressable>

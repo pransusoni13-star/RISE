@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { loadProfile, PersonalizedMission, RiseProfile } from "../services/personalization";
 import { spiritualPractice, spiritualResource, spiritualVideoSearch } from "../services/spiritualResources";
 import { missionRepository, MissionStatus } from "../services/missionRepository";
@@ -46,6 +47,7 @@ const fallbackMission: PersonalizedMission = {
 };
 
 export default function ActionScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const [reflection, setReflection] = useState("");
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -125,7 +127,7 @@ export default function ActionScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={8}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 140 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}>
           <Pressable onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
           <Text style={styles.day}>DAY {mission.day} • YOUR 1% MISSION</Text>
@@ -233,7 +235,7 @@ export default function ActionScreen() {
         <Text style={styles.hint}>Next: attach a screenshot, photo, or short video. A text-only completion will not count.</Text>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { bottom: insets.bottom + 12 }]}>
         <Pressable
           style={[styles.button, (!reflectionReview.passed || completedSteps.length !== mission.steps.length) && styles.disabled]}
           onPress={continueToProof}

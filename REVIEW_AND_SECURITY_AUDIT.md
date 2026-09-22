@@ -48,6 +48,16 @@ The screenshot comments disagree about Stripe; Apple's own guideline 3.1.1, not 
 
 ## Hard gates before a public TestFlight link
 
+### September 22 UI and dependency follow-up
+
+Safe-area spacing now covers the tab bar and fixed controls on Plan, Action, Focus, and Proof. Proof uses a keyboard-avoiding layout with an in-flow submission footer; verify its behavior on a signed iPhone build. The web landing example now has a working skill-selection button, calmer styling, and reduced-motion support. The app explicitly uses its implemented dark theme.
+
+Local verification: TypeScript, ESLint, Expo package compatibility, web export, and all six backend tests passed. Browser checks at 390px confirmed no landing-page horizontal overflow and working navigation from the example mission to popular skills to custom onboarding. These checks do not certify every screen or native device behavior.
+
+`npm audit --omit=dev` reports 14 moderate dependency findings, arising from `decode-uri-component` (GHSA-vcc3-ghjq-m6fr) and `uuid` (GHSA-w5hq-g745-h8pq) plus their dependent packages. These are unresolved. The suggested force-fix changes Expo-related major versions; do not apply it without compatibility testing. The newer decoder also changes module format, so a blind override is not an established fix.
+
+Preflight still fails for the missing iOS bundle identifier, EAS project link, production HTTPS API, public privacy URL, and public support URL. Supply real owner-controlled values; placeholders must not be treated as completion.
+
 1. A production HTTPS API with managed PostgreSQL, secrets, backups, actual body-size enforcement, shared rate limiting, and monitored uptime.
 2. A real Apple-owned bundle ID, public Privacy Policy and Support URLs, working reviewer account, accurate App Privacy answers, and final-build screenshots.
 3. A signed iPhone build tested on a real phone away from the developer laptop: signup/login, guest mode, proof photo/video, permissions, quiz, export, deletion, offline/restart, and all links.

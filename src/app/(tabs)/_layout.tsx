@@ -1,9 +1,11 @@
 import { Tabs } from "expo-router";
 import { Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const icon = (emoji: string) => <Text style={{ fontSize: 19, lineHeight: 25 }} accessibilityElementsHidden>{emoji}</Text>;
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -12,8 +14,8 @@ export default function TabsLayout() {
           backgroundColor: "#071B16",
           borderTopColor: "#1E3A31",
           borderTopWidth: 1,
-          height: 76,
-          paddingBottom: 10,
+          height: 64 + Math.max(insets.bottom, 10),
+          paddingBottom: Math.max(insets.bottom, 10),
           paddingTop: 8,
         },
         tabBarActiveTintColor: "#7AF5B8",

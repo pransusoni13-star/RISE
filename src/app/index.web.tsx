@@ -125,8 +125,6 @@ export default function WebHomeScreen() {
       </Head>
 
       <ScrollView style={styles.page} contentContainerStyle={styles.pageContent}>
-        <View style={styles.glowTop} />
-        <View style={styles.glowMiddle} />
 
         <View accessibilityRole="header" style={[styles.nav, compact && styles.navCompact]}>
           <Pressable accessibilityRole="link" accessibilityLabel="RISE home" onPress={() => router.replace("/")}>
@@ -164,7 +162,7 @@ export default function WebHomeScreen() {
           </View>
 
           <View style={[styles.productFrame, compact && styles.productFrameCompact]} accessibilityLabel="Example personalized RISE mission">
-            <View style={styles.frameTop}><Text style={styles.frameBrand}>RISE</Text><Text style={styles.frameDay}>DAY 04 / 10</Text></View>
+            <View style={styles.frameTop}><Text style={styles.frameBrand}>EXAMPLE MISSION</Text><Text style={styles.frameDay}>DAY 04 / 10</Text></View>
             <View style={styles.progressTrack}><View style={styles.progressFill} /></View>
             <Text style={styles.trackLabel}>CAREER · SOFTWARE ENGINEERING</Text>
             <Text style={styles.missionTitle}>Build one reusable interface component</Text>
@@ -180,7 +178,7 @@ export default function WebHomeScreen() {
             <View style={styles.stepCard}>
               <Text style={styles.stepNumber}>2</Text><View style={styles.stepCopy}><Text style={styles.stepTitle}>Build and test</Text><Text style={styles.stepBody}>Check mouse, touch, and keyboard input.</Text></View><Text style={styles.stepArrow}>→</Text>
             </View>
-            <View style={styles.proofButton}><Text style={styles.proofButtonText}>Continue mission</Text></View>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/popular-skills" as never)} style={({ pressed }) => [styles.proofButton, pressed && styles.actionPressed]}><Text style={styles.proofButtonText}>Find a skill to try</Text></Pressable>
           </View>
         </View>
 
@@ -254,8 +252,6 @@ export default function WebHomeScreen() {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: COLORS.background },
   pageContent: { minHeight: "100%", overflow: "hidden" },
-  glowTop: { pointerEvents: "none", position: "absolute", width: 800, height: 800, borderRadius: 400, backgroundColor: COLORS.green, opacity: 0.055, top: -510, right: -200 },
-  glowMiddle: { pointerEvents: "none", position: "absolute", width: 600, height: 600, borderRadius: 300, backgroundColor: "#29A6FF", opacity: 0.035, top: 820, left: -400 },
   nav: { width: "100%", maxWidth: 1240, alignSelf: "center", paddingHorizontal: 32, height: 88, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   navCompact: { height: 72, paddingHorizontal: 20 },
   wordmark: { color: COLORS.green, fontSize: 21, fontWeight: "900", letterSpacing: 6 },
@@ -279,12 +275,12 @@ const styles = StyleSheet.create({
   stackActions: { width: "100%", flexDirection: "column" },
   action: { minHeight: 54, borderRadius: 27, paddingHorizontal: 25, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.green, borderWidth: 1, borderColor: COLORS.green },
   actionSecondary: { backgroundColor: "transparent", borderColor: COLORS.border },
-  actionHovered: { transform: [{ translateY: -2 }], borderColor: COLORS.greenStrong },
-  actionPressed: { opacity: 0.82, transform: [{ translateY: 1 }] },
+  actionHovered: { borderColor: COLORS.greenStrong, opacity: .9 },
+  actionPressed: { opacity: 0.82 },
   actionText: { color: COLORS.background, fontSize: 14, fontWeight: "900" },
   actionTextSecondary: { color: COLORS.text },
   microcopy: { color: COLORS.quiet, fontSize: 11, marginTop: 14 },
-  productFrame: { width: 390, borderRadius: 30, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, padding: 24, boxShadow: "0 18px 40px rgba(122,245,184,0.12)" },
+  productFrame: { width: 390, borderRadius: 18, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, padding: 24 },
   productFrameCompact: { width: "100%", maxWidth: 430 },
   frameTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   frameBrand: { color: COLORS.green, fontSize: 13, fontWeight: "900", letterSpacing: 3 },

@@ -9,7 +9,10 @@ import {
   Image,
   ScrollView,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -25,6 +28,7 @@ import { ProofAssetDetails, reviewProof, validateProofAsset } from "../services/
 import { recordProgressEvent } from "../services/auth";
 
 export default function ProofScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
 
   const taskTitle =
@@ -525,8 +529,8 @@ export default function ProofScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: saving }}
@@ -548,6 +552,8 @@ export default function ProofScreen() {
 
       <ScrollView
         contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.emoji}>
@@ -707,7 +713,7 @@ export default function ProofScreen() {
 
         <View style={styles.bottomSpace} />
       </ScrollView>
-      <View style={styles.footer}>
+      <View style={[styles.footer, { marginBottom: insets.bottom + 8 }]}>
         <Pressable
           onPress={submitProof}
           style={({ pressed }) => [
@@ -736,7 +742,7 @@ export default function ProofScreen() {
           Proof stays on this device in this version of RISE.
         </Text>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -751,8 +757,9 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    height: 100,
-    paddingTop: 45,
+    minHeight: 68,
+    flexShrink: 0,
+    paddingBottom: 12,
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -1064,10 +1071,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   footer: {
-    position: "absolute",
-    left: 18,
-    right: 18,
-    bottom: 14,
+    marginHorizontal: 18,
+    flexShrink: 0,
     padding: 10,
     borderRadius: 28,
     backgroundColor: "rgba(1,8,7,0.96)",

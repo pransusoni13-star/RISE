@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getRecommendedSkills, updateProfile } from "../services/personalization";
 
 const cycles = ["Every 7 days", "Every 10 days", "Every 30 days", "Every month"];
 const traditions = ["Christianity", "Islam", "Judaism", "Hinduism", "Buddhism", "Sikhism", "Another tradition", "Still exploring", "Prefer not to say"];
 
 export default function FocusScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const goal = typeof params.goal === "string" ? params.goal : "personal";
   const secondaryGoal = typeof params.secondaryGoal === "string" ? params.secondaryGoal : "wellbeing";
@@ -58,7 +60,7 @@ export default function FocusScreen() {
   };
 
   return <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 140 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
     <View style={styles.top}><Text style={styles.logo}>RISE</Text><Text style={styles.step}>02 / 03</Text></View>
     <Text style={styles.eyebrow}>YOUR CURRENT FOCUS</Text>
     <Text style={styles.title}>Choose three skills to <Text style={styles.green}>build together.</Text></Text>
@@ -101,7 +103,7 @@ export default function FocusScreen() {
     </Pressable>)}</View>
 
     </ScrollView>
-    <View style={styles.footer}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid }} onPress={next} disabled={!valid} style={[styles.button, !valid && styles.disabled]}><Text style={styles.buttonText}>{valid ? "Build My Balanced Plan →" : chosenSkills.length < 3 ? `Choose ${3 - chosenSkills.length} more` : "Include both directions"}</Text></Pressable></View>
+    <View style={[styles.footer, { bottom: insets.bottom + 8 }]}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid }} onPress={next} disabled={!valid} style={[styles.button, !valid && styles.disabled]}><Text style={styles.buttonText}>{valid ? "Build My Balanced Plan →" : chosenSkills.length < 3 ? `Choose ${3 - chosenSkills.length} more` : "Include both directions"}</Text></Pressable></View>
   </KeyboardAvoidingView>;
 }
 
