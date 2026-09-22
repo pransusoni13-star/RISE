@@ -151,17 +151,16 @@ export default function WebHomeScreen() {
           <View style={[styles.heroCopy, compact && styles.heroCopyCompact]}>
             <View style={styles.betaPill}><View style={styles.betaDot} /><Text style={styles.betaText}>FREE BETA · PRIVATE PROOF · NO CREDIT CARD</Text></View>
             <Text accessibilityRole="header" style={[styles.heroTitle, compact && styles.heroTitleCompact]}>
-              Build the version of you that sticks.
+              One small win, every day.
             </Text>
-            <Text style={styles.heroSubtitle}>
-              Choose one career skill and one life skill. RISE turns them into useful daily missions—with trusted guides, honest reflection, and progress you can see.
+            <Text style={[styles.heroSubtitle, compact && styles.heroSubtitleCompact]}>
+              Pick a career skill and a life skill. Get one clear mission that fits your time, then see what you’ve improved.
             </Text>
             <View style={[styles.heroActions, compact && styles.stackActions]}>
               <ActionButton label="Build my free plan →" onPress={() => router.push("/account" as never)} />
               <ActionButton label="Explore the experience" secondary onPress={() => router.push("/(tabs)/today" as never)} />
             </View>
-            <Text style={styles.microcopy}>Start on this device. No credit card. You control your pace.</Text>
-            <View style={styles.heroValues}><Text style={styles.heroValue}>🎯 Focus</Text><Text style={styles.heroValue}>📈 Progress</Text><Text style={styles.heroValue}>✨ Momentum</Text></View>
+            <Text style={styles.microcopy}>Free during beta · No credit card · Your pace</Text>
           </View>
 
           <View style={[styles.productFrame, compact && styles.productFrameCompact]} accessibilityLabel="Example personalized RISE mission">
@@ -265,16 +264,17 @@ const styles = StyleSheet.create({
   navCta: { minHeight: 44, justifyContent: "center", paddingHorizontal: 20, borderRadius: 24, borderWidth: 1, borderColor: COLORS.border, backgroundColor: "rgba(122,245,184,0.06)" },
   navCtaHovered: { borderColor: COLORS.green },
   navCtaText: { color: COLORS.green, fontWeight: "900", fontSize: 12 },
-  hero: { width: "100%", maxWidth: 1240, alignSelf: "center", paddingHorizontal: 32, paddingTop: 80, paddingBottom: 104, flexDirection: "row", alignItems: "center", gap: 80 },
-  heroCompact: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 70, flexDirection: "column", gap: 52 },
+  hero: { width: "100%", maxWidth: 1240, alignSelf: "center", paddingHorizontal: 32, paddingTop: 64, paddingBottom: 78, flexDirection: "row", alignItems: "center", gap: 64 },
+  heroCompact: { paddingHorizontal: 20, paddingTop: 42, paddingBottom: 58, flexDirection: "column", gap: 38 },
   heroCopy: { flex: 1, maxWidth: 650 },
   heroCopyCompact: { width: "100%", alignItems: "center" },
   betaPill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: COLORS.border, backgroundColor: "rgba(122,245,184,0.05)" },
   betaDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.green },
   betaText: { color: COLORS.green, fontSize: 10, fontWeight: "900", letterSpacing: 1.2 },
-  heroTitle: { color: COLORS.text, fontSize: 68, lineHeight: 72, letterSpacing: -2.6, fontWeight: "900", marginTop: 26, maxWidth: 650 },
+  heroTitle: { color: COLORS.text, fontSize: 66, lineHeight: 71, letterSpacing: -2.3, fontWeight: "900", marginTop: 26, maxWidth: 650 },
   heroTitleCompact: { fontSize: 43, lineHeight: 48, letterSpacing: -1.2, textAlign: "center" },
-  heroSubtitle: { color: COLORS.muted, fontSize: 19, lineHeight: 30, maxWidth: 600, marginTop: 24 },
+  heroSubtitle: { color: COLORS.muted, fontSize: 18, lineHeight: 29, maxWidth: 560, marginTop: 22 },
+  heroSubtitleCompact: { textAlign: "center" },
   heroActions: { flexDirection: "row", gap: 12, marginTop: 32 },
   stackActions: { width: "100%", flexDirection: "column" },
   action: { minHeight: 54, borderRadius: 27, paddingHorizontal: 25, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.green, borderWidth: 1, borderColor: COLORS.green },
@@ -284,8 +284,6 @@ const styles = StyleSheet.create({
   actionText: { color: COLORS.background, fontSize: 14, fontWeight: "900" },
   actionTextSecondary: { color: COLORS.text },
   microcopy: { color: COLORS.quiet, fontSize: 11, marginTop: 14 },
-  heroValues: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 20 },
-  heroValue: { color: COLORS.muted, backgroundColor: COLORS.surfaceRaised, borderWidth: 1, borderColor: COLORS.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, fontSize: 11, fontWeight: "700" },
   productFrame: { width: 390, borderRadius: 30, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, padding: 24, boxShadow: "0 18px 40px rgba(122,245,184,0.12)" },
   productFrameCompact: { width: "100%", maxWidth: 430 },
   frameTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
