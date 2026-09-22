@@ -163,7 +163,7 @@ export default function QuizScreen() {
     typeof params.goals === "string" && params.goals.length > 0
       ? params.goals
       : JSON.stringify([primaryGoal]);
-  const questions = useMemo<Question[]>(() => cycleGate ? getCycleQuestions(`${primaryGoal} ${selectedGoals}`) : codingQuestions, [cycleGate, primaryGoal, selectedGoals]);
+  const questions = useMemo<Question[]>(() => cycleGate ? getCycleQuestions(primaryGoal, `${primaryGoal} ${selectedGoals}`) : codingQuestions, [cycleGate, primaryGoal, selectedGoals]);
 
   const time =
     typeof params.time === "string" ? params.time : "";
@@ -553,15 +553,15 @@ export default function QuizScreen() {
       <Text style={styles.logo}>RISE</Text>
 
       <Text style={styles.engine}>
-        RISE QUIZ ENGINE
+        YOUR SKILL CHECK
       </Text>
 
       <Text style={styles.title}>
-        Test What You Know
+        See what you learned
       </Text>
 
       <Text style={styles.subtitle}>
-        Your results affect your future RISE path.
+        Five clear questions, with explanations. Your answers help shape what to practice next.
       </Text>
 
       {/* SKILL */}

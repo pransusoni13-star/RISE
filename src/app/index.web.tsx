@@ -151,16 +151,17 @@ export default function WebHomeScreen() {
           <View style={[styles.heroCopy, compact && styles.heroCopyCompact]}>
             <View style={styles.betaPill}><View style={styles.betaDot} /><Text style={styles.betaText}>FREE BETA · PRIVATE PROOF · NO CREDIT CARD</Text></View>
             <Text accessibilityRole="header" style={[styles.heroTitle, compact && styles.heroTitleCompact]}>
-              Become who you said you would be.
+              Build the version of you that sticks.
             </Text>
             <Text style={styles.heroSubtitle}>
-              RISE turns two meaningful goals into focused daily missions—with reliable resources, honest proof, reflection, and progress you can see.
+              Choose one career skill and one life skill. RISE turns them into useful daily missions—with trusted guides, honest reflection, and progress you can see.
             </Text>
             <View style={[styles.heroActions, compact && styles.stackActions]}>
               <ActionButton label="Build my free plan →" onPress={() => router.push("/account" as never)} />
               <ActionButton label="Explore the experience" secondary onPress={() => router.push("/(tabs)/today" as never)} />
             </View>
             <Text style={styles.microcopy}>Start on this device. No credit card. You control your pace.</Text>
+            <View style={styles.heroValues}><Text style={styles.heroValue}>🎯 Focus</Text><Text style={styles.heroValue}>📈 Progress</Text><Text style={styles.heroValue}>✨ Momentum</Text></View>
           </View>
 
           <View style={[styles.productFrame, compact && styles.productFrameCompact]} accessibilityLabel="Example personalized RISE mission">
@@ -283,6 +284,8 @@ const styles = StyleSheet.create({
   actionText: { color: COLORS.background, fontSize: 14, fontWeight: "900" },
   actionTextSecondary: { color: COLORS.text },
   microcopy: { color: COLORS.quiet, fontSize: 11, marginTop: 14 },
+  heroValues: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 20 },
+  heroValue: { color: COLORS.muted, backgroundColor: COLORS.surfaceRaised, borderWidth: 1, borderColor: COLORS.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, fontSize: 11, fontWeight: "700" },
   productFrame: { width: 390, borderRadius: 30, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, padding: 24, boxShadow: "0 18px 40px rgba(122,245,184,0.12)" },
   productFrameCompact: { width: "100%", maxWidth: 430 },
   frameTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },

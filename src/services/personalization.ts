@@ -427,8 +427,9 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
     const personalizedContext = profile.currentSituation?.trim()
       ? ` Starting from: ${profile.currentSituation.trim()}`
       : "";
-    const spiritualContext = `${profile.spiritualTradition || ""} ${profile.trustedSources || ""}`.trim();
-    const query = encodeURIComponent(`${resources.video} ${weeklySkill} ${customGoal} ${spiritualContext}`.trim());
+    // External video searches must not disclose a member's private goal,
+    // experience, faith preference, or trusted-source words to YouTube.
+    const query = encodeURIComponent(resources.video);
     const isSpiritual = template === templates.spirituality;
 
     return {
@@ -449,7 +450,7 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       proof: "Attach a screenshot/photo or a short video showing the work and its result.",
       skillId: day < 3 ? "foundations" : day < 6 ? "practical-skills" : "projects",
       goal: missionGoal,
-      resourceLabel: `${level.includes("advanced") ? "Deeper" : "Beginner-friendly"} video for this mission`,
+      resourceLabel: `${level.includes("advanced") ? "Deeper" : "Beginner-friendly"} video search for this mission`,
       resourceUrl: `https://www.youtube.com/results?search_query=${query}`,
       guideLabel: resources.guideLabel,
       guideUrl: resources.guideUrl,

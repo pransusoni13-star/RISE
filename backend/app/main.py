@@ -11,7 +11,7 @@ import jwt
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import delete, func, select, text, update
+from sqlalchemy import case, delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -312,12 +312,16 @@ def dashboard(user: User = Depends(get_current_user), db: Session = Depends(get_
 
 
 def leaderboard_snapshot(db: Session, user: User) -> dict:
-    participants = list(db.scalars(select(LeaderboardConsent.user_id)))
-    scores = []
-    for participant_id in participants:
-        missions = db.scalar(select(func.count()).select_from(ProgressEvent).where(ProgressEvent.user_id == participant_id, ProgressEvent.event_type == "mission_completed")) or 0
-        minutes = db.scalar(select(func.coalesce(func.sum(ProgressEvent.minutes), 0)).where(ProgressEvent.user_id == participant_id)) or 0
-        scores.append((participant_id, int(missions), int(minutes)))
+    rows = db.execute(
+        select(
+            LeaderboardConsent.user_id,
+            func.coalesce(func.sum(case((ProgressEvent.event_type == "mission_completed", 1), else_=0)), 0),
+            func.coalesce(func.sum(ProgressEvent.minutes), 0),
+        )
+        .outerjoin(ProgressEvent, ProgressEvent.user_id == LeaderboardConsent.user_id)
+        .group_by(LeaderboardConsent.user_id)
+    ).all()
+    scores = [(participant_id, int(missions), int(minutes)) for participant_id, missions, minutes in rows]
     scores.sort(key=lambda item: (-item[1], -item[2], item[0]))
     rank = next((index for index, item in enumerate(scores, 1) if item[0] == user.id), None)
     return {"opted_in": rank is not None, "rank": rank, "participants": len(scores), "missions": scores[rank - 1][1] if rank else 0}

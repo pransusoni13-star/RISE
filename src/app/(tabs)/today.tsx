@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -13,7 +13,9 @@ import {
   buildProgressSummary,
   createDefaultProgress,
   getCurrentSkill,
+  getCurrentLevelXP,
   getNextUnlock,
+  getXPForNextLevel,
   getWeakestSkill,
   getStrongestSkill,
 } from "../../services/progressEngine";
@@ -30,20 +32,16 @@ export default function TodayTabScreen() {
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [reminder, setReminder] = useState<ReminderState | null>(null);
 
-  useFocusEffect(useCallback(() => { void getReminderState().then(setReminder); }, []));
-
-  useEffect(() => {
-    const loadProgress = async () => {
-      const [storedProgress, storedProfile] = await Promise.all([
-        progressRepository.load(),
-        loadProfile(),
-      ]);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    void Promise.all([progressRepository.load(), loadProfile(), getReminderState()]).then(([storedProgress, storedProfile, reminderState]) => {
+      if (!active) return;
       setProgress(storedProgress);
       setProfile(storedProfile);
-    };
-
-    loadProgress();
-  }, []);
+      setReminder(reminderState);
+    });
+    return () => { active = false; };
+  }, []));
 
   const adaptiveSummary = useMemo(
     () => buildProgressSummary(progress, "personal"),
@@ -55,8 +53,8 @@ export default function TodayTabScreen() {
   const weakestSkill = useMemo(() => getWeakestSkill(progress.skills), [progress.skills]);
   const strongestSkill = useMemo(() => getStrongestSkill(progress.skills), [progress.skills]);
 
-  const currentLevelXP = progress.events.reduce((total, event) => total + event.amount, 0);
-  const nextLevelXP = 100 + (progress.level - 1) * 50;
+  const currentLevelXP = getCurrentLevelXP(progress.totalXP);
+  const nextLevelXP = getXPForNextLevel(progress.level);
   const levelProgress = Math.min(currentLevelXP / Math.max(nextLevelXP, 1), 1);
 
   const todayMission = useMemo(() => {
@@ -66,6 +64,9 @@ export default function TodayTabScreen() {
       !progress.events.some((event) => event.title.includes(mission.title))
     ) || plan[plan.length - 1];
   }, [profile, progress.events]);
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const shortMission = (todayMission?.description || adaptiveSummary.recommendation.description).split(/(?<=[.!?])\s+/)[0];
 
   return (
     <ScrollView
@@ -74,7 +75,7 @@ export default function TodayTabScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.logo}>RISE</Text>
-      <Text style={styles.greeting}>Good morning.</Text>
+      <Text style={styles.greeting}>{greeting}.</Text>
       <Text style={styles.goalLabel}>YOUR GOAL</Text>
       <Text style={styles.goalText}>{profile?.customGoal || currentSkill?.goal || "Personal Growth"}</Text>
 
@@ -90,7 +91,7 @@ export default function TodayTabScreen() {
       <View style={styles.primaryCard}>
         <Text style={styles.cardEyebrow}>TODAY&apos;S RISE</Text>
         <Text style={styles.primaryTitle}>{todayMission?.title || adaptiveSummary.recommendation.title}</Text>
-        <Text style={styles.primaryDescription}>{todayMission?.description || adaptiveSummary.recommendation.description}</Text>
+        <Text style={styles.primaryDescription}>{shortMission}</Text>
         <View style={styles.primaryMetaRow}>
           <Text style={styles.metaText}>{todayMission?.duration || 30} min</Text>
           <Text style={styles.metaText}>+{todayMission?.reward || 30} XP</Text>

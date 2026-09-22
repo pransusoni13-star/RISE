@@ -29,6 +29,22 @@ body {
   outline-offset: 4px;
 }
 
+/* React Native Web renders accessible Pressables as interactive roles. Keep the
+   feedback subtle so cards, links, and primary buttons all feel consistent. */
+:where(button, a, [role="button"], [role="link"], [role="tab"]):not([aria-disabled="true"]):not(:disabled) {
+  cursor: pointer;
+  transition: filter 160ms ease, opacity 160ms ease, transform 160ms ease;
+}
+
+:where(button, a, [role="button"], [role="link"], [role="tab"]):not([aria-disabled="true"]):not(:disabled):hover {
+  filter: brightness(1.13);
+}
+
+:where(button, a, [role="button"], [role="link"], [role="tab"]):not([aria-disabled="true"]):not(:disabled):active {
+  opacity: 0.83;
+  transform: translateY(1px);
+}
+
 ::selection {
   color: #020806;
   background: #7af5b8;

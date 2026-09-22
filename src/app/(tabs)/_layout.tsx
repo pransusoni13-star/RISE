@@ -1,4 +1,7 @@
 import { Tabs } from "expo-router";
+import { Text } from "react-native";
+
+const icon = (emoji: string) => <Text style={{ fontSize: 19, lineHeight: 25 }} accessibilityElementsHidden>{emoji}</Text>;
 
 export default function TabsLayout() {
   return (
@@ -9,7 +12,7 @@ export default function TabsLayout() {
           backgroundColor: "#071B16",
           borderTopColor: "#1E3A31",
           borderTopWidth: 1,
-          height: 72,
+          height: 76,
           paddingBottom: 10,
           paddingTop: 8,
         },
@@ -17,7 +20,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: "#B4D4C2",
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: "700",
+          fontWeight: "800",
         },
       }}
     >
@@ -26,6 +29,7 @@ export default function TabsLayout() {
         options={{
           title: "Today",
           tabBarLabel: "Today",
+          tabBarIcon: () => icon("☀️"),
         }}
       />
 
@@ -34,6 +38,7 @@ export default function TabsLayout() {
         options={{
           title: "Learn",
           tabBarLabel: "Learn",
+          tabBarIcon: () => icon("📖"),
         }}
       />
 
@@ -42,6 +47,7 @@ export default function TabsLayout() {
         options={{
           title: "Missions",
           tabBarLabel: "Missions",
+          tabBarIcon: () => icon("🎯"),
         }}
       />
 
@@ -50,6 +56,7 @@ export default function TabsLayout() {
         options={{
           title: "Projects",
           tabBarLabel: "Projects",
+          tabBarIcon: () => icon("🛠️"),
         }}
       />
 
@@ -58,6 +65,7 @@ export default function TabsLayout() {
         options={{
           title: "Progress",
           tabBarLabel: "Progress",
+          tabBarIcon: () => icon("📈"),
         }}
       />
     </Tabs>

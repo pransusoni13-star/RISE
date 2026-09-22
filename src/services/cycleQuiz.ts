@@ -34,8 +34,9 @@ const banks: Record<string, CycleQuestion[]> = {
   ],
 };
 
-export function getCycleQuestions(goal: string): CycleQuestion[] {
-  const value = goal.toLowerCase();
+export function getCycleQuestions(goal: string, allGoals = goal): CycleQuestion[] {
+  const value = allGoals.toLowerCase();
+  const focus = goal.replace(/[-_]/g, " ").trim().slice(0, 48) || "your skill";
   const keys = [
     /software|code|developer|ai-engineer/.test(value) ? "coding" : "",
     /youtube|creator|marketing|photography|music/.test(value) ? "creator" : "",
@@ -43,8 +44,14 @@ export function getCycleQuestions(goal: string): CycleQuestion[] {
     /barber/.test(value) ? "barbering" : "",
     /engineer|aerospace/.test(value) ? "engineering" : "",
   ].filter(Boolean);
-  const specific = Array.from(new Set(keys)).flatMap((key) => banks[key]?.slice(0, 1) || []);
-  return [...shared, ...(specific.length ? specific : [
+  const uniqueKeys = Array.from(new Set(keys));
+  const specific = uniqueKeys.flatMap((key) => banks[key]?.slice(0, uniqueKeys.length > 1 ? 1 : 2) || []);
+  return [{
+    question: `For ${focus}, what best shows that you improved?`,
+    options: ["Only saying I tried", "A result I can compare with my starting point", "Doing a different task", "Getting more coins"],
+    answer: 1,
+    explanation: "Compare a real result with your starting point. That shows what changed and what to practice next.",
+  }, ...shared.slice(1), ...(specific.length ? specific : [
     { question: "What should your next cycle change?", options: ["Everything", "The single highest-value weakness shown by your proof", "Nothing", "Only the reward"], answer: 1, explanation: "One evidence-based adjustment keeps improvement focused." },
     { question: "What belongs in a strong reflection?", options: ["What you did, learned, and will improve", "Only that it was completed", "A copied definition", "Private information"], answer: 0, explanation: "A useful reflection connects action, learning, and the next adjustment." },
   ])].slice(0, 5);
