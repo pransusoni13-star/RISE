@@ -1,23 +1,29 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { createSevenDayPlan, loadProfile, PersonalizedMission, RiseProfile } from "../../services/personalization";
 import { missionRepository } from "../../services/missionRepository";
+import { spiritualResource, spiritualVideoSearch } from "../../services/spiritualResources";
 
 export default function LearnTabScreen() {
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    Promise.all([loadProfile(), missionRepository.list()]).then(([saved, records]) => {
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    void Promise.all([loadProfile(), missionRepository.list()]).then(([saved, records]) => {
+      if (!active) return;
       setProfile(saved);
       setCompletedIds(records.filter((record) => record.status === "completed").map((record) => record.missionId));
     });
-  }, []);
+    return () => { active = false; };
+  }, []));
 
   const plan = useMemo(() => profile ? createSevenDayPlan(profile) : [], [profile]);
   const mission = plan.find((item) => !completedIds.includes(item.id)) || plan[plan.length - 1];
   const guides = useMemo(() => mission ? rankedGuides(mission) : [], [mission]);
+  const isSpiritual = Boolean(mission?.sourceNote);
+  const faithSource = isSpiritual ? spiritualResource(profile?.spiritualTradition) : undefined;
 
   const openLearningResource = async (url: string) => {
     try {
@@ -48,12 +54,15 @@ export default function LearnTabScreen() {
     <LearningCard number="2" title="Study a strong example" text="Notice the choices that create the result, not just the final result." />
     <LearningCard number="3" title="Apply it immediately" text="Return to RISE, complete the steps, and prove the result." />
 
-    <Text style={styles.section}>TRUSTED STARTING POINTS</Text>
-    {guides.length ? guides.map((guide, index) => <Pressable key={guide.url} accessibilityRole="link" onPress={() => void openLearningResource(guide.url)} style={({ pressed }) => [styles.guideCard, pressed && { opacity: .8 }]}><Text style={styles.guideRank}>#{index + 1}</Text><View style={styles.guideBody}><Text style={styles.guideTitle}>{guide.label}</Text><Text style={styles.guideReason}>{guide.reason}</Text></View><Text style={styles.guideArrow}>↗</Text></Pressable>) : <Text style={styles.sourceCaution}>For this topic, begin with the primary book or qualified teacher you trust. RISE does not rank beliefs or claim an authority for you.</Text>}
-    <Pressable accessibilityRole="link" style={({ pressed }) => [styles.resourceButton, pressed && { opacity: .8 }]} onPress={() => void openLearningResource(mission.resourceUrl)}>
-      <Text style={styles.resourceButtonText}>Explore full-length videos ↗</Text>
+    <Text style={styles.section}>{isSpiritual ? "START WITH YOUR SOURCES" : "TRUSTED STARTING POINTS"}</Text>
+    {isSpiritual ? <>
+      <View style={styles.faithContext}><Text style={styles.faithTitle}>{faithSource ? `Your ${profile.spiritualTradition} path` : "Your spiritual path"}</Text><Text style={styles.faithText}>{profile.trustedSources?.trim() ? `You named ${profile.trustedSources.trim()} as important to your practice. Let that guide which passage, teacher, or action you choose. ` : "Choose a passage, practice, or teacher meaningful to you. "}{faithSource?.text || "RISE will not guess your beliefs or choose a tradition for you."}</Text></View>
+      {faithSource ? <Pressable accessibilityRole="link" onPress={() => void openLearningResource(faithSource.url)} style={({ pressed }) => [styles.guideCard, pressed && { opacity: .8 }]}><Text style={styles.guideRank}>📖</Text><View style={styles.guideBody}><Text style={styles.guideTitle}>{faithSource.label}</Text><Text style={styles.guideReason}>A reading library to explore, not the only authority for your tradition.</Text></View><Text style={styles.guideArrow}>↗</Text></Pressable> : null}
+    </> : guides.length ? guides.map((guide, index) => <Pressable key={guide.url} accessibilityRole="link" onPress={() => void openLearningResource(guide.url)} style={({ pressed }) => [styles.guideCard, pressed && { opacity: .8 }]}><Text style={styles.guideRank}>#{index + 1}</Text><View style={styles.guideBody}><Text style={styles.guideTitle}>{guide.label}</Text><Text style={styles.guideReason}>{guide.reason}</Text></View><Text style={styles.guideArrow}>↗</Text></Pressable>) : <Text style={styles.sourceCaution}>For this topic, begin with the primary book or qualified teacher you trust. RISE does not rank beliefs or claim an authority for you.</Text>}
+    <Pressable accessibilityRole="link" style={({ pressed }) => [styles.resourceButton, pressed && { opacity: .8 }]} onPress={() => void openLearningResource(isSpiritual ? spiritualVideoSearch(profile.spiritualTradition, mission.title) : mission.resourceUrl)}>
+      <Text style={styles.resourceButtonText}>{isSpiritual ? `Search ${faithSource ? profile.spiritualTradition : "topic"} videos ↗` : "Explore full-length videos ↗"}</Text>
     </Pressable>
-    <Text style={styles.sourceCaution}>Video results are a personalized search, not vetted endorsements. Check the creator and claims before relying on a lesson.</Text>
+    <Text style={styles.sourceCaution}>{isSpiritual ? "Optional: opening YouTube shares the selected tradition and mission topic in the search. Your private books or teacher notes are not sent. Results are not vetted endorsements." : "Video results are a topic search, not vetted endorsements. Check the creator and claims before relying on a lesson."}</Text>
     <Pressable accessibilityRole="button" style={({ pressed }) => [styles.missionButton, pressed && { opacity: .8 }]} onPress={() => router.push({ pathname: "/action", params: { mission: JSON.stringify(mission) } } as any)}>
       <Text style={styles.missionButtonText}>Try this in your mission →</Text>
     </Pressable>
@@ -80,4 +89,5 @@ const styles = StyleSheet.create({
   card:{flexDirection:"row",backgroundColor:"#071B16",borderRadius:17,borderWidth:1,borderColor:"#1E3A31",padding:14,marginBottom:10},number:{width:34,height:34,borderRadius:17,backgroundColor:"#11382B",alignItems:"center",justifyContent:"center",marginRight:12},numberText:{color:"#7AF5B8",fontWeight:"900"},cardBody:{flex:1},cardTitle:{color:"#F5FFF9",fontSize:14,fontWeight:"900"},cardText:{color:"#A7CBB7",fontSize:12,lineHeight:18,marginTop:4},
   resourceButton:{height:54,borderRadius:27,borderWidth:1.5,borderColor:"#7AF5B8",alignItems:"center",justifyContent:"center",marginTop:12},resourceButtonText:{color:"#7AF5B8",fontSize:13,fontWeight:"900"},missionButton:{height:56,borderRadius:28,backgroundColor:"#7AF5B8",alignItems:"center",justifyContent:"center",marginTop:10},missionButtonText:{color:"#010807",fontSize:14,fontWeight:"900"},
   guideCard:{minHeight:70,flexDirection:"row",alignItems:"center",backgroundColor:"#071B16",borderRadius:15,borderWidth:1,borderColor:"#315544",padding:13,marginBottom:9},guideRank:{color:"#7AF5B8",fontSize:13,fontWeight:"900",width:32},guideBody:{flex:1},guideTitle:{color:"#F5FFF9",fontSize:13,fontWeight:"800"},guideReason:{color:"#A7CBB7",fontSize:11,lineHeight:17,marginTop:3},guideArrow:{color:"#7AF5B8",fontSize:17,marginLeft:8},sourceCaution:{color:"#8FB6A2",fontSize:11,lineHeight:17,marginTop:8,marginBottom:10},
+  faithContext:{backgroundColor:"#172318",borderRadius:15,borderWidth:1,borderColor:"#655338",padding:15,marginBottom:12},faithTitle:{color:"#FFCF70",fontSize:13,fontWeight:"900"},faithText:{color:"#E6DDC8",fontSize:12,lineHeight:19,marginTop:6},
 });

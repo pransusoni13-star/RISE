@@ -90,9 +90,9 @@ export default function FocusScreen() {
       <Text style={styles.optionalTitle}>Personalize spiritual growth respectfully</Text>
       <Text style={styles.optionalText}>Choose a tradition only if you want. RISE will not guess your religion or say one tradition is better.</Text>
       <View style={styles.traditions}>{traditions.map((item) => <Pressable accessibilityRole="radio" accessibilityState={{ selected: spiritualTradition === item }} key={item} onPress={() => setSpiritualTradition(item)} style={[styles.tradition, spiritualTradition === item && styles.traditionActive]}><Text style={[styles.traditionText, spiritualTradition === item && styles.traditionTextActive]}>{item}</Text></Pressable>)}</View>
-      <Text style={styles.sourceLabel}>BOOKS, TEXTS, TEACHERS, OR COMMUNITIES YOU TRUST · OPTIONAL</Text>
-      <TextInput value={trustedSources} onChangeText={setTrustedSources} maxLength={300} placeholder="Example: a primary scripture, a local leader, or a teacher I already trust" placeholderTextColor="#668577" style={styles.sourceInput} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
-      <Text style={styles.sourceHelp}>RISE uses these words to narrow resources. YouTube results remain third-party content and should be verified.</Text>
+      <Text style={styles.sourceLabel}>A DEITY, BOOK, TEACHER, OR COMMUNITY IMPORTANT TO YOU · OPTIONAL</Text>
+      <TextInput value={trustedSources} onChangeText={setTrustedSources} maxLength={300} placeholder="Example: a deity, scripture, teacher, or practice I follow" placeholderTextColor="#668577" style={styles.sourceInput} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
+      <Text style={styles.sourceHelp}>RISE uses this only for guidance inside the app. Your words are not put into YouTube searches; external searches are optional.</Text>
     </View> : null}
 
     <Text style={styles.label}>WHEN SHOULD RISE OFFER A NEW SKILL?</Text>

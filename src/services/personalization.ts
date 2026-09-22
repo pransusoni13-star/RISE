@@ -414,7 +414,9 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
   return Array.from({ length: cycleLength }, (_, index) => {
     const day = index + 1;
     const missionGoal = selectedGoals[index % selectedGoals.length] || goal;
-    const template = resolveTemplate(missionGoal, `${customGoal} ${weeklySkill}`);
+    // Keep each selected direction distinct. A faith-related custom goal must
+    // not turn the separate career days into spiritual missions (or vice versa).
+    const template = resolveTemplate(missionGoal, missionGoal === "personal" ? `${customGoal} ${weeklySkill}` : missionGoal);
     const templateIndex = index % template.titles.length;
     const round = Math.floor(index / template.titles.length) + 1;
     const title = `${round > 1 ? `Level ${round}: ` : ""}${template.titles[templateIndex]}`;
@@ -454,9 +456,9 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       resourceUrl: `https://www.youtube.com/results?search_query=${query}`,
       guideLabel: resources.guideLabel,
       guideUrl: resources.guideUrl,
-      mapQuery: isSpiritual && profile.spiritualTradition
-        ? `${profile.spiritualTradition} community near me`
-        : template.mapQuery,
+      // A faith preference is sensitive. Keep it out of route parameters and
+      // external map links; the learning screen reads it locally on demand.
+      mapQuery: isSpiritual ? undefined : template.mapQuery,
       why: `Day ${day} builds on the previous step so you improve one measurable part at a time.${adaptation === "too_hard" ? " Your last mission felt hard, so this version is smaller and more guided." : adaptation === "too_easy" ? " Your last mission felt easy, so this version raises the challenge." : ""}${profile.lastMissionUseful === false ? " The focus has been made more practical because the last mission was not useful enough." : ""}${personalizedContext}`,
       onePercent: `Today you are not trying to master ${weeklySkill}. You are improving one specific part: ${title.toLowerCase()}.`,
       successCriteria: `Finish the mission steps and attach clear evidence that shows your ${weeklySkill} work.`,
@@ -467,7 +469,7 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       reflectionPrompt: `What changed in your ${weeklySkill} ability, and what single adjustment should tomorrow's mission make?`,
       safetyNote: safetyNoteFor(`${missionGoal} ${customGoal} ${weeklySkill}`),
       sourceNote: isSpiritual
-        ? `Start with ${profile.trustedSources?.trim() || "the primary texts or books you personally trust"}. Treat YouTube as discovery, not authority; verify claims with context and a qualified community leader you trust. RISE does not decide which religion is true or rank traditions.`
+        ? "Start with a primary text or teacher you trust. Check translations and context with your community. RISE does not rank religions or decide which belief is true."
         : undefined,
     };
   });

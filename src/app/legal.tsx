@@ -41,7 +41,7 @@ export default function LegalScreen() {
       RISE checks attachment metadata, reflection quality, your mission-specific explanation, and your ownership confirmation before unlocking progress. These local consistency checks do not authenticate an image, identify who created it, detect every edited or unrelated file, or replace human review. Do not describe a proof as independently verified.
     </Section>
     <Section title="Optional faith and belief preferences">
-      If you choose the Faith & Spirituality path, RISE can remember the tradition and trusted-source words you voluntarily enter. This sensitive preference uses device-protected storage in the native app and session-only memory on the website. It is optional, is not used for advertising, and can be deleted with the control below.
+      If you choose the Faith & Spirituality path, RISE can remember the tradition and personal guidance words you voluntarily enter. This sensitive preference uses device-protected storage in the native app and session-only memory on the website. It is optional, is not used for advertising, and can be deleted with the control below. If you tap a spiritual video search, the selected tradition and mission topic are sent to YouTube; your private guidance words are not included in that search.
     </Section>
     <Section title="External resources">
       YouTube and Google Maps links are supporting resources. Opening them leaves RISE and is governed by that provider’s terms and privacy practices. RISE does not claim ownership of third-party content.

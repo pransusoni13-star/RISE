@@ -13,7 +13,8 @@ import {
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { PersonalizedMission } from "../services/personalization";
+import { loadProfile, PersonalizedMission, RiseProfile } from "../services/personalization";
+import { spiritualPractice, spiritualResource, spiritualVideoSearch } from "../services/spiritualResources";
 import { missionRepository, MissionStatus } from "../services/missionRepository";
 import { reflectionQuality } from "../services/proofValidation";
 
@@ -49,6 +50,7 @@ export default function ActionScreen() {
   const [reflection, setReflection] = useState("");
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [status, setStatus] = useState<MissionStatus>("not_started");
+  const [faithProfile, setFaithProfile] = useState<RiseProfile | null>(null);
 
   const mission = useMemo(() => {
     const raw = Array.isArray(params.mission) ? params.mission[0] : params.mission;
@@ -60,6 +62,15 @@ export default function ActionScreen() {
     }
   }, [params.mission]);
   const reflectionReview = useMemo(() => reflectionQuality(reflection), [reflection]);
+  const isSpiritual = Boolean(mission.sourceNote);
+  const faithSource = isSpiritual ? spiritualResource(faithProfile?.spiritualTradition) : undefined;
+
+  useEffect(() => {
+    if (!isSpiritual) return;
+    let active = true;
+    void loadProfile().then((profile) => { if (active) setFaithProfile(profile); });
+    return () => { active = false; };
+  }, [isSpiritual]);
 
   useEffect(() => {
     missionRepository.get(mission.id).then((record) => {
@@ -162,17 +173,17 @@ export default function ActionScreen() {
         <View style={styles.successCard}><Text style={styles.successLabel}>SUCCESS LOOKS LIKE</Text><Text style={styles.successText}>{mission.successCriteria}</Text></View>
 
         <Text style={styles.section}>HELPFUL TOOLS</Text>
-        {mission.sourceNote ? <View style={styles.sourceCard}><Text style={styles.sourceTitle}>HOW TO CHECK A SOURCE</Text><Text style={styles.sourceText}>{mission.sourceNote}</Text></View> : null}
-        <Pressable style={styles.toolCard} onPress={() => openLink(mission.resourceUrl)}>
+        {mission.sourceNote ? <View style={styles.sourceCard}><Text style={styles.sourceTitle}>A STEP FOR YOUR PATH</Text><Text style={styles.sourceText}>{spiritualPractice(mission.day, faithProfile?.trustedSources)}</Text><Text style={styles.sourceText}>{faithSource?.text || "RISE will not guess a tradition for you. "}{mission.sourceNote}</Text></View> : null}
+        <Pressable accessibilityRole="link" disabled={isSpiritual && !faithProfile} style={styles.toolCard} onPress={() => openLink(isSpiritual ? spiritualVideoSearch(faithProfile?.spiritualTradition, mission.title) : mission.resourceUrl)}>
           <View style={styles.toolIcon}><Text>▶️</Text></View>
           <View style={styles.toolBody}>
-            <Text style={styles.toolTitle}>{mission.resourceLabel}</Text>
-            <Text style={styles.toolText}>Full-length learning search for this exact day · Shorts excluded from the query</Text>
+            <Text style={styles.toolTitle}>{isSpiritual ? `Search ${faithSource ? faithProfile?.spiritualTradition : "topic"} videos` : mission.resourceLabel}</Text>
+            <Text style={styles.toolText}>{isSpiritual ? "Optional YouTube search shares your selected tradition and mission topic, not your private source notes. Results are not vetted." : "Full-length topic search · Shorts excluded from the query"}</Text>
           </View>
           <Text style={styles.toolArrow}>↗</Text>
         </Pressable>
 
-        {mission.mapQuery ? (
+        {mission.mapQuery && !isSpiritual ? (
           <Pressable
             style={styles.toolCard}
             onPress={() => openLink(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mission.mapQuery || "")}`)}
@@ -186,7 +197,13 @@ export default function ActionScreen() {
           </Pressable>
         ) : null}
 
-        {mission.guideUrl ? <Pressable accessibilityRole="link" style={styles.toolCard} onPress={() => openLink(mission.guideUrl!)}>
+        {faithSource ? <Pressable accessibilityRole="link" style={styles.toolCard} onPress={() => openLink(faithSource.url)}>
+          <View style={styles.toolIcon}><Text>📖</Text></View>
+          <View style={styles.toolBody}><Text style={styles.toolTitle}>{faithSource.label}</Text><Text style={styles.toolText}>An optional reading library; choose the text and interpretation you trust.</Text></View>
+          <Text style={styles.toolArrow}>↗</Text>
+        </Pressable> : null}
+
+        {mission.guideUrl && !isSpiritual ? <Pressable accessibilityRole="link" style={styles.toolCard} onPress={() => openLink(mission.guideUrl!)}>
           <View style={styles.toolIcon}><Text>🔎</Text></View>
           <View style={styles.toolBody}><Text style={styles.toolTitle}>{mission.guideLabel || "Reliable step-by-step guide"}</Text><Text style={styles.toolText}>A direct source selected for this mission—not a general Google search</Text></View>
           <Text style={styles.toolArrow}>↗</Text>
