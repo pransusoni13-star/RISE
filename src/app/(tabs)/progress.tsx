@@ -40,13 +40,15 @@ export default function ProgressTabScreen() {
       }
     };
 
-    loadProgress();
+    void loadProgress().catch(() => {
+      if (active) Alert.alert("Couldn’t load progress", "Please reopen this screen to try again. Your saved progress has not been changed.");
+    });
     return () => { active = false; };
   }, []));
 
   const adaptiveSummary = useMemo(
-    () => buildProgressSummary(progress, "personal"),
-    [progress]
+    () => buildProgressSummary(progress, profile?.selectedGoals[0] || "personal"),
+    [progress, profile]
   );
 
   const achievements = useMemo(() => adaptiveSummary.achievements, [adaptiveSummary]);
@@ -69,6 +71,7 @@ export default function ProgressTabScreen() {
       : "Complete a mission and rate it so RISE can tune your next challenge.";
 
   const redeem = async (reward: CoinReward) => {
+    try {
     const result = await redeemCoinReward(reward);
     if (!result.ok) {
       Alert.alert(
@@ -82,6 +85,9 @@ export default function ProgressTabScreen() {
     setProgress(result.progress);
     setRedeemed(result.redeemed);
     Alert.alert("Reward unlocked", reward.description);
+    } catch {
+      Alert.alert("Couldn’t save reward", "Please reopen Progress and check your balance before trying again.");
+    }
   };
 
   return (

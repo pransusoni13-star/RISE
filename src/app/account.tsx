@@ -20,8 +20,8 @@ export default function AccountScreen() {
 
   useEffect(() => {
     signupStartedAt.current = Date.now();
-    void getCurrentUser().then(setExistingUser).finally(() => setCheckingSession(false));
-    void getPublicConfig().then((value) => setFoundingOpen(value.founding_redemption_enabled));
+    void getCurrentUser().then(setExistingUser).catch(() => setError("We couldn’t check your session. Please try signing in again.")).finally(() => setCheckingSession(false));
+    void getPublicConfig().then((value) => setFoundingOpen(value.founding_redemption_enabled)).catch(() => setFoundingOpen(false));
   }, []);
   const valid = /.+@.+\..+/.test(email.trim()) && password.length >= (mode === "create" ? 10 : 1) && (mode === "login" || displayName.trim().length >= 2);
 

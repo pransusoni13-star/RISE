@@ -46,6 +46,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
+    "test:logic": "node --experimental-strip-types --test scripts/cycle-quiz.test.mjs scripts/proof-validation.test.mjs",
     "check": "npm run typecheck && npm run lint && expo install --check",
     "testflight:preflight": "node scripts/testflight-preflight.mjs",
     "security:audit": "npm audit --omit=dev"

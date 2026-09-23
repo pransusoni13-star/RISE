@@ -38,11 +38,11 @@ export function getCycleQuestions(goal: string, allGoals = goal): CycleQuestion[
   const value = allGoals.toLowerCase();
   const focus = goal.replace(/[-_]/g, " ").trim().slice(0, 48) || "your skill";
   const keys = [
-    /software|code|developer|ai-engineer/.test(value) ? "coding" : "",
+    /software|cod(?:e|ing)|developer|programming|react-native|ai-engineer/.test(value) ? "coding" : "",
     /youtube|creator|marketing|photography|music/.test(value) ? "creator" : "",
     /fitness|athlete|basketball|mobility|nutrition|wellbeing/.test(value) ? "fitness" : "",
     /barber/.test(value) ? "barbering" : "",
-    /engineer|aerospace/.test(value) ? "engineering" : "",
+    /aerospace|mechanical|electrical|civil|(?:^|[\s"\[])engineering/.test(value) ? "engineering" : "",
   ].filter(Boolean);
   const uniqueKeys = Array.from(new Set(keys));
   const specific = uniqueKeys.flatMap((key) => banks[key]?.slice(0, uniqueKeys.length > 1 ? 1 : 2) || []);

@@ -48,6 +48,18 @@ The screenshot comments disagree about Stripe; Apple's own guideline 3.1.1, not 
 
 ## Hard gates before a public TestFlight link
 
+### September 23 learning and account follow-up
+
+- Practice quizzes now choose topic-relevant questions rather than always showing coding questions. The unchanged-question difficulty/XP multiplier was removed. Failed and repeat cycle reviews remain visible in local progress without repeat rewards; each attempt has a separate backend event ID.
+- Cycle review completion checks that all current-cycle mission records are complete before unlocking skills. This is a local integrity check, not server-side anti-cheat verification.
+- Projects now require checked requirements, a 2–3 sentence reflection, and the existing attachment/proof review before rewards. Project cards select distinct difficulty levels and no longer advertise unrelated hard-coded XP amounts. Malformed goal links fall back safely.
+- Both progress-storage implementations now propagate save failures. The progress summary uses the selected goal. Sign-in initialization handles failure; concurrent token refreshes are shared and transient network failures do not erase sessions.
+- Reminder scheduling cancels the new notification if its settings cannot be saved. Delivery still depends on device permissions and operating-system behavior.
+- Nine backend tests and nine quiz/proof logic tests passed. Backend tests now isolate rate-limit state between cases and explicitly test throttling, account isolation, and blank-name rejection.
+- Browser smoke test confirmed Medium project navigation, disabled submission with missing requirements, reflection validation, and transition into proof review without awarding completion. Project drafts now save locally rather than placing reflection text in navigation URLs. Native iPhone attachment and notification delivery tests are still pending.
+
+Apple and Google sign-in have **not** been implemented or enabled. They require the owner's registered bundle identifier and OAuth client/provider setup, backend identity-token validation and account linking, deletion/revocation handling, and signed-device testing. Do not show nonfunctional provider buttons or assume email equality is sufficient to link accounts. See [Expo authentication guidance](https://docs.expo.dev/guides/authentication/) and [Apple login-service guidelines](https://developer.apple.com/app-store/review/guidelines/#login-services).
+
 ### September 22 UI and dependency follow-up
 
 Safe-area spacing now covers the tab bar and fixed controls on Plan, Action, Focus, and Proof. Proof uses a keyboard-avoiding layout with an in-flow submission footer; verify its behavior on a signed iPhone build. The web landing example now has a working skill-selection button, calmer styling, and reduced-motion support. The app explicitly uses its implemented dark theme.

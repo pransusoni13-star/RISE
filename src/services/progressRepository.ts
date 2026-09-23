@@ -39,7 +39,7 @@ export function createProgressRepository(): ProgressRepository {
         return normalized;
       } catch (error) {
         console.log("Failed to save stored progress:", error);
-        return normalizeProgress(progress);
+        throw new Error("Your progress could not be saved. Please try again before leaving this screen.");
       }
     },
 

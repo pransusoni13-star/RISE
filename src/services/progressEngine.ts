@@ -2100,6 +2100,7 @@ export async function saveStoredProgress(
       "RISE: Failed to save progress",
       error
     );
+    throw new Error("Your progress could not be saved. Please try again.");
   }
 }
 

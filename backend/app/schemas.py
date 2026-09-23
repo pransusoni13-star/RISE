@@ -16,7 +16,10 @@ class RegisterRequest(BaseModel):
     @field_validator("display_name")
     @classmethod
     def clean_name(cls, value: str) -> str:
-        return " ".join(value.split())
+        cleaned = " ".join(value.split())
+        if len(cleaned) < 2:
+            raise ValueError("Display name must contain at least two non-whitespace characters")
+        return cleaned
 
 
 class LoginRequest(BaseModel):

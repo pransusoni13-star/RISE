@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
   ScrollView,
+  Alert,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -16,7 +17,8 @@ import {
 } from "../services/progressEngine";
 import { progressRepository } from "../services/progressRepository";
 import { getCycleQuestions } from "../services/cycleQuiz";
-import { loadProfile, updateProfile } from "../services/personalization";
+import { createSevenDayPlan, loadProfile, updateProfile } from "../services/personalization";
+import { missionRepository } from "../services/missionRepository";
 import { recordProgressEvent } from "../services/auth";
 
 type Question = {
@@ -111,20 +113,8 @@ const codingQuestions: Question[] = [
 
 const difficulties = [
   {
-    name: "Easy",
+    name: "Practice",
     reward: 25,
-  },
-  {
-    name: "Medium",
-    reward: 50,
-  },
-  {
-    name: "Hard",
-    reward: 100,
-  },
-  {
-    name: "Insane",
-    reward: 200,
   },
 ];
 
@@ -163,7 +153,10 @@ export default function QuizScreen() {
     typeof params.goals === "string" && params.goals.length > 0
       ? params.goals
       : JSON.stringify([primaryGoal]);
-  const questions = useMemo<Question[]>(() => cycleGate ? getCycleQuestions(primaryGoal, `${primaryGoal} ${selectedGoals}`) : codingQuestions, [cycleGate, primaryGoal, selectedGoals]);
+  const questions = useMemo<Question[]>(() => cycleGate
+    ? getCycleQuestions(primaryGoal, `${primaryGoal} ${selectedGoals}`)
+    : /coding|software|developer|programming|react-native/.test(primaryGoal.toLowerCase())
+      ? codingQuestions : getCycleQuestions(primaryGoal), [cycleGate, primaryGoal, selectedGoals]);
 
   const time =
     typeof params.time === "string" ? params.time : "";
@@ -178,7 +171,9 @@ export default function QuizScreen() {
       ? params.commitment
       : "";
 
-  const [difficulty, setDifficulty] = useState("Medium");
+  const [difficulty, setDifficulty] = useState("Practice");
+  const submitting = useRef(false);
+  const attemptId = useRef(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(
     null
@@ -192,7 +187,7 @@ export default function QuizScreen() {
 
   const selectedDifficulty =
     difficulties.find((item) => item.name === difficulty) ??
-    difficulties[1];
+    difficulties[0];
 
   const handleAnswer = (index: number) => {
     if (selectedAnswer !== null || saving) {
@@ -204,10 +199,11 @@ export default function QuizScreen() {
   };
 
   const finishQuiz = async () => {
-    if (saving) {
+    if (submitting.current || selectedAnswer === null) {
       return;
     }
-
+    submitting.current = true;
+    if (!attemptId.current) attemptId.current = Date.now();
     setSaving(true);
 
     /*
@@ -235,6 +231,15 @@ export default function QuizScreen() {
         : 0;
 
     try {
+      if (cycleGate) {
+        const profile = await loadProfile();
+        const plan = createSevenDayPlan(profile);
+        const records = await missionRepository.list();
+        if (!plan.length || cycleId !== plan[plan.length - 1].id || !plan.every(mission => records.some(record => record.missionId === mission.id && record.status === "completed"))) {
+          Alert.alert("Finish your cycle first", "Complete each mission and its proof review before unlocking your next skills.");
+          return;
+        }
+      }
       let progress: RISEProgress =
         await progressRepository.load();
 
@@ -243,13 +248,17 @@ export default function QuizScreen() {
        * 1. SAVE QUIZ XP
        * --------------------------------------------------
        */
-      const cycleSource = `cycle-quiz:${cycleId}`;
-      const alreadyRewarded = cycleGate && progress.events.some((event) => event.type === "quiz" && event.metadata?.source === cycleSource && event.metadata?.passed === true);
+      const cycleSource = cycleGate ? `cycle-quiz:${cycleId}` : `practice-quiz:${primaryGoal}:${skillId}`;
+      const alreadyRewarded = progress.events.some((event) => event.type === "quiz" && event.metadata?.source === cycleSource && event.amount > 0);
       if (!alreadyRewarded && (!cycleGate || passed)) {
         progress = addXP(progress, earnedXP, "quiz", cycleGate ? `Cycle passed — ${percentage}%` : `${difficulty} Quiz — ${percentage}%`, cycleGate ? 50 : earnedCoins, {
-          skillId, goal: primaryGoal, score: percentage, difficulty: cycleGate ? "Cycle review" : difficulty, source: cycleGate ? cycleSource : "quiz-engine", passed,
+          skillId, goal: primaryGoal, score: percentage, difficulty: cycleGate ? "Cycle review" : difficulty, source: cycleSource, passed,
         });
         progress = addSkillXP(progress, skillId, earnedXP, primaryGoal);
+      } else {
+        progress = addXP(progress, 0, "quiz", `Review — ${percentage}%`, 0, {
+          skillId, goal: primaryGoal, score: percentage, difficulty, source: cycleSource, passed,
+        });
       }
 
       /*
@@ -265,11 +274,8 @@ export default function QuizScreen() {
        *
        * Business → Foundations
        */
-      const badge = cycleGate && passed ? `${skillId.replace(/-/g, " ")} Cycle Builder` : undefined;
-      if (badge) {
-        const profile = await loadProfile();
-        await updateProfile({ cycleBadges: Array.from(new Set([...(profile.cycleBadges || []), badge])) });
-      }
+      const earnedBadge = cycleGate && passed ? `${skillId.replace(/-/g, " ")} Cycle Builder` : undefined;
+      const badge = alreadyRewarded ? undefined : earnedBadge;
 
       /*
        * --------------------------------------------------
@@ -291,8 +297,12 @@ export default function QuizScreen() {
        * --------------------------------------------------
        */
       await progressRepository.save(progress);
+      if (earnedBadge) {
+        const profile = await loadProfile();
+        await updateProfile({ cycleBadges: Array.from(new Set([...(profile.cycleBadges || []), earnedBadge])) });
+      }
       await recordProgressEvent({
-        clientEventId: `quiz:${cycleGate ? cycleId : `${skillId}:${Date.now()}`}`,
+        clientEventId: `quiz:${attemptId.current}`,
         eventType: "quiz_completed",
         skillSlug: skillId.trim().toLowerCase().replace(/\s+/g, "-"),
         value: percentage,
@@ -307,7 +317,7 @@ export default function QuizScreen() {
       setQuizResult({
         score: finalScore,
         percentage,
-        earnedXP,
+        earnedXP: alreadyRewarded ? 0 : earnedXP,
         difficulty,
         skillId,
         goal: primaryGoal,
@@ -323,11 +333,13 @@ export default function QuizScreen() {
 
       setFinished(true);
     } catch (error) {
+      Alert.alert("Couldn’t save your quiz", "Your answers are still here. Please try saving again.");
       console.log(
         "Failed to save quiz progress:",
         error
       );
     } finally {
+      submitting.current = false;
       setSaving(false);
     }
   };
@@ -500,7 +512,7 @@ export default function QuizScreen() {
             style={styles.button}
             onPress={async () => {
               if (cycleGate && !quizResult.passed) {
-                setCurrentQuestion(0); setSelectedAnswer(null); setScore(0); setFinished(false); setQuizResult(null); return;
+                attemptId.current = Date.now(); setCurrentQuestion(0); setSelectedAnswer(null); setScore(0); setFinished(false); setQuizResult(null); return;
               }
               if (cycleGate) {
                 const profile = await loadProfile();
@@ -583,7 +595,7 @@ export default function QuizScreen() {
       {/* DIFFICULTY */}
 
       {!cycleGate ? <><Text style={styles.sectionTitle}>
-        Difficulty
+        Practice review · rewards once per skill
       </Text>
 
       <View style={styles.difficultyRow}>

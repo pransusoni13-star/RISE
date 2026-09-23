@@ -8,13 +8,13 @@ import {
   Text,
   TextInput,
   View,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from "react-native";
-import {
-  addSkillXP,
-  addXP,
-  RISEProgress,
-} from "../services/progressEngine";
-import { progressRepository } from "../services/progressRepository";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { reflectionQuality } from "../services/proofValidation";
+import { missionRepository } from "../services/missionRepository";
 
 type Difficulty = "Easy" | "Medium" | "Hard" | "Insane";
 
@@ -549,6 +549,7 @@ const projectLibrary: Record<string, Record<Difficulty, Project>> = {
 };
 
 export default function ProjectScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const [storedGoals, setStoredGoals] = useState<string[]>([]);
 
@@ -581,18 +582,24 @@ export default function ProjectScreen() {
     };
   }, [params.goals]);
 
-  const goals = params.goals
-    ? JSON.parse(String(params.goals))
-    : storedGoals.length
-      ? storedGoals
-      : ["coding"];
+  const goals = useMemo<string[]>(() => {
+    try {
+      const parsed: unknown = params.goals ? JSON.parse(String(params.goals)) : storedGoals;
+      if (Array.isArray(parsed)) {
+        const valid = parsed.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+        if (valid.length) return valid;
+      }
+    } catch { /* Invalid deep links fall back to a safe personal project. */ }
+    return ["personal"];
+  }, [params.goals, storedGoals]);
 
   const primaryGoal = String(goals[0] || "coding").toLowerCase();
 
-  const [difficulty, setDifficulty] = useState<Difficulty>("Easy");
+  const [difficulty, setDifficulty] = useState<Difficulty>(() =>
+    params.difficulty === "Medium" || params.difficulty === "Hard" || params.difficulty === "Insane" ? params.difficulty : "Easy");
   const [reflection, setReflection] = useState("");
-  const [completed, setCompleted] = useState(false);
-  const [earnedXP, setEarnedXP] = useState(0);
+  const [checkedRequirements, setCheckedRequirements] = useState<number[]>([]);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const project = useMemo(() => {
     const library =
@@ -601,96 +608,35 @@ export default function ProjectScreen() {
 
     return library[difficulty];
   }, [primaryGoal, difficulty]);
+  const reflectionReview = reflectionQuality(reflection);
+  const readyForProof = reflectionReview.passed && checkedRequirements.length === project.requirements.length;
 
   const completeProject = async () => {
-    if (reflection.trim().length < 20) {
+    if (!readyForProof || savingDraft) {
       return;
     }
-
+    setSavingDraft(true);
+    const missionId = `project:${primaryGoal}:${difficulty}:${project.skillId}`;
     try {
-      let progress: RISEProgress = await progressRepository.load();
-
-      progress = addXP(
-        progress,
-        project.reward,
-        "project",
-        `Completed Project: ${project.title}`,
-        Math.max(15, Math.round(project.reward / 4))
-      );
-
-      progress = addSkillXP(
-        progress,
-        project.skillId,
-        project.reward
-      );
-
-      await progressRepository.save(progress);
-
-      setEarnedXP(project.reward);
-      setCompleted(true);
-    } catch (error) {
-      console.log("Could not save project progress:", error);
-    }
+    // Keep private reflection text out of browser URLs and navigation history.
+    await missionRepository.patch(missionId, { reflection, completedSteps: checkedRequirements });
+    router.push({ pathname: "/proof", params: {
+      task: project.title, reward: String(project.reward), skillId: project.skillId,
+      goal: primaryGoal, goals: JSON.stringify(goals), missionId,
+      missionContext: `${project.title}. ${project.requirements.join(". ")}`,
+    } } as any);
+    } catch {
+      Alert.alert("Couldn’t save your draft", "Your reflection is still here. Please try again.");
+    } finally { setSavingDraft(false); }
   };
 
-  if (completed) {
-    return (
-      <View style={styles.successContainer}>
-        <Text style={styles.successEmoji}>🚀</Text>
-
-        <Text style={styles.successTitle}>
-          Project Complete
-        </Text>
-
-        <Text style={styles.successSubtitle}>
-          You didn’t just learn something.
-          {"\n"}
-          You built something.
-        </Text>
-
-        <View style={styles.xpCard}>
-          <Text style={styles.xpLabel}>XP EARNED</Text>
-          <Text style={styles.xpValue}>+{earnedXP} XP</Text>
-        </View>
-
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() =>
-            router.push({
-              pathname: "/progress-screen",
-            } as any)
-          }
-        >
-          <Text style={styles.primaryButtonText}>
-            View My Progress
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() =>
-            router.push({
-              pathname: "/proof",
-              params: {
-                task: project.title,
-                reward: String(project.reward),
-              },
-            } as any)
-          }
-        >
-          <Text style={styles.secondaryButtonText}>
-            Prove It
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.page}>
+    <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 24 }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <Text style={styles.brand}>RISE PROJECT ENGINE</Text>
 
@@ -712,7 +658,7 @@ export default function ProjectScreen() {
             (level) => (
               <Pressable
                 key={level}
-                onPress={() => setDifficulty(level)}
+                onPress={() => { setDifficulty(level); setCheckedRequirements([]); setReflection(""); }}
                 style={[
                   styles.difficultyButton,
                   difficulty === level &&
@@ -774,17 +720,19 @@ export default function ProjectScreen() {
         </Text>
 
         {project.requirements.map((requirement, index) => (
-          <View style={styles.requirement} key={requirement}>
+          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: checkedRequirements.includes(index) }} accessibilityLabel={requirement}
+            onPress={() => setCheckedRequirements(previous => previous.includes(index) ? previous.filter(value => value !== index) : [...previous, index])}
+            style={styles.requirement} key={requirement}>
             <View style={styles.number}>
               <Text style={styles.numberText}>
-                {index + 1}
+                {checkedRequirements.includes(index) ? "✓" : index + 1}
               </Text>
             </View>
 
             <Text style={styles.requirementText}>
               {requirement}
             </Text>
-          </View>
+          </Pressable>
         ))}
 
         <Text style={styles.sectionTitle}>
@@ -806,7 +754,8 @@ export default function ProjectScreen() {
         <TextInput
           value={reflection}
           onChangeText={setReflection}
-          placeholder="Write at least 20 characters about what you learned..."
+          accessibilityLabel="Project reflection"
+          placeholder="In 2–3 sentences: what did you build, learn, and want to improve?"
           placeholderTextColor="#999999"
           multiline
           maxLength={1200}
@@ -814,26 +763,28 @@ export default function ProjectScreen() {
         />
 
         <Text style={styles.characterCount}>
-          {reflection.length}/20 minimum characters
+          {reflectionReview.message} · {checkedRequirements.length}/{project.requirements.length} requirements checked
         </Text>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Pressable
           onPress={completeProject}
-          disabled={reflection.trim().length < 20}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !readyForProof || savingDraft }}
+          disabled={!readyForProof || savingDraft}
           style={[
             styles.completeButton,
-            reflection.trim().length < 20 &&
+            !readyForProof &&
               styles.completeButtonDisabled,
           ]}
         >
           <Text style={styles.completeButtonText}>
-            Complete Project • +{project.reward} XP
+            {savingDraft ? "Saving your draft…" : "Continue to proof review →"}
           </Text>
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1048,10 +999,9 @@ const styles = StyleSheet.create({
   },
 
   footer: {
-    position: "absolute",
-    left: 24,
-    right: 24,
-    bottom: 24,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    flexShrink: 0,
   },
 
   completeButton: {

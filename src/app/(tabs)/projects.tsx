@@ -20,7 +20,7 @@ export default function ProjectsTabScreen() {
         }
 
         const parsedGoals = JSON.parse(saved) as string[];
-        setStoredGoals(parsedGoals);
+        setStoredGoals(Array.isArray(parsedGoals) ? parsedGoals.filter((goal) => typeof goal === "string" && goal.trim()) : []);
       } catch (error) {
         console.log("Could not load selected goals:", error);
       }
@@ -36,19 +36,19 @@ export default function ProjectsTabScreen() {
   const projects = useMemo(
     () => [
       {
-        title: "Mini Portfolio",
+        title: "Starter project",
         description: "Package a visible result you can share with others.",
-        reward: 180,
+        difficulty: "Easy",
       },
       {
-        title: "Proof of Work",
+        title: "Practical project",
         description: "Create something concrete that demonstrates your growth.",
-        reward: 220,
+        difficulty: "Medium",
       },
       {
         title: "Launch Challenge",
         description: "Put your learning into a real-world, public-facing outcome.",
-        reward: 300,
+        difficulty: "Hard",
       },
     ],
     []
@@ -72,8 +72,9 @@ export default function ProjectsTabScreen() {
             router.push({
               pathname: "/project",
               params: {
+                difficulty: project.difficulty,
                 goals: JSON.stringify(
-                  storedGoals.length ? storedGoals : ["coding"]
+                  storedGoals.length ? storedGoals : ["personal"]
                 ),
               },
             } as any)
@@ -83,7 +84,7 @@ export default function ProjectsTabScreen() {
           <Text style={styles.cardDescription}>{project.description}</Text>
           <View style={styles.row}>
             <Text style={styles.meta}>Build + share</Text>
-            <Text style={styles.reward}>+{project.reward} XP</Text>
+            <Text style={styles.reward}>{project.difficulty} · Proof required</Text>
           </View>
         </Pressable>
       ))}

@@ -10,7 +10,7 @@ from sqlalchemy.exc import OperationalError
 
 from app.database import Base, SessionLocal, engine
 from app.config import Settings
-from app.main import app, settings
+from app.main import app, settings, attempts, attempt_lock
 from app.models import FoundingInvite
 from app.security import hash_token
 
@@ -28,7 +28,31 @@ def test_health_checks_database(monkeypatch) -> None:
         assert response.json() == {"detail": "Service temporarily unavailable"}
 
 
+def test_registration_rejects_whitespace_display_names() -> None:
+    with TestClient(app) as client:
+        for name in ["   ", " a "]:
+            response = client.post("/auth/register", json={"email": "blank@example.com", "password": "very-secure-password", "display_name": name})
+            assert response.status_code == 422
+
+
+def test_progress_is_isolated_between_accounts() -> None:
+    with TestClient(app) as client:
+        headers = []
+        for email in ["first@example.com", "second@example.com"]:
+            response = client.post("/auth/register", json={"email": email, "password": "very-secure-password", "display_name": "Test Member"})
+            assert response.status_code == 201
+            headers.append({"Authorization": f"Bearer {response.json()['access_token']}"})
+        event = {"client_event_id": "mission:isolation", "event_type": "mission_completed", "skill_slug": "coding"}
+        assert client.post("/progress/events", json=event).status_code == 401
+        assert client.post("/progress/events", json=event, headers=headers[0]).status_code == 201
+        assert client.get("/users/me/dashboard", headers=headers[0]).json()["total_missions"] == 1
+        assert client.get("/users/me/dashboard", headers=headers[1]).json()["total_missions"] == 0
+        assert client.get("/users/me/export", headers=headers[1]).json()["progress_events"] == []
+
+
 def setup_function() -> None:
+    with attempt_lock:
+        attempts.clear()
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     with SessionLocal() as db:
@@ -73,6 +97,14 @@ def test_invite_cannot_be_claimed_by_another_email(monkeypatch) -> None:
     with TestClient(app) as client:
         response = client.post("/auth/register", json={"email": "other@example.com", "password": "very-secure-password", "display_name": "Other User", "founding_code": "FOUNDING-ONE"})
         assert response.status_code == 400
+
+
+def test_login_attempts_are_rate_limited() -> None:
+    with TestClient(app) as client:
+        payload = {"email": "unknown@example.com", "password": "incorrect-password"}
+        for _ in range(6):
+            assert client.post("/auth/login", json=payload).status_code == 401
+        assert client.post("/auth/login", json=payload).status_code == 429
 
 
 def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkeypatch) -> None:

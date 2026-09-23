@@ -112,16 +112,29 @@ async function rawRequest<T>(path: string, init: RequestInit = {}, accessToken?:
   }
 }
 
+let pendingRefresh: Promise<AuthResponse | null> | null = null;
+
 async function refreshSession(): Promise<AuthResponse | null> {
+  if (pendingRefresh) return pendingRefresh;
+  pendingRefresh = performRefresh();
+  try { return await pendingRefresh; }
+  finally { pendingRefresh = null; }
+}
+
+async function performRefresh(): Promise<AuthResponse | null> {
   const refreshToken = await getStored(REFRESH_KEY);
   if (!refreshToken) return null;
   try {
     const session = await rawRequest<AuthResponse>("/auth/refresh", { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) });
     await storeSession(session);
     return session;
-  } catch {
-    await storeSession(null);
-    return null;
+  } catch (error) {
+    // Temporary network failures must not erase a recoverable session.
+    if (error instanceof ApiError && error.status === 401) {
+      await storeSession(null);
+      return null;
+    }
+    throw error;
   }
 }
 

@@ -83,7 +83,13 @@ export async function setDailyReminder(enabled: boolean, time: ReminderTime): Pr
     },
     trigger: { type: api.SchedulableTriggerInputTypes.DAILY, hour, minute, ...(Platform.OS === "android" ? { channelId: CHANNEL } : {}) },
   });
-  await AsyncStorage.setItem(KEY, JSON.stringify({ enabled: true, time, id }));
+  try {
+    await AsyncStorage.setItem(KEY, JSON.stringify({ enabled: true, time, id }));
+  } catch (error) {
+    // Do not leave an untracked duplicate notification after a failed save.
+    await api.cancelScheduledNotificationAsync(id);
+    throw error;
+  }
   if (saved.id && saved.id !== id) await api.cancelScheduledNotificationAsync(saved.id);
   return { enabled: true, time, permission: "granted" };
 }
