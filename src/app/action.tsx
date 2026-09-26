@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Keyboard,
@@ -52,13 +52,23 @@ export default function ActionScreen() {
   const [reflection, setReflection] = useState("");
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [status, setStatus] = useState<MissionStatus>("not_started");
+  const [saving, setSaving] = useState(false);
+  const [showGuidance, setShowGuidance] = useState(false);
+  const saveLock = useRef(false);
   const [faithProfile, setFaithProfile] = useState<RiseProfile | null>(null);
 
   const mission = useMemo(() => {
     const raw = Array.isArray(params.mission) ? params.mission[0] : params.mission;
     if (!raw) return fallbackMission;
     try {
-      return { ...fallbackMission, ...(JSON.parse(raw) as PersonalizedMission) };
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return fallbackMission;
+      const candidate = { ...fallbackMission, ...parsed };
+      if (![candidate.steps, candidate.skills].every(value => Array.isArray(value) && value.length > 0 && value.length <= 20 && value.every(item => typeof item === "string" && item.length <= 3000))) return fallbackMission;
+      if (!["id", "title", "description", "goal", "skillId", "resourceUrl", "successCriteria", "why", "onePercent", "difficulty", "proof", "resourceLabel"].every(key => typeof candidate[key] === "string")) return fallbackMission;
+      if (!["guideLabel", "guideUrl", "coachTip", "ifStuck", "safetyNote", "sourceNote", "mapQuery", "reflectionPrompt"].every(key => candidate[key] === undefined || typeof candidate[key] === "string")) return fallbackMission;
+      if (!["day", "duration", "reward", "coinReward"].every(key => Number.isFinite(candidate[key]) && candidate[key] >= 0 && candidate[key] <= 1440)) return fallbackMission;
+      return candidate as PersonalizedMission;
     } catch {
       return fallbackMission;
     }
@@ -83,22 +93,29 @@ export default function ActionScreen() {
   }, [mission.id]);
 
   const toggleStep = async (index: number) => {
-    if (status === "completed") return;
+    if (status === "completed" || saveLock.current) return;
+    saveLock.current = true;
+    setSaving(true);
     const next = completedSteps.includes(index)
       ? completedSteps.filter((item) => item !== index)
       : [...completedSteps, index];
-    setCompletedSteps(next);
     const nextStatus: MissionStatus = next.length === mission.steps.length ? "proof_required" : "in_progress";
-    setStatus(nextStatus);
+    try {
     await missionRepository.patch(mission.id, {
       completedSteps: next,
       status: nextStatus,
       startedAt: new Date().toISOString(),
     });
+    setCompletedSteps(next);
+    setStatus(nextStatus);
+    } catch {
+      Alert.alert("Step wasn’t saved", "Please try again. Your previous progress has not changed.");
+    } finally { saveLock.current = false; setSaving(false); }
   };
 
   const openLink = async (url: string) => {
     try {
+      if (new URL(url).protocol !== "https:") throw new Error("Unsupported resource link");
       await Linking.openURL(url);
     } catch {
       Alert.alert("Could not open link", "Please try again.");
@@ -106,8 +123,11 @@ export default function ActionScreen() {
   };
 
   const continueToProof = async () => {
-    if (!reflectionReview.passed || completedSteps.length !== mission.steps.length) return;
-    await missionRepository.patch(mission.id, { status: "proof_required", reflection: reflection.trim() });
+    if (saveLock.current || !reflectionReview.passed || completedSteps.length !== mission.steps.length) return;
+    saveLock.current = true;
+    setSaving(true);
+    try {
+    await missionRepository.patch(mission.id, { status: status === "completed" ? "completed" : "proof_required", reflection: reflection.trim() });
     router.push({
       pathname: "/proof",
       params: {
@@ -119,10 +139,12 @@ export default function ActionScreen() {
         coins: String(mission.coinReward),
         missionId: mission.id,
         duration: String(mission.duration),
-        reflection: reflection.trim(),
         missionContext: [mission.title, mission.description, mission.successCriteria, ...mission.skills].join(" "),
       },
     } as any);
+    } catch {
+      Alert.alert("Couldn’t save your check-in", "Your reflection is still here. Try again before continuing.");
+    } finally { saveLock.current = false; setSaving(false); }
   };
 
   return (
@@ -142,7 +164,10 @@ export default function ActionScreen() {
       <Info label="REWARD" value={`+${mission.reward} XP`} accent />
         </View>
 
-        <View style={styles.whyCard}>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: showGuidance }} onPress={() => setShowGuidance(value => !value)} style={styles.toolCard}>
+          <Text style={styles.toolTitle}>{showGuidance ? "Hide coaching notes −" : "Why this mission? Get help +"}</Text>
+        </Pressable>
+        {showGuidance ? <><View style={styles.whyCard}>
           <Text style={styles.whyLabel}>WHY THIS IS NEXT</Text>
           <Text style={styles.whyText}>{mission.why}</Text>
         </View>
@@ -157,16 +182,16 @@ export default function ActionScreen() {
           <Text style={styles.coachText}>{mission.coachTip || "Finish a small version first, then improve one visible detail."}</Text>
           <Text style={styles.stuckLabel}>IF YOU GET STUCK</Text>
           <Text style={styles.coachText}>{mission.ifStuck || "Shrink the task to one five-minute attempt and learn from it."}</Text>
-        </View>
+        </View></> : null}
 
         <View style={styles.safetyCard}>
           <Text style={styles.safetyLabel}>SAFE PRACTICE</Text>
           <Text style={styles.safetyText}>{mission.safetyNote || "Protect private information and stop or simplify any step that feels unsafe."}</Text>
         </View>
 
-        <Text style={styles.section}>DO THIS INSIDE RISE</Text>
+        <Text style={styles.section}>YOUR STEPS · {completedSteps.length}/{mission.steps.length} DONE</Text>
         {mission.steps.map((step, index) => (
-          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: completedSteps.includes(index), disabled: status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, completedSteps.includes(index) && styles.stepCardDone]} onPress={() => toggleStep(index)}>
+          <Pressable accessibilityRole="checkbox" disabled={saving || status === "completed"} accessibilityState={{ checked: completedSteps.includes(index), disabled: saving || status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, completedSteps.includes(index) && styles.stepCardDone]} onPress={() => toggleStep(index)}>
             <View style={[styles.stepNumber, completedSteps.includes(index) && styles.stepNumberDone]}><Text style={styles.stepNumberText}>{completedSteps.includes(index) ? "✓" : index + 1}</Text></View>
             <Text style={[styles.stepText, completedSteps.includes(index) && styles.stepTextDone]}>{step}</Text>
           </Pressable>
@@ -180,7 +205,7 @@ export default function ActionScreen() {
           <View style={styles.toolIcon}><Text>▶️</Text></View>
           <View style={styles.toolBody}>
             <Text style={styles.toolTitle}>{isSpiritual ? `Search ${faithSource ? faithProfile?.spiritualTradition : "topic"} videos` : mission.resourceLabel}</Text>
-            <Text style={styles.toolText}>{isSpiritual ? "Optional YouTube search shares your selected tradition and mission topic, not your private source notes. Results are not vetted." : "Full-length topic search · Shorts excluded from the query"}</Text>
+            <Text style={styles.toolText}>{isSpiritual ? "Optional YouTube search shares your selected tradition and mission topic, not your private source notes. Results are not vetted." : "Optional YouTube search. Results are not reviewed by RISE and may include Shorts."}</Text>
           </View>
           <Text style={styles.toolArrow}>↗</Text>
         </Pressable>
@@ -235,13 +260,15 @@ export default function ActionScreen() {
         <Text style={styles.hint}>Next: attach a screenshot, photo, or short video. A text-only completion will not count.</Text>
       </ScrollView>
 
-      <View style={[styles.footer, { bottom: insets.bottom + 12 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Pressable
           style={[styles.button, (!reflectionReview.passed || completedSteps.length !== mission.steps.length) && styles.disabled]}
           onPress={continueToProof}
-          disabled={!reflectionReview.passed || completedSteps.length !== mission.steps.length}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: saving || !reflectionReview.passed || completedSteps.length !== mission.steps.length }}
+          disabled={saving || !reflectionReview.passed || completedSteps.length !== mission.steps.length}
         >
-          <Text style={styles.buttonText}>Attach Proof to Complete →</Text>
+          <Text style={styles.buttonText}>{saving ? "Saving…" : status === "completed" ? "Review My Proof →" : "Attach Proof to Complete →"}</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -303,7 +330,7 @@ const styles = StyleSheet.create({
   input: { minHeight: 105, borderRadius: 17, borderWidth: 1, borderColor: "#29483B", backgroundColor: "#071B16", color: "#F5FFF9", padding: 15, textAlignVertical: "top", fontSize: 14, lineHeight: 21 },
   hint: { color: "#8FB6A2", fontSize: 11, lineHeight: 17, marginTop: 9 },
   hintReady: { color: "#7AF5B8" },
-  footer: { position: "absolute", left: 22, right: 22, bottom: 22 },
+  footer: { paddingHorizontal: 22, paddingTop: 12, flexShrink: 0 },
   button: { height: 58, borderRadius: 29, backgroundColor: "#7AF5B8", alignItems: "center", justifyContent: "center" },
   disabled: { opacity: 0.35 },
   buttonText: { color: "#010807", fontSize: 15, fontWeight: "900" },

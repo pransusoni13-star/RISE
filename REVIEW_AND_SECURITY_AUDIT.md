@@ -48,6 +48,16 @@ The screenshot comments disagree about Stripe; Apple's own guideline 3.1.1, not 
 
 ## Hard gates before a public TestFlight link
 
+### September 26 mission follow-up
+
+Mission checklists now wait for a successful save before showing completion, prevent overlapping submissions, and report save failures. Revisiting a completed mission no longer changes it back to proof-required. Mission reflections are stored locally instead of passed in navigation URLs. The mission footer participates in the keyboard-avoiding layout. Malformed mission payloads receive basic shape checks and external resource navigation requires HTTPS.
+
+Coaching notes can be expanded on demand, with task completion counts visible. YouTube results are explicitly labeled unreviewed searches; no claim is made that they are the best videos or that Shorts are guaranteed absent. The React Native introduction, YouTube content-performance guidance, and CDC healthy-eating links were spot-checked; this is not an audit of every resource.
+
+Preflight still reports the five owner/deployment configuration blockers. The dependency audit still reports 14 moderate findings. Public distribution is not cleared by these UI changes, and professional legal/security review and signed-device testing remain outstanding.
+
+Updated seven Expo SDK 57 packages to the versions recommended by `expo install --fix`, including Expo 57.0.25, Router 57.0.23, Image Picker 57.0.20, and Notifications 57.0.21. These compatible patch updates do not resolve the two underlying dependency advisories; the production-dependency audit still reports 14 moderate findings.
+
 ### September 23 learning and account follow-up
 
 - Practice quizzes now choose topic-relevant questions rather than always showing coding questions. The unchanged-question difficulty/XP multiplier was removed. Failed and repeat cycle reviews remain visible in local progress without repeat rewards; each attempt has a separate backend event ID.
