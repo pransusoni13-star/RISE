@@ -25,7 +25,7 @@ Do not collect real beta-user data until the release gates below are addressed.
 
 - Add reviewed schema migrations; current `create_all` only initializes missing tables and cannot safely evolve an existing schema.
 - Enable managed backups and successfully restore a test backup into a separate database.
-- Password recovery is implemented but must be tested with the chosen email provider. Add verified-email activation before open public registration; until then, keep invitations controlled and verify founding-member addresses against the private waitlist.
+- Password recovery and email verification are implemented but must be tested end-to-end with the chosen email provider. Keep invitations controlled until delivery, spam placement, expired links, and resend behavior pass staging tests.
 - Complete operator identity, audience/country decisions, retention/backup-deletion rules, privacy policy and terms review. Publish accessible HTTPS privacy/support pages. Public contact: rise.app13@gmail.com.
 - Resolve or formally assess outstanding dependency advisories; never use a forced Expo downgrade as an audit fix.
 - Test two separate accounts for isolation, logout, deletion, export, progress sync and opt-in ranking. Use synthetic data before production data.

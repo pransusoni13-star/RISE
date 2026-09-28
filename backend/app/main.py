@@ -17,9 +17,9 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .database import Base, engine, get_db
-from .mailer import send_password_reset
-from .models import FoundingInvite, LeaderboardConsent, PasswordResetToken, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
-from .schemas import AuthResponse, DashboardResponse, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
+from .mailer import send_email_verification, send_password_reset
+from .models import EmailVerification, FoundingInvite, LeaderboardConsent, PasswordResetToken, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
+from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
 
 
@@ -105,6 +105,24 @@ def issue_session(db: Session, user: User) -> AuthResponse:
     return AuthResponse(access_token=create_access_token(user.id), refresh_token=raw_refresh, user=UserResponse.model_validate(user))
 
 
+def deliver_email_verification(db: Session, user: User) -> None:
+    raw_token = create_refresh_token()
+    record = db.get(EmailVerification, user.id) or EmailVerification(user_id=user.id)
+    if record.verified_at:
+        return
+    record.token_hash = hash_token(raw_token)
+    record.expires_at = now_utc() + timedelta(hours=24)
+    record.sent_at = now_utc()
+    db.add(record)
+    db.commit()
+    try:
+        send_email_verification(settings, user.email, raw_token)
+    except Exception:
+        record.token_hash = None
+        record.expires_at = None
+        db.commit()
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     try:
@@ -151,7 +169,9 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
         db.rollback()
         raise HTTPException(status_code=409, detail="Account could not be created") from exc
     db.refresh(user)
-    return issue_session(db, user)
+    session = issue_session(db, user)
+    deliver_email_verification(db, user)
+    return session
 
 
 @app.post("/auth/login", response_model=AuthResponse)
@@ -223,6 +243,32 @@ def confirm_password_reset(payload: PasswordResetConfirm, request: Request, db: 
     return Response(status_code=204)
 
 
+@app.get("/users/me/email-verification")
+def email_verification_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, bool]:
+    record = db.get(EmailVerification, user.id)
+    return {"verified": bool(record and record.verified_at)}
+
+
+@app.post("/users/me/email-verification", status_code=202)
+def request_email_verification(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, str]:
+    enforce_rate_limit(request, "email-verification", limit=4, seconds=3600)
+    deliver_email_verification(db, user)
+    return {"message": "If verification is still needed, a new link will be sent."}
+
+
+@app.post("/auth/email-verification/confirm", status_code=204)
+def confirm_email_verification(payload: EmailVerificationConfirm, request: Request, db: Session = Depends(get_db)) -> Response:
+    enforce_rate_limit(request, "email-verification-confirm", limit=8, seconds=900)
+    record = db.scalar(select(EmailVerification).where(EmailVerification.token_hash == hash_token(payload.token), EmailVerification.verified_at.is_(None)))
+    if not record or not record.expires_at or record.expires_at.replace(tzinfo=timezone.utc) <= now_utc():
+        raise HTTPException(status_code=400, detail="This verification link is invalid or expired")
+    record.verified_at = now_utc()
+    record.token_hash = None
+    record.expires_at = None
+    db.commit()
+    return Response(status_code=204)
+
+
 @app.get("/users/me", response_model=UserResponse)
 def me(user: User = Depends(get_current_user)) -> User:
     return user
@@ -252,6 +298,7 @@ def delete_me(user: User = Depends(get_current_user), db: Session = Depends(get_
     db.execute(update(FoundingInvite).where(FoundingInvite.claimed_by_user_id == user.id).values(claimed_by_user_id=None))
     db.execute(delete(RefreshSession).where(RefreshSession.user_id == user.id))
     db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
+    db.execute(delete(EmailVerification).where(EmailVerification.user_id == user.id))
     db.execute(delete(ProgressEvent).where(ProgressEvent.user_id == user.id))
     db.execute(delete(UserSkill).where(UserSkill.user_id == user.id))
     db.execute(delete(LeaderboardConsent).where(LeaderboardConsent.user_id == user.id))

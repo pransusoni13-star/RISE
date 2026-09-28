@@ -178,6 +178,20 @@ export async function confirmPasswordReset(token: string, newPassword: string): 
   await rawRequest("/auth/password-reset/confirm", { method: "POST", body: JSON.stringify({ token: token.trim(), new_password: newPassword }) });
 }
 
+export async function getEmailVerificationStatus(): Promise<boolean> {
+  const result = await authenticatedRequest<{ verified: boolean }>("/users/me/email-verification");
+  return result.verified;
+}
+
+export async function requestEmailVerification(): Promise<string> {
+  const result = await authenticatedRequest<{ message: string }>("/users/me/email-verification", { method: "POST" });
+  return result.message;
+}
+
+export async function confirmEmailVerification(token: string): Promise<void> {
+  await rawRequest("/auth/email-verification/confirm", { method: "POST", body: JSON.stringify({ token: token.trim() }) });
+}
+
 export async function getCurrentUser(): Promise<RiseUser | null> {
   const stored = await getStored(USER_KEY);
   if (!stored) return null;

@@ -75,7 +75,7 @@ export default function LegalScreen() {
       RISE is intended for people age 13 and older and is not offered in the App Store Kids Category. It does not include verified parental consent. Distribution to children would require age-appropriate notices, high-privacy defaults, parental controls where required, and a formal child-safety assessment.
     </Section>
     <Section title="Your choices">
-      You can deny camera or photo permission and change it in device Settings. Settings lets you export a readable copy of local and synced records through your device share sheet. You can delete local data, and signed-in users can delete their server account and local data from Settings without contacting support. Password-reset links are single-use, expire after 30 minutes, and revoke refresh sessions when used. Existing access tokens expire within 15 minutes.
+      You can deny camera or photo permission and change it in device Settings. Settings lets you export a readable copy of local and synced records through your device share sheet. You can delete local data, and signed-in users can delete their server account and local data from Settings without contacting support. Email-verification links are single-use and expire after 24 hours. Password-reset links are single-use, expire after 30 minutes, and revoke refresh sessions when used. Existing access tokens expire within 15 minutes.
     </Section>
     <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={deleteLocalData}><Text style={styles.deleteText}>Delete all local RISE data</Text></Pressable>
     <Pressable accessibilityRole="button" style={styles.helpButton} onPress={() => router.push("/help" as any)}><Text style={styles.helpText}>Open Help Center →</Text></Pressable>

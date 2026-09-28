@@ -1,6 +1,6 @@
 import Head from "expo-router/head";
 import { router } from "expo-router";
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const COLORS = {
@@ -79,11 +79,14 @@ function getServerViewportWidth() {
 }
 
 function ActionButton({ label, secondary = false, onPress }: { label: string; secondary?: boolean; onPress: () => void }) {
+  const [hovered, setHovered] = useState(false);
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ hovered, pressed }) => [
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={({ pressed }) => [
         styles.action,
         secondary && styles.actionSecondary,
         hovered && styles.actionHovered,
@@ -95,6 +98,7 @@ function ActionButton({ label, secondary = false, onPress }: { label: string; se
 }
 
 export default function WebHomeScreen() {
+  const [navHovered, setNavHovered] = useState(false);
   const viewportWidth = useSyncExternalStore(
     subscribeToViewport,
     getViewportWidth,
@@ -140,7 +144,9 @@ export default function WebHomeScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push("/account" as never)}
-            style={({ hovered, pressed }) => [styles.navCta, hovered && styles.navCtaHovered, pressed && styles.actionPressed]}>
+            onHoverIn={() => setNavHovered(true)}
+            onHoverOut={() => setNavHovered(false)}
+            style={({ pressed }) => [styles.navCta, navHovered && styles.navCtaHovered, pressed && styles.actionPressed]}>
             <Text style={styles.navCtaText}>Start RISE</Text>
           </Pressable>
         </View>

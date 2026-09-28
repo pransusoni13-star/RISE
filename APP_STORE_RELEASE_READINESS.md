@@ -16,6 +16,7 @@ Updated: 2026-09-21
 - No analytics SDK, advertising SDK, marketing email, payment flow, or RISE proof-file upload. Optional first-party operator analytics is off by default. Opting out removes timing events and excludes core progress from operator reports, without deleting the member's own progress.
 - FastAPI account service with Argon2 password hashes, short-lived JWT access tokens, rotated refresh tokens, server authorization, deletion, and progress export.
 - Password recovery with account-enumeration-safe responses, one-time 30-minute reset tokens, password replacement, and refresh-session revocation. Production startup requires configured transactional email delivery.
+- Email verification with automatic signup delivery, authenticated resend limits, one-time 24-hour tokens, and a verification-link screen. Delivery still requires the production transactional email provider.
 - Private operator usage report and opt-in, identity-free community comparison.
 - Founding-member redemption disabled by default until the public App Store launch.
 - Honest rewards with no cash value.

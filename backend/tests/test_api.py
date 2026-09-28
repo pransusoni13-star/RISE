@@ -61,6 +61,24 @@ def test_password_reset_is_private_single_use_and_revokes_sessions(monkeypatch) 
         assert client.post("/auth/refresh", json={"refresh_token": old_refresh}).status_code == 401
 
 
+def test_email_verification_is_expiring_and_single_use(monkeypatch) -> None:
+    delivered: dict[str, str] = {}
+
+    def capture_verification(_settings, recipient: str, token: str) -> None:
+        delivered.update(recipient=recipient, token=token)
+
+    monkeypatch.setattr("app.main.send_email_verification", capture_verification)
+    with TestClient(app) as client:
+        created = client.post("/auth/register", json={"email": "verify@example.com", "password": "very-secure-password", "display_name": "Verify Member"})
+        assert created.status_code == 201
+        headers = {"Authorization": f"Bearer {created.json()['access_token']}"}
+        assert delivered["recipient"] == "verify@example.com"
+        assert client.get("/users/me/email-verification", headers=headers).json() == {"verified": False}
+        assert client.post("/auth/email-verification/confirm", json={"token": delivered["token"]}).status_code == 204
+        assert client.get("/users/me/email-verification", headers=headers).json() == {"verified": True}
+        assert client.post("/auth/email-verification/confirm", json={"token": delivered["token"]}).status_code == 400
+
+
 def test_progress_is_isolated_between_accounts() -> None:
     with TestClient(app) as client:
         headers = []
