@@ -17,8 +17,9 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .database import Base, engine, get_db
-from .models import FoundingInvite, LeaderboardConsent, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
-from .schemas import AuthResponse, DashboardResponse, FoundingClaimRequest, LoginRequest, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
+from .mailer import send_password_reset
+from .models import FoundingInvite, LeaderboardConsent, PasswordResetToken, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
+from .schemas import AuthResponse, DashboardResponse, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
 
 
@@ -188,6 +189,40 @@ def logout(payload: RefreshRequest, db: Session = Depends(get_db)) -> Response:
     return Response(status_code=204)
 
 
+@app.post("/auth/password-reset/request", status_code=202)
+def request_password_reset(payload: PasswordResetRequest, request: Request, db: Session = Depends(get_db)) -> dict[str, str]:
+    enforce_rate_limit(request, "password-reset-request", limit=4, seconds=900)
+    user = db.scalar(select(User).where(User.email == normalize_email(str(payload.email))))
+    if user and user.is_active:
+        raw_token = create_refresh_token()
+        db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None)))
+        db.add(PasswordResetToken(user_id=user.id, token_hash=hash_token(raw_token), expires_at=now_utc() + timedelta(minutes=30)))
+        db.commit()
+        try:
+            send_password_reset(settings, user.email, raw_token)
+        except Exception:
+            # Never disclose account existence or mail-provider details to the caller.
+            db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id, PasswordResetToken.token_hash == hash_token(raw_token)))
+            db.commit()
+    return {"message": "If that address has an active RISE account, reset instructions will be sent."}
+
+
+@app.post("/auth/password-reset/confirm", status_code=204)
+def confirm_password_reset(payload: PasswordResetConfirm, request: Request, db: Session = Depends(get_db)) -> Response:
+    enforce_rate_limit(request, "password-reset-confirm", limit=8, seconds=900)
+    record = db.scalar(select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(payload.token), PasswordResetToken.used_at.is_(None)))
+    if not record or record.expires_at.replace(tzinfo=timezone.utc) <= now_utc():
+        raise HTTPException(status_code=400, detail="This reset link is invalid or expired")
+    user = db.get(User, record.user_id)
+    if not user or not user.is_active:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or expired")
+    user.password_hash = hash_password(payload.new_password)
+    record.used_at = now_utc()
+    db.execute(update(RefreshSession).where(RefreshSession.user_id == user.id, RefreshSession.revoked_at.is_(None)).values(revoked_at=now_utc()))
+    db.commit()
+    return Response(status_code=204)
+
+
 @app.get("/users/me", response_model=UserResponse)
 def me(user: User = Depends(get_current_user)) -> User:
     return user
@@ -216,6 +251,7 @@ def claim_founding(payload: FoundingClaimRequest, request: Request, user: User =
 def delete_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Response:
     db.execute(update(FoundingInvite).where(FoundingInvite.claimed_by_user_id == user.id).values(claimed_by_user_id=None))
     db.execute(delete(RefreshSession).where(RefreshSession.user_id == user.id))
+    db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
     db.execute(delete(ProgressEvent).where(ProgressEvent.user_id == user.id))
     db.execute(delete(UserSkill).where(UserSkill.user_id == user.id))
     db.execute(delete(LeaderboardConsent).where(LeaderboardConsent.user_id == user.id))

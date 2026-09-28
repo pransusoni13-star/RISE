@@ -35,6 +35,32 @@ def test_registration_rejects_whitespace_display_names() -> None:
             assert response.status_code == 422
 
 
+def test_password_reset_is_private_single_use_and_revokes_sessions(monkeypatch) -> None:
+    delivered: dict[str, str] = {}
+
+    def capture_reset(_settings, recipient: str, token: str) -> None:
+        delivered.update(recipient=recipient, token=token)
+
+    monkeypatch.setattr("app.main.send_password_reset", capture_reset)
+    with TestClient(app) as client:
+        created = client.post("/auth/register", json={"email": "reset@example.com", "password": "original-password", "display_name": "Reset Member"})
+        assert created.status_code == 201
+        old_access = created.json()["access_token"]
+        generic = {"message": "If that address has an active RISE account, reset instructions will be sent."}
+        assert client.post("/auth/password-reset/request", json={"email": "missing@example.com"}).json() == generic
+        assert client.post("/auth/password-reset/request", json={"email": "RESET@example.com"}).json() == generic
+        assert delivered["recipient"] == "reset@example.com"
+
+        changed = client.post("/auth/password-reset/confirm", json={"token": delivered["token"], "new_password": "replacement-password"})
+        assert changed.status_code == 204
+        assert client.post("/auth/password-reset/confirm", json={"token": delivered["token"], "new_password": "another-password"}).status_code == 400
+        assert client.post("/auth/login", json={"email": "reset@example.com", "password": "original-password"}).status_code == 401
+        assert client.post("/auth/login", json={"email": "reset@example.com", "password": "replacement-password"}).status_code == 200
+        assert client.get("/users/me", headers={"Authorization": f"Bearer {old_access}"}).status_code == 200
+        old_refresh = created.json()["refresh_token"]
+        assert client.post("/auth/refresh", json={"refresh_token": old_refresh}).status_code == 401
+
+
 def test_progress_is_isolated_between_accounts() -> None:
     with TestClient(app) as client:
         headers = []
@@ -144,7 +170,7 @@ def test_production_settings_require_private_database_and_https_origin() -> None
         assert False, "production SQLite should be rejected"
     except RuntimeError as error:
         assert "PostgreSQL" in str(error)
-    settings = Settings(env="production", jwt_secret="a-strong-production-secret-at-least-32", database_url="postgresql+psycopg://rise:password@db/rise", allowed_origins="https://rise.example", admin_api_key="test-admin-key-long-enough-for-a-test-123")
+    settings = Settings(env="production", jwt_secret="a-strong-production-secret-at-least-32", database_url="postgresql+psycopg://rise:password@db/rise", allowed_origins="https://rise.example", admin_api_key="test-admin-key-long-enough-for-a-test-123", public_app_url="https://rise.example", smtp_host="smtp.example", smtp_username="rise", smtp_password="private-test-password", smtp_from_email="support@rise.example")
     settings.validate_for_startup()
     assert settings.cors_origins == ["https://rise.example"]
 

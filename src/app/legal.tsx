@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { router } from "expo-router";
 import { deleteAllRiseData } from "../services/localData";
 import { cancelDailyReminder } from "../services/reminders";
+import { SUPPORT_EMAIL } from "../constants/support";
 
 export default function LegalScreen() {
   const deleteLocalData = () => Alert.alert(
@@ -68,13 +69,13 @@ export default function LegalScreen() {
       The current native app does not set advertising cookies, include an analytics SDK, or send marketing email. A cookie banner or unsubscribe link would be misleading today. If the future website or app adds non-essential cookies, analytics, advertising, or email marketing, RISE must add the required notice, consent, and opt-out controls before enabling them.
     </Section>
     <Section title="Operator and contact details">
-      Before distribution, the legal person or business operating RISE must publish an accurate operator name, address where legally required, support contact, Privacy Policy URL, Terms URL, and response process. RISE does not display invented contact information.
+      {`For support, privacy questions, or a deletion problem, contact ${SUPPORT_EMAIL}. Never send passwords or sign-in codes. Before distribution, the operator must still publish their legal name, address where required, final Privacy Policy and Terms, and a privacy-request response process. The support email alone does not complete those requirements.`}
     </Section>
     <Section title="Age and family safety">
       RISE is intended for people age 13 and older and is not offered in the App Store Kids Category. It does not include verified parental consent. Distribution to children would require age-appropriate notices, high-privacy defaults, parental controls where required, and a formal child-safety assessment.
     </Section>
     <Section title="Your choices">
-      You can deny camera or photo permission and change it in device Settings. Settings lets you export a readable copy of local and synced records through your device share sheet. You can delete local data, and signed-in users can delete their server account and local data from Settings without contacting support.
+      You can deny camera or photo permission and change it in device Settings. Settings lets you export a readable copy of local and synced records through your device share sheet. You can delete local data, and signed-in users can delete their server account and local data from Settings without contacting support. Password-reset links are single-use, expire after 30 minutes, and revoke refresh sessions when used. Existing access tokens expire within 15 minutes.
     </Section>
     <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={deleteLocalData}><Text style={styles.deleteText}>Delete all local RISE data</Text></Pressable>
     <Pressable accessibilityRole="button" style={styles.helpButton} onPress={() => router.push("/help" as any)}><Text style={styles.helpText}>Open Help Center →</Text></Pressable>

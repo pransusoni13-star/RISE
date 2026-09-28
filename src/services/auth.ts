@@ -169,6 +169,15 @@ export async function login(email: string, password: string): Promise<RiseUser> 
   return session.user;
 }
 
+export async function requestPasswordReset(email: string): Promise<string> {
+  const result = await rawRequest<{ message: string }>("/auth/password-reset/request", { method: "POST", body: JSON.stringify({ email: email.trim().toLowerCase() }) });
+  return result.message;
+}
+
+export async function confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+  await rawRequest("/auth/password-reset/confirm", { method: "POST", body: JSON.stringify({ token: token.trim(), new_password: newPassword }) });
+}
+
 export async function getCurrentUser(): Promise<RiseUser | null> {
   const stored = await getStored(USER_KEY);
   if (!stored) return null;

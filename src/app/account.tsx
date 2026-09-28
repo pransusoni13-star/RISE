@@ -79,6 +79,7 @@ export default function AccountScreen() {
       {error ? <View accessibilityRole="alert" style={styles.errorCard}><Text style={styles.errorText}>{error}</Text></View> : null}
       <Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || busy || !isApiConfigured() }} disabled={!valid || busy || !isApiConfigured()} onPress={() => void submit()} style={({ pressed }) => [styles.primaryButton, (!valid || busy || !isApiConfigured()) && styles.disabled, pressed && styles.pressed]}><Text style={styles.primaryText}>{busy ? "Setting things up…" : mode === "create" ? "Create my account" : "Sign in"}</Text>{!busy ? <Text style={styles.buttonArrow}>→</Text> : null}</Pressable>
       <Pressable accessibilityRole="button" onPress={() => router.replace("/onboarding" as never)} style={styles.secondaryButton}><Text style={styles.secondaryText}>Continue without an account</Text></Pressable>
+      {mode === "login" ? <Pressable accessibilityRole="link" onPress={() => router.push("/recover" as never)} style={styles.policyLink}><Text style={styles.policyText}>Forgot your password?</Text></Pressable> : null}
       <Text style={styles.guestHint}>Your plan works on this device. Create an account later if you want to sync progress.</Text>
       <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as never)} style={styles.policyLink}><Text style={styles.policyText}>Privacy, Safety & Terms</Text></Pressable>
       <Text style={styles.legal}>No payment collected · Delete or export data in Settings</Text>

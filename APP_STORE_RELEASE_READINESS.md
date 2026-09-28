@@ -15,6 +15,7 @@ Updated: 2026-09-21
 - Native protected storage for optional faith/trusted-source preferences; session-only handling on web.
 - No analytics SDK, advertising SDK, marketing email, payment flow, or RISE proof-file upload. Optional first-party operator analytics is off by default. Opting out removes timing events and excludes core progress from operator reports, without deleting the member's own progress.
 - FastAPI account service with Argon2 password hashes, short-lived JWT access tokens, rotated refresh tokens, server authorization, deletion, and progress export.
+- Password recovery with account-enumeration-safe responses, one-time 30-minute reset tokens, password replacement, and refresh-session revocation. Production startup requires configured transactional email delivery.
 - Private operator usage report and opt-in, identity-free community comparison.
 - Founding-member redemption disabled by default until the public App Store launch.
 - Honest rewards with no cash value.
@@ -33,7 +34,7 @@ These values cannot be invented or safely selected by code:
 1. Apple Developer individual or organization enrollment.
 2. A unique iOS bundle identifier owned by the developer.
 3. The verified legal operator name and business address where required.
-4. A monitored support email address.
+4. Confirm `rise.app13@gmail.com` is monitored by the responsible adult and configure an authenticated transactional sender; a personal Gmail address alone is not a production mail service.
 5. A production HTTPS domain.
 6. Public Privacy Policy, Terms, Support, and deletion-instructions URLs on that domain.
 7. Final App Store name, subtitle, description, keywords, category, age-rating answers, copyright, and territories.

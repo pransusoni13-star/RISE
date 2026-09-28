@@ -1,6 +1,7 @@
 import React from "react";
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/support";
 
 const resources = [
   {
@@ -43,6 +44,10 @@ export default function HelpScreen() {
       <Text style={styles.title}>Help that meets you where you are.</Text>
       <Text style={styles.subtitle}>Quick answers for proof, safety, privacy, and getting useful support.</Text>
 
+      <Text style={styles.section}>CONTACT RISE</Text>
+      <Resource title="Email support" detail={SUPPORT_EMAIL} onPress={() => open(SUPPORT_MAILTO)} />
+      <Text selectable style={styles.subtitle}>Include your device, app version, what happened, and what you expected. Never send passwords, sign-in codes, or private proof. If your email app does not open, copy the address above into your email service. Support is not monitored for emergencies.</Text>
+
       {resources.map((item, index) => (
         <View key={item.title} style={styles.card}>
           <View style={styles.number}><Text style={styles.numberText}>{index + 1}</Text></View>
@@ -60,7 +65,7 @@ export default function HelpScreen() {
         <Text style={styles.noticeText}>RISE is not an emergency service. Contact your local emergency number or a trusted person nearby.</Text>
       </View>
 
-      <Pressable style={styles.legalButton} onPress={() => router.push("/legal" as any)}>
+      <Pressable accessibilityRole="button" style={styles.legalButton} onPress={() => router.push("/legal" as any)}>
         <Text style={styles.legalButtonText}>Read Privacy, Safety & Terms →</Text>
       </Pressable>
     </ScrollView>

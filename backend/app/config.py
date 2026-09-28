@@ -16,6 +16,14 @@ class Settings(BaseSettings):
     founding_member_days: int = Field(default=365, ge=1, le=730)
     founding_redemption_enabled: bool = False
     admin_api_key: str = ""
+    public_app_url: str = ""
+    support_email: str = "rise.app13@gmail.com"
+    smtp_host: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_use_tls: bool = True
 
     @property
     def cors_origins(self) -> list[str]:
@@ -32,6 +40,10 @@ class Settings(BaseSettings):
             raise RuntimeError("Production RISE_ALLOWED_ORIGINS must contain HTTPS origins")
         if self.env.lower() == "production" and len(self.admin_api_key) < 32:
             raise RuntimeError("Production RISE_ADMIN_API_KEY must contain at least 32 characters")
+        if self.env.lower() == "production" and not self.public_app_url.startswith("https://"):
+            raise RuntimeError("Production RISE_PUBLIC_APP_URL must be a public HTTPS URL")
+        if self.env.lower() == "production" and not all((self.smtp_host, self.smtp_username, self.smtp_password, self.smtp_from_email)):
+            raise RuntimeError("Production email delivery settings are incomplete")
 
 
 @lru_cache
