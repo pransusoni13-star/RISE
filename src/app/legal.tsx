@@ -27,7 +27,7 @@ export default function LegalScreen() {
     <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
     <Text style={styles.eyebrow}>RISE • PRIVACY & SAFETY</Text>
     <Text style={styles.title}>Clear by design.</Text>
-    <Text style={styles.updated}>Beta disclosure version 2026-09-21 • professional legal review recommended before distribution</Text>
+    <Text style={styles.updated}>Beta disclosure version 2026-09-29 • professional legal review recommended before public release</Text>
 
     <Section title="What RISE stores">
       RISE stores your plan, mission state, reflections, rewards, and proof references on this device. If you create an account, the service also stores your email, display name, protected password hash, selected goals and skills, mission and quiz events, focused minutes, and founding-member status so progress can sync. RISE does not upload the attached proof photo or video in this beta.
@@ -79,6 +79,7 @@ export default function LegalScreen() {
     </Section>
     <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={deleteLocalData}><Text style={styles.deleteText}>Delete all local RISE data</Text></Pressable>
     <Pressable accessibilityRole="button" style={styles.helpButton} onPress={() => router.push("/help" as any)}><Text style={styles.helpText}>Open Help Center →</Text></Pressable>
+    <Pressable accessibilityRole="link" style={styles.policyButton} onPress={() => router.push("/privacy" as any)}><Text style={styles.policyText}>Read the Privacy Policy →</Text></Pressable>
     <View style={styles.notice}>
       <Text style={styles.noticeTitle}>Before public release</Text>
       <Text style={styles.noticeText}>A lawyer should tailor the final Privacy Policy and Terms to the launch countries, age audience, business entity, analytics, subscriptions, and any future cloud backend. This screen is a truthful product disclosure, not legal advice.</Text>
@@ -97,4 +98,5 @@ const styles = StyleSheet.create({
   notice:{backgroundColor:"rgba(122,245,184,0.08)",borderRadius:17,borderWidth:1,borderColor:"rgba(122,245,184,0.22)",padding:16,marginTop:8},noticeTitle:{color:"#7AF5B8",fontSize:14,fontWeight:"900",marginBottom:6},noticeText:{color:"#DFFDEE",fontSize:12,lineHeight:19},
   deleteButton:{height:52,borderRadius:26,borderWidth:1,borderColor:"#8B4D49",alignItems:"center",justifyContent:"center",marginTop:10},deleteText:{color:"#FFB4A8",fontSize:13,fontWeight:"900"},
   helpButton:{height:52,borderRadius:26,backgroundColor:"#11382B",alignItems:"center",justifyContent:"center",marginTop:10,marginBottom:12},helpText:{color:"#7AF5B8",fontSize:13,fontWeight:"900"},
+  policyButton:{height:52,borderRadius:26,borderWidth:1,borderColor:"#315845",alignItems:"center",justifyContent:"center",marginBottom:12},policyText:{color:"#D5F7E3",fontSize:13,fontWeight:"900"},
 });

@@ -35,15 +35,14 @@ These values cannot be invented or safely selected by code:
 
 1. The verified legal operator address and other contact information where Apple or local law requires it.
 2. Confirm `rise.app13@gmail.com` is monitored by the responsible adult and configure an authenticated transactional sender; a personal Gmail address alone is not a production mail service.
-3. A production HTTPS domain.
-4. Public Privacy Policy, Terms, Support, and deletion-instructions URLs on that domain.
-5. Final subtitle, categories, age-rating answers, privacy disclosures, and territories. The App Store name, description, keywords, copyright, bundle identifier, Apple team, and App Store Connect record are already saved/configured.
-6. App Store screenshots captured from the final iPhone build.
-7. App Review contact details and review notes.
-8. Production PostgreSQL and HTTPS API hosting, a production JWT secret, backups, migrations, and shared rate limiting.
-9. A non-expiring App Review account plus review instructions for account-gated features.
-10. A complete real-iPhone QA pass and the launch steps in `TESTFLIGHT_RUNBOOK.md`.
-11. Fix or formally assess the current moderate dependency advisories; obtain a focused authorization and security review.
+3. Final Terms and deletion-instructions wording. The public website, Privacy Policy, and Support pages are deployed at `https://rise-daily-skill-missions.vercel.app`.
+4. Final subtitle, categories, age-rating answers, privacy disclosures, and territories. The App Store name, description, keywords, copyright, bundle identifier, Apple team, and App Store Connect record are already saved/configured.
+5. App Store screenshots captured from the final iPhone build.
+6. App Review contact details and review notes.
+7. Production PostgreSQL and HTTPS API hosting, a production JWT secret, backups, migrations, and shared rate limiting.
+8. A non-expiring App Review account plus review instructions for account-gated features.
+9. A complete real-iPhone QA pass and the launch steps in `TESTFLIGHT_RUNBOOK.md`.
+10. Fix or formally assess the current moderate dependency advisories; obtain a focused authorization and security review.
 
 ## Required physical-device verification
 

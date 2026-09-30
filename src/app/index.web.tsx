@@ -138,7 +138,7 @@ export default function WebHomeScreen() {
             <View style={styles.navLinks}>
               <Pressable accessibilityRole="link" onPress={() => router.push("/help" as never)}><Text style={styles.navLink}>How it works</Text></Pressable>
               <Pressable accessibilityRole="link" onPress={() => router.push("/rewards" as never)}><Text style={styles.navLink}>Rewards</Text></Pressable>
-              <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as never)}><Text style={styles.navLink}>Privacy & safety</Text></Pressable>
+              <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)}><Text style={styles.navLink}>Privacy</Text></Pressable>
             </View>
           )}
           <Pressable
@@ -225,7 +225,7 @@ export default function WebHomeScreen() {
         <View style={styles.safetySection}>
           <View style={styles.safetyIcon}><Text style={styles.safetyIconText}>✓</Text></View>
           <View style={styles.safetyCopy}><Text style={styles.safetyTitle}>Trust is part of the product.</Text><Text style={styles.safetyBody}>RISE explains how proof is checked, avoids guarantees it cannot support, stores current progress on-device, and gives users direct access to help, feedback, privacy, safety, and deletion controls.</Text></View>
-          <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as never)} style={styles.textLinkButton}><Text style={styles.textLink}>Read privacy & safety →</Text></Pressable>
+          <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)} style={styles.textLinkButton}><Text style={styles.textLink}>Read the privacy policy →</Text></Pressable>
         </View>
 
         <View style={styles.section}>
@@ -244,9 +244,9 @@ export default function WebHomeScreen() {
         <View style={[styles.footer, compact && styles.footerCompact]}>
           <View><Text style={styles.wordmark}>RISE</Text><Text style={styles.footerTagline}>Personal growth through focused action.</Text></View>
           <View style={styles.footerLinks}>
-            <Pressable accessibilityRole="link" onPress={() => router.push("/help" as never)}><Text style={styles.footerLink}>Help</Text></Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push("/support" as never)}><Text style={styles.footerLink}>Support</Text></Pressable>
             <Pressable accessibilityRole="link" onPress={() => router.push("/feedback" as never)}><Text style={styles.footerLink}>Feedback</Text></Pressable>
-            <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as never)}><Text style={styles.footerLink}>Privacy & safety</Text></Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)}><Text style={styles.footerLink}>Privacy</Text></Pressable>
           </View>
           <Text style={styles.footerLegal}>Educational planning tool · Private proof files · No payment collected</Text>
         </View>
