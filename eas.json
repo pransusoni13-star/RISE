@@ -5,16 +5,19 @@
   },
   "build": {
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "preview"
     },
     "testflight": {
       "distribution": "store",
       "environment": "production",
+      "channel": "production",
       "autoIncrement": true
     },
     "production": {
       "distribution": "store",
       "environment": "production",
+      "channel": "production",
       "autoIncrement": true
     }
   },

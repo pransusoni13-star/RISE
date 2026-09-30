@@ -4,6 +4,12 @@
     "slug": "RISE",
     "description": "Personalized daily missions for building career and life skills through focused action, reflection, and visible progress.",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f477fc3a-cbc5-46f0-8a0f-6b7b1b049196"
+    },
     "backgroundColor": "#010807",
     "primaryColor": "#7AF5B8",
     "orientation": "portrait",

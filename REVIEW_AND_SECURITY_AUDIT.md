@@ -1,6 +1,6 @@
 # RISE beta: review and security audit
 
-Updated 2026-09-21. This is a code and checklist review, not an Apple approval, legal opinion, or penetration test. It covers the two Instagram screenshots supplied by the owner. The linked reel could not be independently played or its full comments inspected, so no unseen claims from it are treated as requirements. [Apple's App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) and [OWASP API Security Top 10](https://api-security.owasp.org/editions/2023/en/0x11-t10/) are the decision sources.
+Updated 2026-09-29. This is a code and checklist review, not an Apple approval, legal opinion, or penetration test. It covers the two Instagram screenshots supplied by the owner. The linked reel could not be independently played or its full comments inspected, so no unseen claims from it are treated as requirements. [Apple's App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) and [OWASP API Security Top 10](https://api-security.owasp.org/editions/2023/en/0x11-t10/) are the decision sources.
 
 ## App Review screenshot: 12 rejection claims
 
@@ -27,16 +27,16 @@ The screenshot comments disagree about Stripe; Apple's own guideline 3.1.1, not 
 | --- | --- |
 | HSTS | Added to production API responses and static-host policies; verify the deployed HTTPS response. |
 | CSRF tokens | Bearer-token JSON API, no authentication cookies; CSRF tokens are not applicable to this design. Reassess if cookie sessions are introduced. |
-| Reset sessions on password change | No password-change flow exists. Add a verified change/reset flow that revokes sessions before open public enrollment. |
-| Expire reset links | No reset links exist. Add single-use short-lived tokens with an email provider when reset is implemented. |
-| Prevent user enumeration | Login uses a generic error. Registration still reveals existing accounts with 409; change this with email verification/activation flow before open enrollment. |
+| Reset sessions on password change | Password reset revokes every active refresh session before issuing any later login session. A separate authenticated password-change screen is not exposed. |
+| Expire reset links | Implemented with hashed, single-use tokens that expire after 30 minutes. Production still requires a tested transactional email provider. |
+| Prevent user enumeration | Login and password-reset responses are generic. Registration returns a conflict for an existing account; monitor abuse and avoid adding endpoints that expose additional account state. |
 | Whitelist upload types | Proof selection allows supported image/video types and bounds size/duration; proof stays local. Re-test native picker edge cases. |
 | Verify payment webhooks | No payments/webhooks exist; required only if billing is added. |
 | Set prices server-side | No prices exist; required if billing is added. |
 | Block prompt injection | No server AI agent or model tool execution exists. External resources are links, not trusted instructions. Reassess if AI is added. |
 | Cap AI usage | No metered AI API exists. Reassess if AI is added. |
 | Limit request size | Event metadata capped at 2 KB; declared JSON bodies over 16 KB rejected. Production gateway must enforce actual request size for chunked bodies. |
-| Rate-limit password resets | No reset endpoint exists. Future endpoint needs per-user and per-IP limits. |
+| Rate-limit password resets | Implemented as an in-process per-IP beta backstop. Production still needs shared gateway or datastore-backed limiting across instances. |
 | Sanitize before storing | Server validates and bounds structured fields; React renders user text without raw HTML. Avoid destructive sanitization of personal names/reflections; encode at output. |
 | Lock down CORS | Production startup rejects non-HTTPS allowed origins. Set only exact owned web origins. CORS does not replace auth. |
 | Disable directory listing | Static host configuration is deployment-specific; verify it on the actual host. |
@@ -54,9 +54,9 @@ Mission checklists now wait for a successful save before showing completion, pre
 
 Coaching notes can be expanded on demand, with task completion counts visible. YouTube results are explicitly labeled unreviewed searches; no claim is made that they are the best videos or that Shorts are guaranteed absent. The React Native introduction, YouTube content-performance guidance, and CDC healthy-eating links were spot-checked; this is not an audit of every resource.
 
-Preflight still reports the five owner/deployment configuration blockers. The dependency audit still reports 14 moderate findings. Public distribution is not cleared by these UI changes, and professional legal/security review and signed-device testing remain outstanding.
+Preflight now reports three deployment blockers: the production HTTPS API, public privacy-policy URL, and public support URL. The dependency audit still reports moderate transitive findings for which npm's proposed force-fix would install incompatible Expo versions. Public distribution is not cleared by these code changes, and professional legal/security review and signed-device testing remain outstanding.
 
-Updated seven Expo SDK 57 packages to the versions recommended by `expo install --fix`, including Expo 57.0.25, Router 57.0.23, Image Picker 57.0.20, and Notifications 57.0.21. These compatible patch updates do not resolve the two underlying dependency advisories; the production-dependency audit still reports 14 moderate findings.
+Expo SDK 57 dependencies match `expo install --check`, including Expo 57.0.26, Router 57.0.24, Image Picker 57.0.20, and Notifications 57.0.21. EAS Update is configured with the `appVersion` runtime policy and separate preview/production channels. These compatible updates do not resolve the two underlying transitive dependency advisories; a breaking `npm audit fix --force` is intentionally not used.
 
 ### September 23 learning and account follow-up
 
@@ -78,10 +78,10 @@ Local verification: TypeScript, ESLint, Expo package compatibility, web export, 
 
 `npm audit --omit=dev` reports 14 moderate dependency findings, arising from `decode-uri-component` (GHSA-vcc3-ghjq-m6fr) and `uuid` (GHSA-w5hq-g745-h8pq) plus their dependent packages. These are unresolved. The suggested force-fix changes Expo-related major versions; do not apply it without compatibility testing. The newer decoder also changes module format, so a blind override is not an established fix.
 
-Preflight still fails for the missing iOS bundle identifier, EAS project link, production HTTPS API, public privacy URL, and public support URL. Supply real owner-controlled values; placeholders must not be treated as completion.
+The Apple membership, EAS project link, bundle identifier (`com.riseapp13.riseapp`), Apple team, and App Store Connect app record are configured. Preflight still fails for the production HTTPS API, public privacy URL, and public support URL. Supply real owner-controlled values; placeholders must not be treated as completion.
 
 1. A production HTTPS API with managed PostgreSQL, secrets, backups, actual body-size enforcement, shared rate limiting, and monitored uptime.
-2. A real Apple-owned bundle ID, public Privacy Policy and Support URLs, working reviewer account, accurate App Privacy answers, and final-build screenshots.
+2. The registered bundle ID, public Privacy Policy and Support URLs, working reviewer account, accurate App Privacy answers, and final-build screenshots.
 3. A signed iPhone build tested on a real phone away from the developer laptop: signup/login, guest mode, proof photo/video, permissions, quiz, export, deletion, offline/restart, and all links.
 4. Fix or assess dependency advisories and conduct focused authorization testing and a human security review. No checklist can guarantee that an app is unhackable or that Apple will approve it.
 

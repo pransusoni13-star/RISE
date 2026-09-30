@@ -1,6 +1,6 @@
 # RISE App Store release readiness
 
-Updated: 2026-09-21
+Updated: 2026-09-29
 
 ## Implemented in the application
 
@@ -23,6 +23,7 @@ Updated: 2026-09-21
 - Quiz gate, progress, proof reflection, and mission review behavior.
 - Static web export and mobile/desktop responsive public landing experience.
 - EAS preview, TestFlight, and production build profiles.
+- EAS Update with separate preview/production channels and an app-version runtime boundary for compatible JavaScript and asset fixes.
 - Optional on-device daily notification, in-app Today check-in, and notification settings; no remote push system or delivery guarantee.
 - Expo lint configuration plus a single `npm run check` release-quality command.
 - Proof file type, size, and video-duration restrictions.
@@ -32,19 +33,17 @@ Updated: 2026-09-21
 
 These values cannot be invented or safely selected by code:
 
-1. Apple Developer individual or organization enrollment.
-2. A unique iOS bundle identifier owned by the developer.
-3. The verified legal operator name and business address where required.
-4. Confirm `rise.app13@gmail.com` is monitored by the responsible adult and configure an authenticated transactional sender; a personal Gmail address alone is not a production mail service.
-5. A production HTTPS domain.
-6. Public Privacy Policy, Terms, Support, and deletion-instructions URLs on that domain.
-7. Final App Store name, subtitle, description, keywords, category, age-rating answers, copyright, and territories.
-8. App Store screenshots captured from the final iPhone build.
-9. App Review contact details and review notes.
-10. Production PostgreSQL and HTTPS API hosting, a production JWT secret, backups, migrations, and shared rate limiting.
-11. A non-expiring App Review account plus review instructions for account-gated features.
-12. A complete real-iPhone QA pass and the launch steps in `TESTFLIGHT_RUNBOOK.md`.
-13. Fix or formally assess the current moderate dependency advisories; obtain a focused authorization and security review.
+1. The verified legal operator address and other contact information where Apple or local law requires it.
+2. Confirm `rise.app13@gmail.com` is monitored by the responsible adult and configure an authenticated transactional sender; a personal Gmail address alone is not a production mail service.
+3. A production HTTPS domain.
+4. Public Privacy Policy, Terms, Support, and deletion-instructions URLs on that domain.
+5. Final subtitle, categories, age-rating answers, privacy disclosures, and territories. The App Store name, description, keywords, copyright, bundle identifier, Apple team, and App Store Connect record are already saved/configured.
+6. App Store screenshots captured from the final iPhone build.
+7. App Review contact details and review notes.
+8. Production PostgreSQL and HTTPS API hosting, a production JWT secret, backups, migrations, and shared rate limiting.
+9. A non-expiring App Review account plus review instructions for account-gated features.
+10. A complete real-iPhone QA pass and the launch steps in `TESTFLIGHT_RUNBOOK.md`.
+11. Fix or formally assess the current moderate dependency advisories; obtain a focused authorization and security review.
 
 ## Required physical-device verification
 
