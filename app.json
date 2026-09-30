@@ -11,6 +11,8 @@
     "scheme": "rise",
     "userInterfaceStyle": "dark",
     "ios": {
+      "appleTeamId": "C428XF4X3T",
+      "bundleIdentifier": "com.riseapp13.riseapp",
       "icon": "./assets/expo.icon",
       "buildNumber": "1",
       "supportsTablet": false,
