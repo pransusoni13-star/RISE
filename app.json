@@ -19,9 +19,6 @@
     "ios": {
       "appleTeamId": "C428XF4X3T",
       "bundleIdentifier": "com.riseapp13.riseapp",
-      "config": {
-        "usesNonExemptEncryption": false
-      },
       "icon": "./assets/expo.icon",
       "buildNumber": "2",
       "supportsTablet": false,
