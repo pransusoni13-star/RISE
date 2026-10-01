@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: rise-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: RISE_ENV
+        value: production
+      - key: RISE_DATABASE_URL
+        sync: false
+      - key: RISE_JWT_SECRET
+        generateValue: true
+      - key: RISE_ADMIN_API_KEY
+        generateValue: true
+      - key: RISE_ALLOWED_ORIGINS
+        value: https://rise-daily-skill-missions.vercel.app
+      - key: RISE_PUBLIC_APP_URL
+        value: https://rise-daily-skill-missions.vercel.app
+      - key: RISE_SUPPORT_EMAIL
+        value: rise.app13@gmail.com
+      - key: RISE_FOUNDING_REDEMPTION_ENABLED
+        value: "false"
+      - key: RISE_SMTP_HOST
+        sync: false
+      - key: RISE_SMTP_PORT
+        value: "587"
+      - key: RISE_SMTP_USERNAME
+        sync: false
+      - key: RISE_SMTP_PASSWORD
+        sync: false
+      - key: RISE_SMTP_FROM_EMAIL
+        sync: false
+      - key: RISE_SMTP_USE_TLS
+        value: "true"

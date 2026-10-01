@@ -1,10 +1,13 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { deleteAllRiseData } from "./localData";
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL || "").replace(/\/$/, "");
 const ACCESS_KEY = "RISE_AUTH_ACCESS";
 const REFRESH_KEY = "RISE_AUTH_REFRESH";
 const USER_KEY = "RISE_AUTH_USER";
+const LOCAL_OWNER_KEY = "RISE_LOCAL_OWNER";
 
 export type RiseUser = {
   id: string;
@@ -19,6 +22,16 @@ type AuthResponse = {
   refresh_token: string;
   token_type: "bearer";
   user: RiseUser;
+};
+
+export type CloudProfile = {
+  selected_goals: string[];
+  custom_goal: string;
+  weekly_skill: string;
+  focus_skills: string[];
+  commitment: string;
+  available_time: string;
+  experience: string;
 };
 
 export type PopularSkill = {
@@ -81,6 +94,12 @@ async function storeSession(session: AuthResponse | null): Promise<void> {
   ]);
 }
 
+async function claimLocalDataForUser(userId: string): Promise<void> {
+  const currentOwner = await AsyncStorage.getItem(LOCAL_OWNER_KEY);
+  if (currentOwner && currentOwner !== userId) await deleteAllRiseData();
+  await AsyncStorage.setItem(LOCAL_OWNER_KEY, userId);
+}
+
 function errorMessage(body: unknown, fallback: string): string {
   if (body && typeof body === "object" && "detail" in body && typeof body.detail === "string") return body.detail;
   return fallback;
@@ -93,7 +112,9 @@ class ApiError extends Error {
 async function rawRequest<T>(path: string, init: RequestInit = {}, accessToken?: string | null): Promise<T> {
   if (!isApiConfigured()) throw new Error("RISE account service needs a public HTTPS API for this build.");
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12_000);
+  // Free beta hosts can cold-start after inactivity. Give the first request
+  // enough time to wake while keeping subsequent failures bounded.
+  const timeout = setTimeout(() => controller.abort(), 75_000);
   try {
     const response = await fetch(`${API_URL}${path}`, {
       ...init,
@@ -104,7 +125,7 @@ async function rawRequest<T>(path: string, init: RequestInit = {}, accessToken?:
     if (!response.ok) throw new ApiError(errorMessage(body, `Request failed (${response.status})`), response.status);
     return body as T;
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") throw new Error("RISE could not reach the server. Check your connection and try again.");
+    if (error instanceof Error && error.name === "AbortError") throw new Error("RISE could not wake the account service. Check your connection and try once more.");
     if (error instanceof TypeError) throw new Error("RISE could not connect. Check your internet connection and try again.");
     throw error;
   } finally {
@@ -154,6 +175,7 @@ async function authenticatedRequest<T>(path: string, init: RequestInit = {}): Pr
 
 export async function register(input: { email: string; password: string; displayName: string; foundingCode?: string; signupElapsedSeconds?: number; usageAnalyticsOptIn?: boolean }): Promise<RiseUser> {
   const session = await rawRequest<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify({ email: input.email.trim().toLowerCase(), password: input.password, display_name: input.displayName.trim(), founding_code: input.foundingCode?.trim() || null, signup_elapsed_seconds: input.usageAnalyticsOptIn ? input.signupElapsedSeconds ?? null : null, usage_analytics_opt_in: input.usageAnalyticsOptIn ?? false }) });
+  await claimLocalDataForUser(session.user.id);
   await storeSession(session);
   usageAnalyticsConsent = Boolean(input.usageAnalyticsOptIn);
   usageAnalyticsEnabledAt = usageAnalyticsConsent ? Date.now() : 0;
@@ -164,6 +186,7 @@ export async function login(email: string, password: string): Promise<RiseUser> 
   const session = await rawRequest<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify({ email: email.trim().toLowerCase(), password }) });
   usageAnalyticsConsent = false;
   usageAnalyticsEnabledAt = 0;
+  await claimLocalDataForUser(session.user.id);
   await storeSession(session);
   void getUsageAnalyticsConsent();
   return session.user;
@@ -219,7 +242,12 @@ export async function deleteCloudAccount(): Promise<void> {
 
 export async function syncUserProfile(profile: { selectedGoals: string[]; customGoal: string; weeklySkill?: string; focusSkills?: string[]; commitment?: string; availableTime?: string; experience?: string }): Promise<void> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return;
-  await authenticatedRequest("/profiles/me", { method: "PUT", body: JSON.stringify({ selected_goals: profile.selectedGoals.slice(0, 2), custom_goal: profile.customGoal.slice(0, 200), weekly_skill: (profile.weeklySkill || "").slice(0, 100), focus_skills: (profile.focusSkills || []).slice(0, 3), commitment: profile.commitment || "Every 7 days", available_time: profile.availableTime || "30 minutes", experience: profile.experience || "" }) });
+  await authenticatedRequest("/profiles/me", { method: "PUT", body: JSON.stringify({ selected_goals: profile.selectedGoals.slice(0, 12), custom_goal: profile.customGoal.slice(0, 200), weekly_skill: (profile.weeklySkill || "").slice(0, 100), focus_skills: (profile.focusSkills || []).slice(0, 3), commitment: profile.commitment || "Every 7 days", available_time: profile.availableTime || "30 minutes", experience: profile.experience || "" }) });
+}
+
+export async function getCloudProfile(): Promise<CloudProfile | null> {
+  if (!API_URL || !(await getStored(ACCESS_KEY))) return null;
+  return authenticatedRequest<CloudProfile | null>("/profiles/me");
 }
 
 export async function recordProgressEvent(event: { clientEventId: string; eventType: "skill_selected" | "mission_completed" | "quiz_completed" | "reflection_completed" | "app_session"; skillSlug: string; value?: number; minutes?: number; metadata?: Record<string, unknown> }): Promise<void> {

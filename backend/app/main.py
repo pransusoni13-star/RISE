@@ -19,7 +19,7 @@ from .config import get_settings
 from .database import Base, engine, get_db
 from .mailer import send_email_verification, send_password_reset
 from .models import EmailVerification, FoundingInvite, LeaderboardConsent, PasswordResetToken, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
-from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
+from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProfileResponse, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
 
 
@@ -337,6 +337,11 @@ def update_profile(payload: ProfileUpdate, user: User = Depends(get_current_user
             db.add(UserSkill(user_id=user.id, skill_slug=slug))
     db.commit()
     return Response(status_code=204)
+
+
+@app.get("/profiles/me", response_model=ProfileResponse | None)
+def get_profile(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> UserProfile | None:
+    return db.get(UserProfile, user.id)
 
 
 @app.get("/skills/popular", response_model=list[SkillResponse])

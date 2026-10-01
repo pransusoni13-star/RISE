@@ -24,7 +24,7 @@ export default function PlanScreen() {
     let goals = ["personal"];
     try {
       const parsed = JSON.parse(valueOf(params.goals, "[]"));
-      if (Array.isArray(parsed) && parsed.length) goals = parsed.slice(0, 2).map(String);
+      if (Array.isArray(parsed) && parsed.length) goals = parsed.slice(0, 12).map(String);
     } catch {}
     let focusSkills: string[] = [];
     try {

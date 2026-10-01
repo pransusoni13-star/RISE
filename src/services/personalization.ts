@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loadSensitiveProfile, saveSensitiveProfile, SensitiveProfile } from "./sensitiveStorage";
-import { syncUserProfile } from "./auth";
+import { getCloudProfile, syncUserProfile } from "./auth";
 
 export const PERSONALIZATION_KEY = "RISE_PERSONALIZATION";
 
@@ -129,7 +129,7 @@ export async function loadProfile(): Promise<RiseProfile> {
       ...sensitive,
       selectedGoals:
         Array.isArray(safeSaved.selectedGoals) && safeSaved.selectedGoals.length
-          ? safeSaved.selectedGoals.slice(0, 2)
+          ? safeSaved.selectedGoals.slice(0, 12)
           : fallbackProfile.selectedGoals,
     };
   } catch {
@@ -144,6 +144,25 @@ export async function saveProfile(profile: RiseProfile): Promise<void> {
     saveSensitiveProfile({ spiritualTradition, trustedSources }),
   ]);
   await syncUserProfile(profile).catch(() => undefined);
+}
+
+/** Restores non-sensitive plan fields after sign-in without uploading faith or private context. */
+export async function hydrateProfileFromCloud(): Promise<RiseProfile> {
+  const local = await loadProfile();
+  const cloud = await getCloudProfile();
+  if (!cloud) return local;
+  const hydrated: RiseProfile = {
+    ...local,
+    selectedGoals: cloud.selected_goals.length ? cloud.selected_goals.slice(0, 12) : local.selectedGoals,
+    customGoal: cloud.custom_goal || local.customGoal,
+    weeklySkill: cloud.weekly_skill || local.weeklySkill,
+    focusSkills: cloud.focus_skills.length ? cloud.focus_skills.slice(0, 3) : local.focusSkills,
+    commitment: cloud.commitment || local.commitment,
+    availableTime: cloud.available_time || local.availableTime,
+    experience: cloud.experience || local.experience,
+  };
+  await AsyncStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(hydrated));
+  return hydrated;
 }
 
 export async function updateProfile(
@@ -388,7 +407,7 @@ function trustedResources(goal: string, template: MissionTemplate, title: string
 
 export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] {
   const selectedGoals = profile.selectedGoals.length
-    ? profile.selectedGoals.slice(0, 2)
+    ? profile.selectedGoals.slice(0, 12)
     : ["personal"];
   const goal = selectedGoals[0];
   const customGoal = profile.customGoal || fallbackProfile.customGoal;

@@ -66,13 +66,17 @@ class AuthResponse(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    selected_goals: list[str] = Field(default_factory=list, max_length=2)
+    selected_goals: list[str] = Field(default_factory=list, max_length=12)
     custom_goal: str = Field(default="", max_length=200)
     weekly_skill: str = Field(default="", max_length=100)
     focus_skills: list[str] = Field(default_factory=list, max_length=3)
     commitment: str = Field(default="Every 7 days", max_length=40)
     available_time: str = Field(default="30 minutes", max_length=40)
     experience: str = Field(default="", max_length=160)
+
+
+class ProfileResponse(ProfileUpdate):
+    model_config = {"from_attributes": True}
 
 
 class ProgressEventCreate(BaseModel):

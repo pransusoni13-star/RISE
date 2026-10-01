@@ -94,6 +94,17 @@ def test_progress_is_isolated_between_accounts() -> None:
         assert client.get("/users/me/export", headers=headers[1]).json()["progress_events"] == []
 
 
+def test_profiles_are_private_and_can_be_restored() -> None:
+    with TestClient(app) as client:
+        sessions = [client.post("/auth/register", json={"email": f"profile-{number}@example.com", "password": "very-secure-password", "display_name": f"Member {number}"}).json() for number in (1, 2)]
+        headers = [{"Authorization": f"Bearer {session['access_token']}"} for session in sessions]
+        assert client.get("/profiles/me", headers=headers[0]).json() is None
+        plan = {"selected_goals": ["software-engineer", "fitness"], "custom_goal": "Build an app and run farther", "weekly_skill": "React Native", "focus_skills": ["React Native", "Running", "Communication"], "commitment": "Every 10 days", "available_time": "30 minutes", "experience": "beginner"}
+        assert client.put("/profiles/me", json=plan, headers=headers[0]).status_code == 204
+        assert client.get("/profiles/me", headers=headers[0]).json() == plan
+        assert client.get("/profiles/me", headers=headers[1]).json() is None
+
+
 def setup_function() -> None:
     with attempt_lock:
         attempts.clear()
