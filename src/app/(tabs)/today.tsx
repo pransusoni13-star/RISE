@@ -89,13 +89,13 @@ export default function TodayTabScreen() {
       </View>
 
       <View style={styles.primaryCard}>
-        <Text style={styles.cardEyebrow}>TODAY&apos;S RISE</Text>
+        <Text style={styles.cardEyebrow}>TODAY&apos;S RISE {todayMission ? `• ${todayMission.track.toUpperCase()}` : ""}</Text>
         <Text style={styles.primaryTitle}>{todayMission?.title || adaptiveSummary.recommendation.title}</Text>
         <Text style={styles.primaryDescription}>{shortMission}</Text>
         <View style={styles.primaryMetaRow}>
           <Text style={styles.metaText}>{todayMission?.duration || 30} min</Text>
           <Text style={styles.metaText}>+{todayMission?.reward || 30} XP</Text>
-          <Text style={styles.metaText}>{todayMission?.skills[0] || currentSkill?.name || "Foundations"}</Text>
+          <Text style={styles.metaText}>{todayMission?.focusSkill || todayMission?.skills[0] || currentSkill?.name || "Foundations"}</Text>
         </View>
         <Pressable
           style={styles.primaryButton}

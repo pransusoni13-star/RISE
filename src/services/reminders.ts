@@ -61,7 +61,8 @@ export async function setDailyReminder(enabled: boolean, time: ReminderTime): Pr
   if (Platform.OS === "android") {
     await api.setNotificationChannelAsync(CHANNEL, {
       name: "Daily check-in",
-      importance: api.AndroidImportance.DEFAULT,
+      importance: api.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 150, 250],
     });
   }
   let permission = await api.getPermissionsAsync();
@@ -78,7 +79,8 @@ export async function setDailyReminder(enabled: boolean, time: ReminderTime): Pr
   const id = await api.scheduleNotificationAsync({
     content: {
       title: "Your RISE check-in",
-      body: "A small step counts. Open RISE to see your next mission.",
+      body: "Protect your 1%: finish today’s mission to earn XP and coins.",
+      sound: "default",
       data: { url: "/(tabs)/today" },
     },
     trigger: { type: api.SchedulableTriggerInputTypes.DAILY, hour, minute, ...(Platform.OS === "android" ? { channelId: CHANNEL } : {}) },
@@ -107,7 +109,7 @@ export async function initializeReminderNavigation(onOpen: () => void): Promise<
   if (Platform.OS === "web") return () => undefined;
   const api = await notifications();
   api.setNotificationHandler({
-    handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
+    handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
   });
   const subscription = api.addNotificationResponseReceivedListener((response) => {
     if (response.notification.request.content.data?.url === "/(tabs)/today") onOpen();

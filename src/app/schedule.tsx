@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Alert,
   StyleSheet,
   Text,
   View,
@@ -8,12 +9,19 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { updateProfile } from "../services/personalization";
+import { ReminderTime, setDailyReminder } from "../services/reminders";
 
 const options = [
   "10 minutes",
   "20 minutes",
   "30 minutes",
   "60 minutes",
+];
+const reminderTimes: { label: string; value: ReminderTime }[] = [
+  { label: "8 AM", value: "08:00" },
+  { label: "12 PM", value: "12:00" },
+  { label: "6 PM", value: "18:00" },
+  { label: "8 PM", value: "20:00" },
 ];
 
 export default function ScheduleScreen() {
@@ -27,11 +35,23 @@ export default function ScheduleScreen() {
       : "";
 
   const [selected, setSelected] = useState(existingTime);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState<ReminderTime>("20:00");
 
   const continueNext = async () => {
     if (!selected) return;
 
     await updateProfile({ availableTime: selected });
+    if (reminderEnabled) {
+      try {
+        const reminder = await setDailyReminder(true, reminderTime);
+        if (!reminder.enabled && reminder.permission !== "unavailable") {
+          Alert.alert("Reminder not enabled", "Allow notifications in your phone settings whenever you want RISE check-ins.");
+        }
+      } catch {
+        Alert.alert("Reminder not saved", "Your plan is safe. You can turn on a daily check-in later in Settings.");
+      }
+    }
 
     router.push({
       pathname: "/plan",
@@ -123,6 +143,33 @@ export default function ScheduleScreen() {
             );
           })}
         </View>
+
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: reminderEnabled }}
+          onPress={() => setReminderEnabled((value) => !value)}
+          style={[styles.reminderCard, reminderEnabled && styles.reminderCardActive]}
+        >
+          <View style={styles.reminderCopy}>
+            <Text style={styles.reminderTitle}>Keep me accountable</Text>
+            <Text style={styles.reminderText}>One optional daily phone reminder to finish your mission and earn XP + coins.</Text>
+          </View>
+          <View style={[styles.switchTrack, reminderEnabled && styles.switchTrackActive]}><View style={[styles.switchKnob, reminderEnabled && styles.switchKnobActive]} /></View>
+        </Pressable>
+
+        {reminderEnabled && (
+          <View style={styles.reminderTimes}>
+            <Text style={styles.reminderTimesTitle}>Choose your daily check-in</Text>
+            <View style={styles.reminderTimesRow}>
+              {reminderTimes.map((item) => (
+                <Pressable key={item.value} accessibilityRole="radio" accessibilityState={{ selected: reminderTime === item.value }} onPress={() => setReminderTime(item.value)} style={[styles.timeChip, reminderTime === item.value && styles.timeChipActive]}>
+                  <Text style={[styles.timeChipText, reminderTime === item.value && styles.timeChipTextActive]}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.reminderFinePrint}>Phone settings, Focus mode, and battery rules can delay alerts. You stay in control and can turn this off in Settings.</Text>
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -225,6 +272,23 @@ const styles = StyleSheet.create({
   options: {
     gap: 12,
   },
+  reminderCard: { marginTop: 24, minHeight: 86, borderRadius: 18, borderWidth: 1.5, borderColor: "#1E3A31", backgroundColor: "#071B16", padding: 16, flexDirection: "row", alignItems: "center", gap: 14 },
+  reminderCardActive: { borderColor: "#7AF5B8", backgroundColor: "#11382B" },
+  reminderCopy: { flex: 1 },
+  reminderTitle: { color: "#F5FFF9", fontSize: 15, fontWeight: "900", marginBottom: 5 },
+  reminderText: { color: "#C8EED9", fontSize: 12, lineHeight: 18 },
+  switchTrack: { width: 48, height: 28, borderRadius: 14, backgroundColor: "#345247", padding: 3, justifyContent: "center" },
+  switchTrackActive: { backgroundColor: "#7AF5B8" },
+  switchKnob: { width: 22, height: 22, borderRadius: 11, backgroundColor: "#F5FFF9" },
+  switchKnobActive: { alignSelf: "flex-end", backgroundColor: "#010807" },
+  reminderTimes: { marginTop: 12, borderRadius: 18, borderWidth: 1, borderColor: "#1E3A31", padding: 14, backgroundColor: "#071B16" },
+  reminderTimesTitle: { color: "#F5FFF9", fontSize: 13, fontWeight: "900", marginBottom: 10 },
+  reminderTimesRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  timeChip: { minWidth: 60, minHeight: 42, borderRadius: 999, borderWidth: 1, borderColor: "#345247", alignItems: "center", justifyContent: "center", paddingHorizontal: 12 },
+  timeChipActive: { backgroundColor: "#7AF5B8", borderColor: "#7AF5B8" },
+  timeChipText: { color: "#DFFDEE", fontSize: 12, fontWeight: "800" },
+  timeChipTextActive: { color: "#010807" },
+  reminderFinePrint: { color: "#8FB6A2", fontSize: 11, lineHeight: 16, marginTop: 10 },
 
   option: {
     minHeight: 64,

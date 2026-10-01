@@ -24,7 +24,7 @@ export default function PlanScreen() {
     let goals = ["personal"];
     try {
       const parsed = JSON.parse(valueOf(params.goals, "[]"));
-      if (Array.isArray(parsed) && parsed.length) goals = parsed.slice(0, 12).map(String);
+      if (Array.isArray(parsed) && parsed.length) goals = parsed.slice(0, 64).map(String);
     } catch {}
     let focusSkills: string[] = [];
     try {
@@ -108,8 +108,9 @@ export default function PlanScreen() {
           <Pressable key={mission.id} accessibilityRole="button" style={({ pressed }) => [styles.card, completedIds.includes(mission.id) && styles.cardComplete, pressed && styles.pressed]} onPress={() => openMission(mission)}>
             <View style={styles.dayCircle}><Text style={styles.dayText}>{completedIds.includes(mission.id) ? "✓" : mission.day}</Text></View>
             <View style={styles.cardBody}>
-              <Text style={styles.cardMeta}>DAY {mission.day} • {mission.duration} MIN • {completedIds.includes(mission.id) ? "COMPLETE" : mission.difficulty}</Text>
+              <Text style={styles.cardMeta}>DAY {mission.day} • {mission.track.toUpperCase()} • {mission.duration} MIN • {completedIds.includes(mission.id) ? "COMPLETE" : mission.difficulty}</Text>
               <Text style={styles.cardTitle}>{mission.title}</Text>
+              <Text style={styles.skillLabel}>{mission.focusSkill}</Text>
               <Text style={styles.cardDescription} numberOfLines={2}>{mission.description}</Text>
               <Text style={styles.connection}>{mission.day === 1 ? "Starts your baseline" : `Builds on Day ${mission.day - 1}`}</Text>
             </View>
@@ -161,6 +162,7 @@ const styles = StyleSheet.create({
   cardBody: { flex: 1 },
   cardMeta: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
   cardTitle: { color: "#F5FFF9", fontSize: 16, fontWeight: "900", marginTop: 4 },
+  skillLabel: { alignSelf: "flex-start", color: "#D8FFE9", backgroundColor: "#164A37", borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, fontSize: 10, fontWeight: "900", marginTop: 7 },
   cardDescription: { color: "#A7CBB7", fontSize: 12, lineHeight: 17, marginTop: 5 },
   connection: { color: "#6E9581", fontSize: 10, fontWeight: "700", marginTop: 6 },
   arrow: { color: "#7AF5B8", fontSize: 26, marginLeft: 8 },

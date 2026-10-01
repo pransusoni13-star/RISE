@@ -38,6 +38,8 @@ export type PersonalizedMission = {
   proof: string;
   skillId: string;
   goal: string;
+  track: "career" | "life";
+  focusSkill: string;
   resourceLabel: string;
   resourceUrl: string;
   guideLabel?: string;
@@ -51,6 +53,7 @@ export type PersonalizedMission = {
   reflectionPrompt?: string;
   safetyNote?: string;
   sourceNote?: string;
+  resourceNote?: string;
 };
 
 const fallbackProfile: RiseProfile = {
@@ -129,7 +132,7 @@ export async function loadProfile(): Promise<RiseProfile> {
       ...sensitive,
       selectedGoals:
         Array.isArray(safeSaved.selectedGoals) && safeSaved.selectedGoals.length
-          ? safeSaved.selectedGoals.slice(0, 12)
+          ? safeSaved.selectedGoals.slice(0, 64)
           : fallbackProfile.selectedGoals,
     };
   } catch {
@@ -153,7 +156,7 @@ export async function hydrateProfileFromCloud(): Promise<RiseProfile> {
   if (!cloud) return local;
   const hydrated: RiseProfile = {
     ...local,
-    selectedGoals: cloud.selected_goals.length ? cloud.selected_goals.slice(0, 12) : local.selectedGoals,
+    selectedGoals: cloud.selected_goals.length ? cloud.selected_goals.slice(0, 64) : local.selectedGoals,
     customGoal: cloud.custom_goal || local.customGoal,
     weeklySkill: cloud.weekly_skill || local.weeklySkill,
     focusSkills: cloud.focus_skills.length ? cloud.focus_skills.slice(0, 3) : local.focusSkills,
@@ -192,6 +195,28 @@ type MissionTemplate = {
 };
 
 const templates: Record<string, MissionTemplate> = {
+  "ai-engineering": {
+    titles: [
+      "Define one useful AI workflow",
+      "Build a reliable prompt and rubric",
+      "Use Codex or Claude Code on a small task",
+      "Connect one model through an API",
+      "Evaluate five real outputs",
+      "Add safety and failure handling",
+      "Ship and explain a working AI demo",
+    ],
+    actions: [
+      "Choose one real user problem, define the input and useful output, and name one result you can measure.",
+      "Write a prompt with context, constraints, an example, and a scoring rubric. Test it on three different inputs.",
+      "Use Codex or Claude Code to plan, implement, and review one small feature. Verify every generated change before keeping it.",
+      "Call one model from a small typed function, keep credentials server-side, and show a helpful loading and error state.",
+      "Create five representative test cases, score accuracy and usefulness with the same rubric, and record the weakest case.",
+      "Add input limits, privacy-safe logging, refusal handling, and a fallback for an unavailable or low-confidence result.",
+      "Run the full workflow, capture a short demo, and explain the user problem, evidence, limitation, and next improvement.",
+    ],
+    skills: ["AI product engineering", "Model evaluation", "Safe deployment"],
+    search: "official Codex Claude Code AI engineering tutorial model evaluation",
+  },
   hooks: {
     titles: ["Learn four hook patterns", "Write 10 hooks", "Score hooks against real videos", "Build a script around the winner", "Record three openings", "Edit for immediate value", "Publish and review retention"],
     actions: ["Study curiosity, problem, surprise, and proof-based hooks. Write one example of each.", "Choose one video idea and write ten different opening hooks, then select your strongest.", "Compare your top three hooks with successful videos in the same niche and improve specificity.", "Write a short script whose first 30 seconds delivers on your winning hook.", "Record the opening three ways and choose the clearest, most natural delivery.", "Remove every pause or sentence that delays the promised value.", "Publish or privately upload, then record the early-retention result and one change for next time."],
@@ -358,6 +383,7 @@ const genericTemplate: MissionTemplate = {
 function resolveTemplate(goal: string, customGoal: string): MissionTemplate {
   const combined = `${goal} ${customGoal}`.toLowerCase();
   if (/spiritual|faith|religion|god|prayer|scripture/.test(combined)) return templates.spirituality;
+  if (/\bai\b|artificial intelligence|machine learning|prompt engineering|model evaluation|codex|claude code/.test(combined)) return templates["ai-engineering"];
   if (/react native/.test(combined)) return templates["react-native"];
   if (/thumbnail/.test(combined)) return templates.thumbnails;
   if (/\bhooks?\b/.test(combined)) return templates.hooks;
@@ -382,6 +408,12 @@ function safetyNoteFor(goal: string): string {
 
 function trustedResources(goal: string, template: MissionTemplate, title: string) {
   const value = goal.toLowerCase();
+  if (/\bai\b|machine-learning|prompt|model-evaluation/.test(value) || template === templates["ai-engineering"]) {
+    const usesCodingAgent = /codex|claude|code|build|ship|api/i.test(title);
+    return usesCodingAgent
+      ? { video: `OpenAI Codex Anthropic Claude Code official ${title} full tutorial -shorts`, guideLabel: "Official Codex documentation", guideUrl: "https://learn.chatgpt.com/docs" }
+      : { video: `Google machine learning official ${title} full lesson -shorts`, guideLabel: "Google Machine Learning Crash Course", guideUrl: "https://developers.google.com/machine-learning/crash-course/" };
+  }
   if (/software|code|developer|program/.test(value) || template === templates["react-native"] || template === templates.coding) {
     return { video: `React Native official ${title} tutorial -shorts`, guideLabel: "React Native official guide", guideUrl: "https://reactnative.dev/docs/getting-started" };
   }
@@ -405,9 +437,40 @@ function trustedResources(goal: string, template: MissionTemplate, title: string
   return { video: `${title} full beginner lesson trusted educator -shorts`, guideLabel: "Khan Academy learning guidance", guideUrl: "https://www.khanacademy.org/college-careers-more/learnstorm-growth-mindset-activities-us" };
 }
 
+const CAREER_GOALS = new Set([
+  "software-engineer", "ai-engineer", "aerospace-engineer", "entrepreneur", "youtube",
+  "content-creator", "barbering", "graphic-design", "photography", "music", "student",
+  "medicine", "law", "finance", "marketing", "engineering", "custom-career",
+]);
+
+export function goalTrack(goal: string): "career" | "life" {
+  return CAREER_GOALS.has(goal) ? "career" : "life";
+}
+
+function interleaveGoals(careerGoals: string[], lifeGoals: string[]): string[] {
+  if (!careerGoals.length) return lifeGoals;
+  if (!lifeGoals.length) return careerGoals;
+  const balanced: string[] = [];
+  const length = Math.max(careerGoals.length, lifeGoals.length);
+  for (let index = 0; index < length; index += 1) {
+    balanced.push(careerGoals[index % careerGoals.length]);
+    balanced.push(lifeGoals[index % lifeGoals.length]);
+  }
+  return balanced;
+}
+
+function shortStableKey(values: string[]): string {
+  let hash = 2166136261;
+  for (const character of values.join("|")) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] {
   const selectedGoals = profile.selectedGoals.length
-    ? profile.selectedGoals.slice(0, 12)
+    ? profile.selectedGoals.slice(0, 64)
     : ["personal"];
   const goal = selectedGoals[0];
   const customGoal = profile.customGoal || fallbackProfile.customGoal;
@@ -422,6 +485,7 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       ? 30
       : 7;
   const skillSlug = weeklySkill.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const planKey = shortStableKey(selectedGoals);
   const cycleKey = (profile.skillStartDate || "current").slice(0, 10);
   const adaptation = profile.lastDifficultyFeedback;
   const adaptiveDuration = adaptation === "too_hard"
@@ -430,9 +494,14 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       ? Math.min(90, Math.round(duration * 1.15))
       : duration;
 
+  const careerGoals = selectedGoals.filter((selectedGoal) => goalTrack(selectedGoal) === "career");
+  const lifeGoals = selectedGoals.filter((selectedGoal) => goalTrack(selectedGoal) === "life");
+  const balancedGoals = interleaveGoals(careerGoals, lifeGoals);
+
   return Array.from({ length: cycleLength }, (_, index) => {
     const day = index + 1;
-    const missionGoal = selectedGoals[index % selectedGoals.length] || goal;
+    const missionGoal = balancedGoals[index % balancedGoals.length] || goal;
+    const track = goalTrack(missionGoal);
     // Keep each selected direction distinct. A faith-related custom goal must
     // not turn the separate career days into spiritual missions (or vice versa).
     const template = resolveTemplate(missionGoal, missionGoal === "personal" ? `${customGoal} ${weeklySkill}` : missionGoal);
@@ -440,6 +509,11 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
     const round = Math.floor(index / template.titles.length) + 1;
     const title = `${round > 1 ? `Level ${round}: ` : ""}${template.titles[templateIndex]}`;
     const resources = trustedResources(missionGoal, template, title);
+    const recommendedSkills = getRecommendedSkills(missionGoal);
+    const matchingFocusSkill = focusSkills.find((focusSkill) =>
+      recommendedSkills.some((recommended) => recommended.toLowerCase() === focusSkill.toLowerCase())
+    );
+    const missionFocusSkill = matchingFocusSkill || recommendedSkills[index % recommendedSkills.length] || weeklySkill;
     const difficulty: PersonalizedMission["difficulty"] = adaptation === "too_easy"
       ? (day <= 2 ? "Stretch" : "Challenge")
       : adaptation === "too_hard"
@@ -454,7 +528,7 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
     const isSpiritual = template === templates.spirituality;
 
     return {
-      id: `${selectedGoals.join("-")}-${skillSlug || "focus"}-${cycleKey}-day-${day}`,
+      id: `plan-${planKey}-${(skillSlug || "focus").slice(0, 32)}-${cycleKey}-day-${day}`,
       day,
       title,
       description: `${template.actions[templateIndex]} This builds your ${missionGoal.replace(/-/g, " ")} track and moves you toward “${customGoal}”.`,
@@ -471,6 +545,8 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       proof: "Attach a screenshot/photo or a short video showing the work and its result.",
       skillId: day < 3 ? "foundations" : day < 6 ? "practical-skills" : "projects",
       goal: missionGoal,
+      track,
+      focusSkill: missionFocusSkill,
       resourceLabel: `${level.includes("advanced") ? "Deeper" : "Beginner-friendly"} video search for this mission`,
       resourceUrl: `https://www.youtube.com/results?search_query=${query}`,
       guideLabel: resources.guideLabel,
@@ -479,17 +555,20 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       // external map links; the learning screen reads it locally on demand.
       mapQuery: isSpiritual ? undefined : template.mapQuery,
       why: `Day ${day} builds on the previous step so you improve one measurable part at a time.${adaptation === "too_hard" ? " Your last mission felt hard, so this version is smaller and more guided." : adaptation === "too_easy" ? " Your last mission felt easy, so this version raises the challenge." : ""}${profile.lastMissionUseful === false ? " The focus has been made more practical because the last mission was not useful enough." : ""}${personalizedContext}`,
-      onePercent: `Today you are not trying to master ${weeklySkill}. You are improving one specific part: ${title.toLowerCase()}.`,
-      successCriteria: `Finish the mission steps and attach clear evidence that shows your ${weeklySkill} work.`,
+      onePercent: `Today you are not trying to master ${missionFocusSkill}. You are improving one specific part: ${title.toLowerCase()}.`,
+      successCriteria: `Finish the mission steps and attach clear evidence that shows your ${missionFocusSkill} work.`,
       coachTip: level.includes("advanced")
         ? `Raise the standard: measure one quality signal and compare it with your previous attempt.`
         : `Keep the first attempt small. Clear completion teaches you more than waiting for a perfect attempt.`,
       ifStuck: `Do the smallest version in 5 minutes: create one rough example, study what happened, then improve only one part.`,
-      reflectionPrompt: `What changed in your ${weeklySkill} ability, and what single adjustment should tomorrow's mission make?`,
+      reflectionPrompt: `What changed in your ${missionFocusSkill} ability, and what single adjustment should tomorrow's mission make?`,
       safetyNote: safetyNoteFor(`${missionGoal} ${customGoal} ${weeklySkill}`),
       sourceNote: isSpiritual
         ? "Start with a primary text or teacher you trust. Check translations and context with your community. RISE does not rank religions or decide which belief is true."
         : undefined,
+      resourceNote: isSpiritual
+        ? undefined
+        : "RISE prioritizes official publisher resources. Links were reviewed in September 2026; verify the publisher and updated date because tools and guidance change.",
     };
   });
 }

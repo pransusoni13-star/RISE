@@ -66,7 +66,7 @@ class AuthResponse(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    selected_goals: list[str] = Field(default_factory=list, max_length=12)
+    selected_goals: list[str] = Field(default_factory=list, max_length=64)
     custom_goal: str = Field(default="", max_length=200)
     weekly_skill: str = Field(default="", max_length=100)
     focus_skills: list[str] = Field(default_factory=list, max_length=3)

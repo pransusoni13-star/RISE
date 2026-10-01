@@ -58,6 +58,7 @@ export default function MissionsTabScreen() {
             <Text style={styles.day}>DAY {mission.day} {records[mission.id]?.status === "completed" ? "• COMPLETE" : ""}</Text>
             <Text style={styles.reward}>+{mission.reward} XP</Text>
           </View>
+          <Text style={[styles.track, mission.track === "life" && styles.lifeTrack]}>{mission.track.toUpperCase()} • {mission.focusSkill}</Text>
           <Text style={styles.cardTitle}>{mission.title}</Text>
           <Text style={styles.cardDescription}>{mission.description}</Text>
           <View style={styles.row}>
@@ -88,6 +89,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: "#071B16", borderRadius: 20, padding: 18, borderWidth: 1, borderColor: "#1E3A31", marginBottom: 13 },
   topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   day: { color: "#7AF5B8", fontSize: 10, fontWeight: "900", letterSpacing: 1.2 },
+  track: { alignSelf: "flex-start", color: "#D8FFE9", backgroundColor: "#164A37", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, fontSize: 10, fontWeight: "900", marginTop: 10 },
+  lifeTrack: { backgroundColor: "#233D69", color: "#E6EEFF" },
   cardTitle: { color: "#F5FFF9", fontSize: 20, fontWeight: "900", marginTop: 8, marginBottom: 7 },
   cardDescription: { color: "#C8EED9", fontSize: 13, lineHeight: 19, marginBottom: 14 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },

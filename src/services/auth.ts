@@ -242,7 +242,7 @@ export async function deleteCloudAccount(): Promise<void> {
 
 export async function syncUserProfile(profile: { selectedGoals: string[]; customGoal: string; weeklySkill?: string; focusSkills?: string[]; commitment?: string; availableTime?: string; experience?: string }): Promise<void> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return;
-  await authenticatedRequest("/profiles/me", { method: "PUT", body: JSON.stringify({ selected_goals: profile.selectedGoals.slice(0, 12), custom_goal: profile.customGoal.slice(0, 200), weekly_skill: (profile.weeklySkill || "").slice(0, 100), focus_skills: (profile.focusSkills || []).slice(0, 3), commitment: profile.commitment || "Every 7 days", available_time: profile.availableTime || "30 minutes", experience: profile.experience || "" }) });
+  await authenticatedRequest("/profiles/me", { method: "PUT", body: JSON.stringify({ selected_goals: profile.selectedGoals.slice(0, 64), custom_goal: profile.customGoal.slice(0, 200), weekly_skill: (profile.weeklySkill || "").slice(0, 100), focus_skills: (profile.focusSkills || []).slice(0, 3), commitment: profile.commitment || "Every 7 days", available_time: profile.availableTime || "30 minutes", experience: profile.experience || "" }) });
 }
 
 export async function getCloudProfile(): Promise<CloudProfile | null> {

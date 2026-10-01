@@ -16,7 +16,7 @@ function readList(value: string | string[] | undefined, fallback: string[]): str
   if (typeof value !== "string") return fallback;
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) && parsed.length ? parsed.map(String).slice(0, 12) : fallback;
+    return Array.isArray(parsed) && parsed.length ? parsed.map(String).slice(0, 64) : fallback;
   } catch {
     return fallback;
   }

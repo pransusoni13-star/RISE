@@ -37,6 +37,8 @@ const fallbackMission: PersonalizedMission = {
   proof: "Attach a screenshot/photo or short video showing the finished work.",
   skillId: "foundations",
   goal: "personal",
+  track: "life",
+  focusSkill: "Focus",
   resourceLabel: "Find a practical beginner example",
   resourceUrl: "https://www.youtube.com/results?search_query=deliberate+practice+beginner",
   guideLabel: "Reliable step-by-step guide",
@@ -66,7 +68,7 @@ export default function ActionScreen() {
       const candidate = { ...fallbackMission, ...parsed };
       if (![candidate.steps, candidate.skills].every(value => Array.isArray(value) && value.length > 0 && value.length <= 20 && value.every(item => typeof item === "string" && item.length <= 3000))) return fallbackMission;
       if (!["id", "title", "description", "goal", "skillId", "resourceUrl", "successCriteria", "why", "onePercent", "difficulty", "proof", "resourceLabel"].every(key => typeof candidate[key] === "string")) return fallbackMission;
-      if (!["guideLabel", "guideUrl", "coachTip", "ifStuck", "safetyNote", "sourceNote", "mapQuery", "reflectionPrompt"].every(key => candidate[key] === undefined || typeof candidate[key] === "string")) return fallbackMission;
+      if (!["guideLabel", "guideUrl", "coachTip", "ifStuck", "safetyNote", "sourceNote", "resourceNote", "mapQuery", "reflectionPrompt"].every(key => candidate[key] === undefined || typeof candidate[key] === "string")) return fallbackMission;
       if (!["day", "duration", "reward", "coinReward"].every(key => Number.isFinite(candidate[key]) && candidate[key] >= 0 && candidate[key] <= 1440)) return fallbackMission;
       return candidate as PersonalizedMission;
     } catch {
@@ -156,6 +158,7 @@ export default function ActionScreen() {
         </View>
 
         <Text style={styles.title}>{mission.title}</Text>
+        <Text style={styles.trackChip}>{mission.track.toUpperCase()} • {mission.focusSkill}</Text>
         <Text style={styles.description}>{mission.description}</Text>
 
         <View style={styles.infoRow}>
@@ -200,6 +203,7 @@ export default function ActionScreen() {
         <View style={styles.successCard}><Text style={styles.successLabel}>SUCCESS LOOKS LIKE</Text><Text style={styles.successText}>{mission.successCriteria}</Text></View>
 
         <Text style={styles.section}>HELPFUL TOOLS</Text>
+        {mission.resourceNote ? <View style={styles.resourceNote}><Text style={styles.resourceNoteTitle}>SOURCE STANDARD</Text><Text style={styles.resourceNoteText}>{mission.resourceNote}</Text></View> : null}
         {mission.sourceNote ? <View style={styles.sourceCard}><Text style={styles.sourceTitle}>A STEP FOR YOUR PATH</Text><Text style={styles.sourceText}>{spiritualPractice(mission.day, faithProfile?.trustedSources)}</Text><Text style={styles.sourceText}>{faithSource?.text || "RISE will not guess a tradition for you. "}{mission.sourceNote}</Text></View> : null}
         <Pressable accessibilityRole="link" disabled={isSpiritual && !faithProfile} style={styles.toolCard} onPress={() => openLink(isSpiritual ? spiritualVideoSearch(faithProfile?.spiritualTradition, mission.title) : mission.resourceUrl)}>
           <View style={styles.toolIcon}><Text>▶️</Text></View>
@@ -287,6 +291,7 @@ const styles = StyleSheet.create({
   backText: { color: "#7AF5B8", fontSize: 28, marginTop: -4 },
   day: { color: "#7AF5B8", fontSize: 10, fontWeight: "900", letterSpacing: 1.3 },
   title: { color: "#F5FFF9", fontSize: 36, lineHeight: 42, fontWeight: "900" },
+  trackChip: { alignSelf: "flex-start", color: "#D8FFE9", backgroundColor: "#164A37", borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, fontSize: 10, fontWeight: "900", marginTop: 10 },
   description: { color: "#C8EED9", fontSize: 15, lineHeight: 23, marginTop: 12, marginBottom: 20 },
   infoRow: { flexDirection: "row", gap: 8, marginBottom: 18 },
   info: { flex: 1, backgroundColor: "#071B16", borderWidth: 1, borderColor: "#1E3A31", borderRadius: 14, padding: 11 },
@@ -308,6 +313,9 @@ const styles = StyleSheet.create({
   safetyText: { color: "#F4E8C8", fontSize: 12, lineHeight: 19, marginTop: 6 },
   sourceCard: { backgroundColor: "rgba(255,207,112,0.06)", borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,207,112,0.2)", padding: 14, marginBottom: 10 },
   sourceTitle: { color: "#FFCF70", fontSize: 9, fontWeight: "900", letterSpacing: 1.1 },
+  resourceNote: { backgroundColor: "rgba(122,245,184,0.06)", borderRadius: 16, borderWidth: 1, borderColor: "rgba(122,245,184,0.2)", padding: 14, marginBottom: 10 },
+  resourceNoteTitle: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 1.1, marginBottom: 5 },
+  resourceNoteText: { color: "#C8EED9", fontSize: 12, lineHeight: 18 },
   sourceText: { color: "#E9DFC3", fontSize: 11, lineHeight: 18, marginTop: 6 },
   section: { color: "#9AB9A8", fontSize: 11, fontWeight: "900", letterSpacing: 1.3, marginTop: 8, marginBottom: 12 },
   stepCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#071B16", borderRadius: 16, padding: 14, marginBottom: 9, borderWidth: 1, borderColor: "#1E3A31" },
