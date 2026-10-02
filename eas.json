@@ -12,7 +12,7 @@
       "distribution": "store",
       "environment": "production",
       "channel": "production",
-      "autoIncrement": true
+      "autoIncrement": false
     },
     "production": {
       "distribution": "store",

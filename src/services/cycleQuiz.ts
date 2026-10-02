@@ -32,6 +32,34 @@ const banks: Record<string, CycleQuestion[]> = {
     { question: "What makes an engineering test useful?", options: ["Changing conditions during the test", "One clear metric and repeatable conditions", "No written result", "Testing the final product only"], answer: 1, explanation: "Repeatable conditions and a clear metric make results comparable." },
     { question: "Why build a small prototype?", options: ["To prove every assumption", "To test the riskiest assumption early", "To avoid user needs", "To skip safety review"], answer: 1, explanation: "A small prototype cheaply tests the core uncertainty." },
   ],
+  design: [
+    { question: "What creates clear visual hierarchy?", options: ["Making everything equally loud", "Using size, spacing, contrast, and order to guide attention", "Adding more fonts", "Centering every element"], answer: 1, explanation: "Hierarchy helps a viewer understand what matters first and what to do next." },
+    { question: "What makes design feedback useful?", options: ["I do not like it", "A specific observation connected to the user and goal", "Copying a trend", "Changing every element"], answer: 1, explanation: "Useful critique names a specific issue, its effect on the user, and a possible improvement." },
+  ],
+  business: [
+    { question: "What should a first business test measure?", options: ["How professional the logo looks", "Whether a specific customer problem exists and the offer helps", "Follower count alone", "How many features are planned"], answer: 1, explanation: "Early validation should test the customer problem and whether the proposed value actually helps." },
+    { question: "Which customer feedback is most actionable?", options: ["That is cool", "A concrete example of the problem, current workaround, and desired outcome", "A like", "A copied opinion"], answer: 1, explanation: "Specific behavior and context reveal more than general praise or interest." },
+  ],
+  communication: [
+    { question: "What demonstrates active listening?", options: ["Planning your reply", "Restating the main point and checking that you understood", "Interrupting quickly", "Agreeing with everything"], answer: 1, explanation: "Reflecting the message and checking understanding reduces assumptions and shows attention." },
+    { question: "What makes a message clearer?", options: ["More jargon", "One purpose, useful context, and a specific next step", "Longer sentences", "Removing all examples"], answer: 1, explanation: "A clear message tells the audience why it matters and what should happen next." },
+  ],
+  finance: [
+    { question: "What is the safest basis for a personal spending plan?", options: ["A viral recommendation", "Verified income, essential costs, goals, and a buffer", "Expected future income", "A single good month"], answer: 1, explanation: "A useful budget starts with verified numbers and leaves room for uncertainty." },
+    { question: "How should a financial claim be checked?", options: ["Trust confidence", "Check incentives, evidence, fees, risks, and independent sources", "Follow popularity", "Ignore worst-case outcomes"], answer: 1, explanation: "Financial decisions require transparent risks, costs, evidence, and independent corroboration." },
+  ],
+  wellbeing: [
+    { question: "What makes a habit easier to repeat?", options: ["Relying on motivation", "A small clear action connected to a dependable cue", "Changing the goal daily", "Punishing missed days"], answer: 1, explanation: "A small action and reliable cue reduce friction and make repetition more likely." },
+    { question: "What is a healthy response to a missed day?", options: ["Quit the plan", "Review the barrier, shrink the next step, and restart", "Double every future task", "Hide the result"], answer: 1, explanation: "A missed day is useful feedback; restarting with a realistic adjustment protects consistency." },
+  ],
+  spirituality: [
+    { question: "How should spiritual guidance be evaluated?", options: ["By popularity alone", "With primary sources, context, trusted community guidance, and personal safety", "By one short clip", "Without questions"], answer: 1, explanation: "Primary sources, context, trusted guidance, and safety support thoughtful spiritual learning." },
+    { question: "What makes a spiritual practice respectful?", options: ["Claiming one answer fits everyone", "Following consent, humility, context, and the person’s own tradition", "Ranking people", "Sharing private beliefs publicly"], answer: 1, explanation: "Respectful practice protects personal choice, privacy, tradition, and context." },
+  ],
+  study: [
+    { question: "Which method best checks real understanding?", options: ["Rereading only", "Explaining from memory and applying the idea to a new example", "Highlighting every line", "Studying longer without breaks"], answer: 1, explanation: "Retrieval and transfer show whether knowledge can be recalled and used." },
+    { question: "What should happen after a practice mistake?", options: ["Ignore it", "Identify the cause, correct it, and test the correction", "Start a new subject", "Memorize the answer only"], answer: 1, explanation: "Studying the cause and retesting turns a mistake into durable learning." },
+  ],
 };
 
 export function getCycleQuestions(goal: string, allGoals = goal): CycleQuestion[] {
@@ -43,6 +71,13 @@ export function getCycleQuestions(goal: string, allGoals = goal): CycleQuestion[
     /fitness|athlete|basketball|mobility|nutrition|wellbeing/.test(value) ? "fitness" : "",
     /barber/.test(value) ? "barbering" : "",
     /aerospace|mechanical|electrical|civil|(?:^|[\s"\[])engineering/.test(value) ? "engineering" : "",
+    /design|artist|photograph|creative|ui|ux/.test(value) ? "design" : "",
+    /business|entrepreneur|sales|marketing|leadership/.test(value) ? "business" : "",
+    /communicat|public-speaking|writing|relationship/.test(value) ? "communication" : "",
+    /finance|money|budget|invest/.test(value) ? "finance" : "",
+    /habit|focus|sleep|mindful|wellbeing|personal/.test(value) ? "wellbeing" : "",
+    /spirit|faith|religion|god|prayer|scripture/.test(value) ? "spirituality" : "",
+    /study|school|student|academic|language|exam/.test(value) ? "study" : "",
   ].filter(Boolean);
   const uniqueKeys = Array.from(new Set(keys));
   const specific = uniqueKeys.flatMap((key) => banks[key]?.slice(0, uniqueKeys.length > 1 ? 1 : 2) || []);

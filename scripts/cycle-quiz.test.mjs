@@ -31,3 +31,18 @@ test('mixed goals include both selected domains', () => {
   assert.ok(questions.some(q => q.question.includes('feature')));
   assert.ok(questions.some(q => q.question.includes('progression')));
 });
+
+test('additional life and career domains use relevant question banks', () => {
+  const cases = [
+    ['graphic-design', 'visual hierarchy'],
+    ['business', 'business test'],
+    ['communication', 'active listening'],
+    ['finance', 'spending plan'],
+    ['personal habits', 'habit'],
+    ['spirituality', 'spiritual guidance'],
+    ['study', 'understanding'],
+  ];
+  for (const [goal, phrase] of cases) {
+    assert.ok(getCycleQuestions(goal).some(q => q.question.toLowerCase().includes(phrase)), goal);
+  }
+});

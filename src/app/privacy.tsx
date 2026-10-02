@@ -3,7 +3,7 @@ import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/support";
 
-const UPDATED = "September 29, 2026";
+const UPDATED = "October 2, 2026";
 
 export default function PrivacyScreen() {
   return (
@@ -22,10 +22,10 @@ export default function PrivacyScreen() {
         RISE operates this beta. For privacy questions, access requests, or deletion help, email {SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email.
       </Section>
       <Section title="Information kept on your device">
-        Guest plans, mission steps, reflections, feedback, rewards, and proof-file references are stored on your device. Proof photos and videos are not uploaded by the RISE beta. Optional faith or belief preferences use protected device storage in the native app and session-only memory on the website.
+        Guest plans, mission steps, reflections, feedback copies, rewards, queued sync updates, and proof-file references are stored on your device. Proof photos and videos are not uploaded by the RISE beta. Optional faith or belief preferences use protected device storage in the native app and session-only memory on the website.
       </Section>
       <Section title="Information processed for an account">
-        If you create an account, RISE processes your email address, display name, a protected password hash, email-verification status, selected goals and skills, schedule preferences, mission and quiz activity, focused minutes, progress scores, and membership status. This information is used to provide sign-in, account recovery, progress syncing, personalization, and support.
+        If you create an account, RISE processes your email address, display name, a protected password hash, email-verification status, selected goals and skills, schedule preferences, mission and quiz activity, focused minutes, progress scores, membership status, and feedback you explicitly submit. This information is used to provide sign-in, account recovery, progress syncing, personalization, and support. If the service is temporarily unavailable, eligible profile and progress updates remain queued on your device and retry later.
       </Section>
       <Section title="Optional analytics and comparison">
         Usage analytics is off by default. If you opt in, RISE records signup duration and approximate foreground-use duration with your progress events so the operator can improve onboarding and missions. Turning it off removes past signup and app-session timing events. Community comparison is separate and off by default; if enabled, RISE calculates your rank from mission counts and focused minutes without publishing your email or proof.

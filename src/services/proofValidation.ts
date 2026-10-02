@@ -15,6 +15,11 @@ export type ProofReview = {
   checks: { id: string; label: string; passed: boolean; detail: string }[];
 };
 
+export function isProofUriReused(records: { missionId: string; proof?: { uri?: string } }[], uri: string, missionId: string): boolean {
+  const normalized = uri.trim();
+  return Boolean(normalized) && records.some((record) => record.missionId !== missionId && record.proof?.uri?.trim() === normalized);
+}
+
 const stopWords = new Set([
   "about", "after", "again", "build", "complete", "create", "daily", "finish",
   "from", "learn", "mission", "progress", "result", "show", "skill", "today",

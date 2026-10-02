@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reflectionQuality, validateProofAsset, reviewProof } from '../src/services/proofValidation.ts';
+import { isProofUriReused, reflectionQuality, validateProofAsset, reviewProof } from '../src/services/proofValidation.ts';
 
 test('a short completion claim is not a reflection', () => {
   assert.equal(reflectionQuality('I finished it.').passed, false);
@@ -22,4 +22,11 @@ test('supported screenshot file is accepted by file validation', () => {
 
 test('proof cannot pass without an attachment and attestations', () => {
   assert.equal(reviewProof({asset:null,reflection:'I finished it.',proofDescription:'',missionContext:'calculator',matchesMission:false,ownsWork:false}).passed, false);
+});
+
+test('the same local attachment cannot prove two different missions', () => {
+  const records = [{ missionId: 'mission-one', proof: { uri: 'file:///proof.jpg' } }];
+  assert.equal(isProofUriReused(records, 'file:///proof.jpg', 'mission-two'), true);
+  assert.equal(isProofUriReused(records, 'file:///proof.jpg', 'mission-one'), false);
+  assert.equal(isProofUriReused(records, 'file:///new.jpg', 'mission-two'), false);
 });

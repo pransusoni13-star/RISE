@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { deleteAllRiseData } from "./localData";
+import { discardQueuedUsageAnalytics, getPendingSyncCount, listSyncOutbox, queueProfile, queueProgressEvent, removeSyncOutboxItem } from "./syncOutbox";
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL || "").replace(/\/$/, "");
 const ACCESS_KEY = "RISE_AUTH_ACCESS";
@@ -242,7 +243,8 @@ export async function deleteCloudAccount(): Promise<void> {
 
 export async function syncUserProfile(profile: { selectedGoals: string[]; customGoal: string; weeklySkill?: string; focusSkills?: string[]; commitment?: string; availableTime?: string; experience?: string }): Promise<void> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return;
-  await authenticatedRequest("/profiles/me", { method: "PUT", body: JSON.stringify({ selected_goals: profile.selectedGoals.slice(0, 64), custom_goal: profile.customGoal.slice(0, 200), weekly_skill: (profile.weeklySkill || "").slice(0, 100), focus_skills: (profile.focusSkills || []).slice(0, 3), commitment: profile.commitment || "Every 7 days", available_time: profile.availableTime || "30 minutes", experience: profile.experience || "" }) });
+  await queueProfile({ selected_goals: profile.selectedGoals.slice(0, 64), custom_goal: profile.customGoal.slice(0, 200), weekly_skill: (profile.weeklySkill || "").slice(0, 100), focus_skills: (profile.focusSkills || []).slice(0, 3), commitment: profile.commitment || "Every 7 days", available_time: profile.availableTime || "30 minutes", experience: (profile.experience || "").slice(0, 160) });
+  await flushCloudSyncQueue();
 }
 
 export async function getCloudProfile(): Promise<CloudProfile | null> {
@@ -252,8 +254,44 @@ export async function getCloudProfile(): Promise<CloudProfile | null> {
 
 export async function recordProgressEvent(event: { clientEventId: string; eventType: "skill_selected" | "mission_completed" | "quiz_completed" | "reflection_completed" | "app_session"; skillSlug: string; value?: number; minutes?: number; metadata?: Record<string, unknown> }): Promise<void> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return;
-  await authenticatedRequest("/progress/events", { method: "POST", body: JSON.stringify({ client_event_id: event.clientEventId, event_type: event.eventType, skill_slug: event.skillSlug.slice(0, 100), value: event.value || 0, minutes: event.minutes || 0, metadata: event.metadata || {} }) });
+  await queueProgressEvent({ client_event_id: event.clientEventId.slice(0, 120), event_type: event.eventType, skill_slug: event.skillSlug.slice(0, 100), value: event.value || 0, minutes: event.minutes || 0, metadata: event.metadata || {} });
+  await flushCloudSyncQueue();
 }
+
+let pendingOutboxFlush: Promise<{ synced: number; pending: number }> | null = null;
+
+export async function flushCloudSyncQueue(): Promise<{ synced: number; pending: number }> {
+  if (pendingOutboxFlush) return pendingOutboxFlush;
+  pendingOutboxFlush = performOutboxFlush();
+  try { return await pendingOutboxFlush; }
+  finally { pendingOutboxFlush = null; }
+}
+
+async function performOutboxFlush(): Promise<{ synced: number; pending: number }> {
+  if (!API_URL || !(await getStored(ACCESS_KEY))) return { synced: 0, pending: await getPendingSyncCount() };
+  let synced = 0;
+  for (const item of await listSyncOutbox()) {
+    try {
+      if (item.kind === "profile") {
+        await authenticatedRequest("/profiles/me", { method: "PUT", body: JSON.stringify(item.payload) });
+      } else {
+        await authenticatedRequest("/progress/events", { method: "POST", body: JSON.stringify(item.payload) });
+      }
+      await removeSyncOutboxItem(item.id);
+      synced += 1;
+    } catch (error) {
+      // Invalid or no-longer-authorized analytics events must not block later progress forever.
+      if (error instanceof ApiError && item.kind === "event" && item.payload.event_type === "app_session" && [403, 422].includes(error.status)) {
+        await removeSyncOutboxItem(item.id);
+        continue;
+      }
+      break;
+    }
+  }
+  return { synced, pending: await getPendingSyncCount() };
+}
+
+export { getPendingSyncCount };
 
 export async function getProgressDashboard(): Promise<ProgressDashboard | null> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return null;
@@ -263,6 +301,12 @@ export async function getProgressDashboard(): Promise<ProgressDashboard | null> 
 export async function getCloudDataExport(): Promise<Record<string, unknown> | null> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return null;
   return authenticatedRequest<Record<string, unknown>>("/users/me/export");
+}
+
+export async function submitProductFeedback(input: { category: "idea" | "bug" | "confusing" | "mission" | "accessibility"; rating: 1 | 2 | 3 | 4 | 5; message: string; appVersion: string }): Promise<boolean> {
+  if (!API_URL || !(await getStored(ACCESS_KEY))) return false;
+  await authenticatedRequest("/feedback", { method: "POST", body: JSON.stringify({ category: input.category, rating: input.rating, message: input.message.slice(0, 1000), app_version: input.appVersion.slice(0, 24) }) });
+  return true;
 }
 
 export async function getPublicConfig(): Promise<{ founding_redemption_enabled: boolean }> {
@@ -303,6 +347,7 @@ export async function setUsageAnalyticsConsent(optIn: boolean): Promise<boolean>
   const result = await authenticatedRequest<{ opted_in: boolean }>("/users/me/usage-analytics", { method: optIn ? "PUT" : "DELETE" });
   if (result.opted_in && !usageAnalyticsConsent) usageAnalyticsEnabledAt = Date.now();
   usageAnalyticsConsent = result.opted_in;
+  if (!result.opted_in) await discardQueuedUsageAnalytics();
   return usageAnalyticsConsent;
 }
 

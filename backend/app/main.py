@@ -18,8 +18,8 @@ from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import Base, engine, get_db
 from .mailer import send_email_verification, send_password_reset
-from .models import EmailVerification, FoundingInvite, LeaderboardConsent, PasswordResetToken, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
-from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProfileResponse, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
+from .models import EmailVerification, FoundingInvite, LeaderboardConsent, PasswordResetToken, ProductFeedback, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
+from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProductFeedbackCreate, ProfileResponse, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
 
 
@@ -62,7 +62,7 @@ async def security_headers(request: Request, call_next):
         if content_length and (not content_length.isdecimal() or int(content_length) > 16384):
             return Response(status_code=413, content="Request body too large")
     response = await call_next(request)
-    response.headers["Cache-Control"] = "no-store" if request.url.path.startswith(("/auth", "/users", "/profiles", "/progress", "/admin")) else "public, max-age=60"
+    response.headers["Cache-Control"] = "no-store" if request.url.path.startswith(("/auth", "/users", "/profiles", "/progress", "/feedback", "/admin")) else "public, max-age=60"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
@@ -303,6 +303,7 @@ def delete_me(user: User = Depends(get_current_user), db: Session = Depends(get_
     db.execute(delete(UserSkill).where(UserSkill.user_id == user.id))
     db.execute(delete(LeaderboardConsent).where(LeaderboardConsent.user_id == user.id))
     db.execute(delete(UsageAnalyticsConsent).where(UsageAnalyticsConsent.user_id == user.id))
+    db.execute(delete(ProductFeedback).where(ProductFeedback.user_id == user.id))
     db.execute(delete(UserProfile).where(UserProfile.user_id == user.id))
     db.delete(user)
     db.commit()
@@ -314,6 +315,7 @@ def export_me(user: User = Depends(get_current_user), db: Session = Depends(get_
     profile = db.get(UserProfile, user.id)
     skills = list(db.scalars(select(UserSkill).where(UserSkill.user_id == user.id)))
     events = list(db.scalars(select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)))
+    feedback = list(db.scalars(select(ProductFeedback).where(ProductFeedback.user_id == user.id).order_by(ProductFeedback.created_at)))
     return {
         "exported_at": now_utc().isoformat(),
         "format_version": 1,
@@ -321,7 +323,16 @@ def export_me(user: User = Depends(get_current_user), db: Session = Depends(get_
         "profile": None if not profile else {"selected_goals": profile.selected_goals, "custom_goal": profile.custom_goal, "weekly_skill": profile.weekly_skill, "focus_skills": profile.focus_skills, "commitment": profile.commitment, "available_time": profile.available_time, "experience": profile.experience, "updated_at": profile.updated_at},
         "skills": [{"skill_slug": item.skill_slug, "selected_at": item.selected_at, "baseline_score": item.baseline_score, "latest_score": item.latest_score, "missions_completed": item.missions_completed, "minutes_logged": item.minutes_logged} for item in skills],
         "progress_events": [{"client_event_id": item.client_event_id, "event_type": item.event_type, "skill_slug": item.skill_slug, "value": item.value, "minutes": item.minutes, "metadata": item.event_metadata, "created_at": item.created_at} for item in events],
+        "product_feedback": [{"category": item.category, "rating": item.rating, "message": item.message, "app_version": item.app_version, "created_at": item.created_at} for item in feedback],
     }
+
+
+@app.post("/feedback", status_code=201)
+def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, bool]:
+    enforce_rate_limit(request, "feedback", limit=8, seconds=3600)
+    db.add(ProductFeedback(user_id=user.id, **payload.model_dump()))
+    db.commit()
+    return {"received": True}
 
 
 @app.put("/profiles/me", status_code=204)
@@ -468,6 +479,7 @@ def admin_analytics(x_rise_admin_key: str | None = Header(default=None), db: Ses
         event_by_user[event.user_id].append(event)
     now = now_utc()
     signups = [event.event_metadata.get("elapsed_seconds") for event in events if event.event_type == "signup_completed" and isinstance(event.event_metadata.get("elapsed_seconds"), int)]
+    feedback_counts = dict(db.execute(select(ProductFeedback.category, func.count()).group_by(ProductFeedback.category)).all())
     members = []
     first_mission_delays = []
     for user in users:
@@ -483,4 +495,4 @@ def admin_analytics(x_rise_admin_key: str | None = Header(default=None), db: Ses
         last_activity = max((event.created_at for event in user_events), default=None)
         members.append({"user_id": user.id, "joined_at": user.created_at, "missions_completed": len(missions), "focused_minutes": minutes, "app_minutes": round(app_seconds / 60, 1), "active_days": len({event.created_at.date() for event in user_events}), "last_activity_at": last_activity})
     members.sort(key=lambda member: (-member["missions_completed"], -member["focused_minutes"]))
-    return {"total_members": len(users), "analytics_participants": len(consented_user_ids), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "members_with_mission": sum(member["missions_completed"] > 0 for member in members), "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "members": members[:100]}
+    return {"total_members": len(users), "analytics_participants": len(consented_user_ids), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "members_with_mission": sum(member["missions_completed"] > 0 for member in members), "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "feedback_total": sum(feedback_counts.values()), "feedback_by_category": feedback_counts, "members": members[:100]}

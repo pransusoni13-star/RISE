@@ -24,7 +24,7 @@ import {
 } from "../services/progressEngine";
 import { MissionFeedback, missionRepository } from "../services/missionRepository";
 import { createSevenDayPlan, loadProfile, PersonalizedMission, updateProfile } from "../services/personalization";
-import { ProofAssetDetails, reviewProof, validateProofAsset } from "../services/proofValidation";
+import { isProofUriReused, ProofAssetDetails, reviewProof, validateProofAsset } from "../services/proofValidation";
 import { recordProgressEvent } from "../services/auth";
 
 export default function ProofScreen() {
@@ -263,6 +263,11 @@ export default function ProofScreen() {
     setSaving(true);
 
     try {
+      const existingRecords = await missionRepository.list();
+      if (isProofUriReused(existingRecords, assetUri, missionId)) {
+        Alert.alert("Use new proof for this mission", "This exact attachment was already used for another mission. Add a new photo, screenshot, or video that shows today’s work.");
+        return;
+      }
       const parsedReward = Number(
         typeof params.reward === "string"
           ? params.reward
@@ -445,11 +450,11 @@ export default function ProofScreen() {
 
               <View style={styles.verifiedContent}>
                 <Text style={styles.verifiedTitle}>
-                  Proof checks passed
+                  Submission checks passed
                 </Text>
 
                 <Text style={styles.verifiedText}>
-                  Attachment, mission match, ownership, and reflection are ready.
+                  File, explanation, self-attestation, and reflection checks passed. RISE does not inspect the image or video itself in this beta.
                 </Text>
               </View>
             </View>

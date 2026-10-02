@@ -127,3 +127,14 @@ class UsageAnalyticsConsent(Base):
     __tablename__ = "usage_analytics_consents"
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     opted_in_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
+class ProductFeedback(Base):
+    __tablename__ = "product_feedback"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    category: Mapped[str] = mapped_column(String(24), index=True)
+    rating: Mapped[int] = mapped_column(Integer)
+    message: Mapped[str] = mapped_column(Text)
+    app_version: Mapped[str] = mapped_column(String(24))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, index=True)

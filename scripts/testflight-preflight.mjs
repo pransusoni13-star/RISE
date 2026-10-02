@@ -7,6 +7,15 @@ const problems = [];
 if (!/^[A-Za-z][A-Za-z0-9-]*(\.[A-Za-z][A-Za-z0-9-]*){2,}$/.test(app.ios?.bundleIdentifier || "")) {
   problems.push("Set ios.bundleIdentifier in app.json to an identifier you own in Apple Developer.");
 }
+if (!/^\d+$/.test(app.ios?.buildNumber || "") || Number(app.ios.buildNumber) <= 4) {
+  problems.push("ios.buildNumber must be an integer higher than the last uploaded TestFlight build (4).");
+}
+if (app.runtimeVersion?.policy !== "appVersion") {
+  problems.push("Keep the EAS Update runtime policy on appVersion so native-incompatible updates cannot reach this binary.");
+}
+if (app.ios?.supportsTablet !== false || app.orientation !== "portrait") {
+  problems.push("This beta is declared iPhone portrait-only; align App Store device claims before changing those settings.");
+}
 if (!app.extra?.eas?.projectId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(app.extra.eas.projectId)) {
   problems.push("Link RISE to the correct Expo account with eas init; do not use a project owned by the wrong account.");
 }
@@ -16,13 +25,19 @@ if (!app.plugins?.some((plugin) => plugin === "expo-notifications" || Array.isAr
 if (eas.build?.testflight?.distribution !== "store" || eas.build?.testflight?.environment !== "production") {
   problems.push("The testflight EAS profile must use store distribution and the production environment.");
 }
+if (eas.build?.testflight?.channel !== "production") {
+  problems.push("The TestFlight build must use the production EAS Update channel.");
+}
+if (eas.cli?.appVersionSource === "local" && eas.build?.testflight?.autoIncrement !== false) {
+  problems.push("With a local app version source, disable TestFlight autoIncrement so the reviewed app.json build number is the uploaded build number.");
+}
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL || "";
 const checks = [];
 try {
   const parsed = new URL(apiUrl);
   const host = parsed.hostname.toLowerCase();
-  if (parsed.protocol !== "https:" || host === "localhost" || host === "127.0.0.1" || host.endsWith(".local") || /^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[01])\./.test(host)) {
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash || host === "localhost" || host === "127.0.0.1" || host.endsWith(".local") || /^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[01])\./.test(host)) {
     problems.push("EXPO_PUBLIC_API_URL must be a public HTTPS API, not localhost or a private LAN address.");
   } else {
     checks.push({ label: "API health", url: new URL("/health", parsed).href, json: true });

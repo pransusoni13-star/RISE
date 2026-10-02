@@ -216,3 +216,16 @@ def test_usage_analytics_requires_opt_in_and_metadata_is_bounded() -> None:
         assert client.post("/progress/events", json=event, headers=headers).status_code == 201
         assert client.delete("/users/me/usage-analytics", headers=headers).json() == {"opted_in": False}
         assert all(item["event_type"] != "app_session" for item in client.get("/users/me/export", headers=headers).json()["progress_events"])
+
+
+def test_feedback_is_authenticated_validated_exported_and_deleted() -> None:
+    with TestClient(app) as client:
+        session = client.post("/auth/register", json={"email": "feedback@example.com", "password": "very-secure-password", "display_name": "Feedback Member"}).json()
+        headers = {"Authorization": f"Bearer {session['access_token']}"}
+        payload = {"category": "accessibility", "rating": 4, "message": "The larger text setting needs more room on the mission screen.", "app_version": "1.0.0"}
+        assert client.post("/feedback", json=payload).status_code == 401
+        assert client.post("/feedback", json={**payload, "rating": 9}, headers=headers).status_code == 422
+        assert client.post("/feedback", json=payload, headers=headers).json() == {"received": True}
+        exported = client.get("/users/me/export", headers=headers).json()
+        assert exported["product_feedback"][0]["category"] == "accessibility"
+        assert client.delete("/users/me", headers=headers).status_code == 204

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { feedbackRepository, ProductFeedback } from "../services/feedbackRepository";
+import { submitProductFeedback } from "../services/auth";
 
 const categories: [ProductFeedback["category"], string][] = [
   ["idea", "Idea"], ["bug", "Something broke"], ["confusing", "Confusing"], ["mission", "Mission quality"], ["accessibility", "Accessibility"],
@@ -19,12 +20,10 @@ export default function FeedbackScreen() {
     setSaving(true);
     try {
       const saved = await feedbackRepository.add({ category, rating, message: message.trim() });
-      await Share.share({
-        title: "RISE feedback",
-        message: `RISE feedback (${saved.category}, ${saved.rating}/5)\n\n${saved.message}\n\nVersion ${saved.appVersion}`,
-      });
+      const delivered = await submitProductFeedback({ category: saved.category, rating: saved.rating, message: saved.message, appVersion: saved.appVersion }).catch(() => false);
+      if (!delivered) await Share.share({ title: "RISE feedback", message: `RISE feedback (${saved.category}, ${saved.rating}/5)\n\n${saved.message}\n\nVersion ${saved.appVersion}` });
       setMessage("");
-      Alert.alert("Feedback saved", "A private copy is stored on this device. The share sheet lets you send it through an app you choose.");
+      Alert.alert(delivered ? "Feedback received" : "Feedback saved", delivered ? "Thank you. A private copy is on this phone and your note was sent to the RISE beta team." : "A private copy is stored on this phone. Choose an app in the share sheet to send it.");
     } catch {
       Alert.alert("Could not save feedback", "Please try again.");
     } finally { setSaving(false); }

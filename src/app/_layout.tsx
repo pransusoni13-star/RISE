@@ -2,7 +2,7 @@ import "@/global.css";
 import { router, Stack } from "expo-router";
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import { getUsageAnalyticsConsent, getUsageAnalyticsEnabledAt, isUsageAnalyticsEnabled, recordProgressEvent } from "../services/auth";
+import { flushCloudSyncQueue, getUsageAnalyticsConsent, getUsageAnalyticsEnabledAt, isUsageAnalyticsEnabled, recordProgressEvent } from "../services/auth";
 import { initializeReminderNavigation } from "../services/reminders";
 
 export default function RootLayout() {
@@ -16,6 +16,7 @@ export default function RootLayout() {
     return () => { mounted = false; dispose?.(); };
   }, []);
   useEffect(() => {
+    void flushCloudSyncQueue();
     void getUsageAnalyticsConsent();
     let activeSince = AppState.currentState === "active" ? Date.now() : 0;
     const recordElapsed = () => {
@@ -30,7 +31,7 @@ export default function RootLayout() {
     // Record while foregrounded too: mobile OSes may suspend a network request on background.
     const interval = setInterval(recordElapsed, 60_000);
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") { activeSince = Date.now(); void getUsageAnalyticsConsent(); return; }
+      if (state === "active") { activeSince = Date.now(); void getUsageAnalyticsConsent(); void flushCloudSyncQueue(); return; }
       recordElapsed();
       activeSince = 0;
     });

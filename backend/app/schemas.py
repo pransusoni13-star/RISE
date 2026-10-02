@@ -119,3 +119,15 @@ class DashboardResponse(BaseModel):
     skills: list[SkillProgressResponse]
     total_missions: int
     total_minutes: int
+
+
+class ProductFeedbackCreate(BaseModel):
+    category: Literal["idea", "bug", "confusing", "mission", "accessibility"]
+    rating: int = Field(ge=1, le=5)
+    message: str = Field(min_length=5, max_length=1000)
+    app_version: str = Field(min_length=1, max_length=24)
+
+    @field_validator("message")
+    @classmethod
+    def clean_message(cls, value: str) -> str:
+        return " ".join(value.split())
