@@ -218,14 +218,37 @@ def test_usage_analytics_requires_opt_in_and_metadata_is_bounded() -> None:
         assert all(item["event_type"] != "app_session" for item in client.get("/users/me/export", headers=headers).json()["progress_events"])
 
 
-def test_feedback_is_authenticated_validated_exported_and_deleted() -> None:
+def test_feedback_is_authenticated_emailed_exported_and_deleted(monkeypatch) -> None:
+    delivered: dict[str, object] = {}
+
+    def capture_feedback(_settings, recipient: str, **details) -> None:
+        delivered.update(recipient=recipient, **details)
+
+    monkeypatch.setattr("app.main.send_product_feedback_notification", capture_feedback)
     with TestClient(app) as client:
         session = client.post("/auth/register", json={"email": "feedback@example.com", "password": "very-secure-password", "display_name": "Feedback Member"}).json()
         headers = {"Authorization": f"Bearer {session['access_token']}"}
         payload = {"category": "accessibility", "rating": 4, "message": "The larger text setting needs more room on the mission screen.", "app_version": "1.0.0"}
         assert client.post("/feedback", json=payload).status_code == 401
         assert client.post("/feedback", json={**payload, "rating": 9}, headers=headers).status_code == 422
-        assert client.post("/feedback", json=payload, headers=headers).json() == {"received": True}
+        assert client.post("/feedback", json=payload, headers=headers).json() == {"received": True, "email_notified": True}
+        assert delivered["recipient"] == "rise.app13@gmail.com"
+        assert delivered["member_email"] == "feedback@example.com"
+        assert delivered["message"] == payload["message"]
         exported = client.get("/users/me/export", headers=headers).json()
         assert exported["product_feedback"][0]["category"] == "accessibility"
         assert client.delete("/users/me", headers=headers).status_code == 204
+
+
+def test_feedback_remains_saved_when_support_email_fails(monkeypatch) -> None:
+    def unavailable(*_args, **_kwargs) -> None:
+        raise RuntimeError("mail provider unavailable")
+
+    monkeypatch.setattr("app.main.send_product_feedback_notification", unavailable)
+    with TestClient(app) as client:
+        session = client.post("/auth/register", json={"email": "feedback-fallback@example.com", "password": "very-secure-password", "display_name": "Feedback Fallback"}).json()
+        headers = {"Authorization": f"Bearer {session['access_token']}"}
+        payload = {"category": "bug", "rating": 2, "message": "The mission button did not respond on my first tap.", "app_version": "1.0.0"}
+        assert client.post("/feedback", json=payload, headers=headers).json() == {"received": True, "email_notified": False}
+        exported = client.get("/users/me/export", headers=headers).json()
+        assert exported["product_feedback"][0]["message"] == payload["message"]

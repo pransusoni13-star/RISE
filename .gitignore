@@ -16,6 +16,7 @@ dist/
 dist-check/
 dist-next/
 dist-build5-check/
+dist-build6-check/
 web-build/
 expo-env.d.ts
 

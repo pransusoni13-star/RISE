@@ -305,8 +305,8 @@ export async function getCloudDataExport(): Promise<Record<string, unknown> | nu
 
 export async function submitProductFeedback(input: { category: "idea" | "bug" | "confusing" | "mission" | "accessibility"; rating: 1 | 2 | 3 | 4 | 5; message: string; appVersion: string }): Promise<boolean> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return false;
-  await authenticatedRequest("/feedback", { method: "POST", body: JSON.stringify({ category: input.category, rating: input.rating, message: input.message.slice(0, 1000), app_version: input.appVersion.slice(0, 24) }) });
-  return true;
+  const result = await authenticatedRequest<{ received: boolean; email_notified: boolean }>("/feedback", { method: "POST", body: JSON.stringify({ category: input.category, rating: input.rating, message: input.message.slice(0, 1000), app_version: input.appVersion.slice(0, 24) }) });
+  return result.received && result.email_notified;
 }
 
 export async function getPublicConfig(): Promise<{ founding_redemption_enabled: boolean }> {

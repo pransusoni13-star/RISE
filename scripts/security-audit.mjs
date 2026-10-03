@@ -1,11 +1,26 @@
 import { execFileSync } from "node:child_process";
 
 const temporaryExpo57Allowlist = new Set([
-  "node-forge",
   "@expo/cli",
   "@expo/code-signing-certificates",
+  "@expo/metro",
+  "@expo/metro-config",
+  "@expo/metro-file-map",
+  "@react-native/community-cli-plugin",
+  "@react-native/metro-config",
+  "@react-native/virtualized-lists",
+  "braces",
   "expo",
   "expo-updates",
+  "metro",
+  "metro-config",
+  "metro-file-map",
+  "metro-transform-worker",
+  "micromatch",
+  "node-forge",
+  "react-native",
+  "react-native-reanimated",
+  "react-native-worklets",
 ]);
 const allowlistExpires = new Date("2026-11-15T00:00:00Z");
 

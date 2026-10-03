@@ -7,8 +7,8 @@ const problems = [];
 if (!/^[A-Za-z][A-Za-z0-9-]*(\.[A-Za-z][A-Za-z0-9-]*){2,}$/.test(app.ios?.bundleIdentifier || "")) {
   problems.push("Set ios.bundleIdentifier in app.json to an identifier you own in Apple Developer.");
 }
-if (!/^\d+$/.test(app.ios?.buildNumber || "") || Number(app.ios.buildNumber) <= 4) {
-  problems.push("ios.buildNumber must be an integer higher than the last uploaded TestFlight build (4).");
+if (!/^\d+$/.test(app.ios?.buildNumber || "") || Number(app.ios.buildNumber) <= 5) {
+  problems.push("ios.buildNumber must be an integer higher than the last uploaded TestFlight build (5).");
 }
 if (app.runtimeVersion?.policy !== "appVersion") {
   problems.push("Keep the EAS Update runtime policy on appVersion so native-incompatible updates cannot reach this binary.");

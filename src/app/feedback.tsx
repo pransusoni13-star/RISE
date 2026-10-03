@@ -34,7 +34,7 @@ export default function FeedbackScreen() {
       <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
       <Text style={styles.eyebrow}>BUILD RISE WITH US</Text>
       <Text style={styles.title}>What should become better?</Text>
-      <Text style={styles.subtitle}>One short note is enough. Do not include passwords, health records, client information, or other private details.</Text>
+      <Text style={styles.subtitle}>One short note is enough. Signed-in feedback is saved to your account and emailed to the private RISE support inbox. Do not include passwords, health records, client information, or other private details.</Text>
 
       <Text style={styles.label}>TYPE OF FEEDBACK</Text>
       <View style={styles.chips}>{categories.map(([value, label]) => <Pressable accessibilityRole="radio" accessibilityState={{ selected: category === value }} key={value} onPress={() => setCategory(value)} style={[styles.chip, category === value && styles.chipActive]}><Text style={[styles.chipText, category === value && styles.chipTextActive]}>{label}</Text></Pressable>)}</View>
@@ -46,7 +46,7 @@ export default function FeedbackScreen() {
       <TextInput value={message} onChangeText={setMessage} multiline maxLength={1000} returnKeyType="done" blurOnSubmit onSubmitEditing={() => Keyboard.dismiss()} placeholder="Example: I understood the mission, but I could not find where to replace my proof video." placeholderTextColor="#668577" style={styles.input} />
       <Text style={styles.count}>{message.length} / 1000</Text>
     </ScrollView>
-    <View style={styles.footer}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || saving }} disabled={!valid || saving} onPress={submit} style={[styles.button, (!valid || saving) && styles.disabled]}><Text style={styles.buttonText}>{saving ? "Saving..." : "Save & Share Feedback →"}</Text></Pressable><Text style={styles.privacy}>Stored locally until you choose where to share it.</Text></View>
+    <View style={styles.footer}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || saving }} disabled={!valid || saving} onPress={submit} style={[styles.button, (!valid || saving) && styles.disabled]}><Text style={styles.buttonText}>{saving ? "Sending..." : "Send Feedback →"}</Text></Pressable><Text style={styles.privacy}>Signed in: saved and emailed to RISE support. Guest: stored here until you share it.</Text></View>
   </KeyboardAvoidingView>;
 }
 

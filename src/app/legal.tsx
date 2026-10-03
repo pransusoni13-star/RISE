@@ -27,7 +27,7 @@ export default function LegalScreen() {
     <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
     <Text style={styles.eyebrow}>RISE • PRIVACY & SAFETY</Text>
     <Text style={styles.title}>Clear by design.</Text>
-    <Text style={styles.updated}>Beta disclosure version 2026-10-02 • professional legal review recommended before public release</Text>
+    <Text style={styles.updated}>Beta disclosure version 2026-10-03 • professional legal review recommended before public release</Text>
 
     <Section title="What RISE stores">
       RISE stores your plan, mission state, reflections, rewards, and proof references on this device. If you create an account, the service also stores your email, display name, protected password hash, selected goals and skills, mission and quiz events, focused minutes, and founding-member status so progress can sync. RISE does not upload the attached proof photo or video in this beta.
@@ -63,7 +63,7 @@ export default function LegalScreen() {
       If you create an account, RISE records chosen skills, mission and quiz events, and focused minutes so your own progress can sync. Sharing that activity with the operator’s improvement report, plus signup time and approximate foreground app-use duration, is optional and off by default. You can turn it off in Settings; you leave operator reports and past timing records are removed, while your own mission history remains. Reports never include proof files or reflection text. Community ranking is separately off by default and compares self-reported mission counts among members who opt in. You can leave it in Your Progress.
     </Section>
     <Section title="Feedback and offline sync">
-      Signed-in members can explicitly send a feedback note, category, rating, and app version to the RISE service; a copy remains on the device. Guest feedback stays on the device unless the person chooses an app from the share sheet. When account progress cannot reach the service, RISE keeps a bounded on-device queue and retries later. Proof files and reflection text are not placed in that sync queue.
+      Signed-in members can explicitly send a feedback note, category, rating, app version, and account email to the RISE service. The service stores the submission and emails a copy to the private RISE support inbox so the team can respond; a copy also remains on the device. Guest feedback stays on the device unless the person chooses an app from the share sheet. Feedback emails do not include proof files, reflections, passwords, or analytics. When account progress cannot reach the service, RISE keeps a bounded on-device queue and retries later. Proof files and reflection text are not placed in that sync queue.
     </Section>
     <Section title="Payments, subscriptions, and refunds">
       RISE does not currently sell subscriptions or accept payments. No screen in this version starts billing or automatic renewal. Any future paid version must show exact pricing and terms, use the applicable store purchase system, support restoration and cancellation, and publish promotion and refund rules. RISE Coins have no monetary value.

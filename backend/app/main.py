@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+import logging
 from secrets import compare_digest
 from threading import Lock
 from time import monotonic
@@ -17,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .database import Base, engine, get_db
-from .mailer import send_email_verification, send_password_reset
+from .mailer import send_email_verification, send_password_reset, send_product_feedback_notification
 from .models import EmailVerification, FoundingInvite, LeaderboardConsent, PasswordResetToken, ProductFeedback, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
 from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProductFeedbackCreate, ProfileResponse, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
@@ -25,6 +26,7 @@ from .security import create_access_token, create_refresh_token, decode_access_t
 
 settings = get_settings()
 settings.validate_for_startup()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -330,9 +332,27 @@ def export_me(user: User = Depends(get_current_user), db: Session = Depends(get_
 @app.post("/feedback", status_code=201)
 def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, bool]:
     enforce_rate_limit(request, "feedback", limit=8, seconds=3600)
-    db.add(ProductFeedback(user_id=user.id, **payload.model_dump()))
+    feedback = ProductFeedback(user_id=user.id, **payload.model_dump())
+    db.add(feedback)
     db.commit()
-    return {"received": True}
+    db.refresh(feedback)
+    email_notified = True
+    try:
+        send_product_feedback_notification(
+            settings,
+            settings.support_email,
+            feedback_id=feedback.id,
+            member_email=user.email,
+            category=feedback.category,
+            rating=feedback.rating,
+            message=feedback.message,
+            app_version=feedback.app_version,
+            submitted_at=feedback.created_at.isoformat(),
+        )
+    except Exception:
+        email_notified = False
+        logger.exception("Feedback was stored but its support email notification failed", extra={"feedback_id": feedback.id})
+    return {"received": True, "email_notified": email_notified}
 
 
 @app.put("/profiles/me", status_code=204)
