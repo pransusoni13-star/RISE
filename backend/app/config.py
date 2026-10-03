@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     admin_api_key: str = ""
     public_app_url: str = ""
     support_email: str = "rise.app13@gmail.com"
+    feedback_inbox: str = "rise.app13@gmail.com"
+    resend_api_key: str = ""
+    resend_from_email: str = "RISE <onboarding@resend.dev>"
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
     smtp_username: str = ""
@@ -42,8 +45,9 @@ class Settings(BaseSettings):
             raise RuntimeError("Production RISE_ADMIN_API_KEY must contain at least 32 characters")
         if self.env.lower() == "production" and not self.public_app_url.startswith("https://"):
             raise RuntimeError("Production RISE_PUBLIC_APP_URL must be a public HTTPS URL")
-        if self.env.lower() == "production" and not all((self.smtp_host, self.smtp_username, self.smtp_password, self.smtp_from_email)):
-            raise RuntimeError("Production email delivery settings are incomplete")
+        smtp_ready = all((self.smtp_host, self.smtp_username, self.smtp_password, self.smtp_from_email))
+        if self.env.lower() == "production" and not (self.resend_api_key or smtp_ready):
+            raise RuntimeError("Production requires either RISE_RESEND_API_KEY or complete SMTP delivery settings")
 
 
 @lru_cache

@@ -6,6 +6,7 @@ Build 6 focuses on trustworthy beta feedback and release reliability.
 
 - Signed-in feedback is committed to PostgreSQL before email delivery is attempted.
 - A privacy-minimized copy is emailed to `rise.app13@gmail.com` through the existing transactional-email configuration.
+- HTTPS delivery through Resend is preferred because Render's free service cannot reach Gmail's SMTP endpoint; SMTP remains an optional fallback on compatible hosts.
 - Temporary email failure does not discard the member's feedback.
 - Feedback remains included in account export and removed with account deletion.
 - The in-app disclosure and privacy notice explain storage and email delivery before submission.

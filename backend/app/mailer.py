@@ -1,10 +1,21 @@
 from email.message import EmailMessage
 import smtplib
 
+import httpx
+
 from .config import Settings
 
 
 def _send(settings: Settings, recipient: str, subject: str, body: str) -> None:
+    if settings.resend_api_key:
+        response = httpx.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {settings.resend_api_key}"},
+            json={"from": settings.resend_from_email, "to": [recipient], "subject": subject, "text": body},
+            timeout=10,
+        )
+        response.raise_for_status()
+        return
     if not all((settings.smtp_host, settings.smtp_username, settings.smtp_password, settings.smtp_from_email, settings.public_app_url)):
         if settings.env.lower() == "production":
             raise RuntimeError("Email delivery is not configured")

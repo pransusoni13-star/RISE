@@ -340,7 +340,7 @@ def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User
     try:
         send_product_feedback_notification(
             settings,
-            settings.support_email,
+            settings.feedback_inbox,
             feedback_id=feedback.id,
             member_email=user.email,
             category=feedback.category,
