@@ -119,6 +119,7 @@ export default function SettingsScreen() {
     } } as any)} />
 
     <Text style={styles.section}>HELP & CONTROL</Text>
+    <Row title="Take the RISE Tour" text="See where everything is and jump directly to each feature" onPress={() => router.push("/tour" as any)} />
     <View style={styles.planCard}>
       <Text style={styles.cardTitle}>Daily check-in</Text>
       <Text style={styles.cardText}>{reminder.permission === "unavailable" ? "On the web beta, check in on Today. Phone reminders are available in the iOS and Android app." : reminder.enabled ? `On at ${reminder.time}. Tap the notification to open Today's mission.` : "Off. Choose a time and turn on a gentle phone reminder."}</Text>

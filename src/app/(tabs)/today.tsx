@@ -74,7 +74,7 @@ export default function TodayTabScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.logo}>RISE</Text>
+      <View style={styles.topBar}><Text style={styles.logo}>RISE</Text><Pressable accessibilityRole="button" accessibilityLabel="Open guided RISE tour" onPress={() => router.push("/tour" as never)} style={styles.tourButton}><Text style={styles.tourButtonText}>Tour</Text></Pressable></View>
       <Text style={styles.greeting}>{greeting}.</Text>
       <Text style={styles.goalLabel}>YOUR GOAL</Text>
       <Text style={styles.goalText}>{profile?.customGoal || currentSkill?.goal || "Personal Growth"}</Text>
@@ -174,8 +174,10 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 5,
     color: "#7AF5B8",
-    marginBottom: 16,
   },
+  topBar:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:16},
+  tourButton:{minHeight:42,borderRadius:21,borderWidth:1,borderColor:"#29483B",paddingHorizontal:16,alignItems:"center",justifyContent:"center"},
+  tourButtonText:{color:"#BDEFD3",fontSize:11,fontWeight:"900"},
   greeting: {
     fontSize: 34,
     fontWeight: "900",

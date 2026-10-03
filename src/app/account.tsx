@@ -37,8 +37,14 @@ export default function AccountScreen() {
     if (!valid || busy) return;
     Keyboard.dismiss(); setBusy(true); setError("");
     try {
-      const user = mode === "create" ? await register({ email, password, displayName, foundingCode: foundingOpen ? foundingCode : undefined, usageAnalyticsOptIn, signupElapsedSeconds: usageAnalyticsOptIn && signupStartedAt.current ? Math.min(3600, Math.max(0, Math.round((Date.now() - signupStartedAt.current) / 1000))) : undefined }) : await login(email, password);
+      const registration = mode === "create" ? await register({ email, password, displayName, foundingCode: foundingOpen ? foundingCode : undefined, usageAnalyticsOptIn, signupElapsedSeconds: usageAnalyticsOptIn && signupStartedAt.current ? Math.min(3600, Math.max(0, Math.round((Date.now() - signupStartedAt.current) / 1000))) : undefined }) : null;
+      const user = registration?.user ?? await login(email, password);
       setExistingUser(user);
+      if (registration && !registration.verificationEmailSent) {
+        setEmailVerified(false);
+        setError("Your account was created, but RISE could not send the verification email. Tap Send verification email below to try again.");
+        return;
+      }
       if (mode === "login") await hydrateProfileFromCloud();
       router.replace(mode === "create" ? "/popular-skills" as never : "/(tabs)/today" as never);
     } catch (reason) {

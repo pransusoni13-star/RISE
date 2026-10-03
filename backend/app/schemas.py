@@ -63,6 +63,7 @@ class AuthResponse(BaseModel):
     refresh_token: str
     token_type: Literal["bearer"] = "bearer"
     user: UserResponse
+    verification_email_sent: bool = False
 
 
 class ProfileUpdate(BaseModel):

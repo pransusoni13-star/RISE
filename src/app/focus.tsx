@@ -37,7 +37,7 @@ export default function FocusScreen() {
   const skills = useMemo(() => Array.from(new Set([...primarySkills, ...secondarySkills])), [primarySkills, secondarySkills]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [customSkill, setCustomSkill] = useState("");
-  const [cycle, setCycle] = useState("Every 7 days");
+  const [cycle, setCycle] = useState("");
   const [experience, setExperience] = useState("");
   const [spiritualTradition, setSpiritualTradition] = useState("");
   const [trustedSources, setTrustedSources] = useState("");
@@ -47,7 +47,7 @@ export default function FocusScreen() {
   );
   const coversCareer = selectedSkills.some((skill) => primarySkills.includes(skill));
   const coversLife = selectedSkills.some((skill) => secondarySkills.includes(skill));
-  const valid = chosenSkills.length === 3 && coversCareer && coversLife;
+  const valid = chosenSkills.length === 3 && coversCareer && coversLife && Boolean(cycle);
 
   const toggleSkill = (item: string) => {
     setSelectedSkills((current) => {
@@ -124,7 +124,7 @@ export default function FocusScreen() {
     </View>
 
     </ScrollView>
-    <View style={[styles.footer, { bottom: insets.bottom + 8 }]}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid }} onPress={next} disabled={!valid} style={[styles.button, !valid && styles.disabled]}><Text style={styles.buttonText}>{valid ? "Build My Balanced Plan →" : chosenSkills.length < 3 ? `Choose ${3 - chosenSkills.length} more` : "Include both directions"}</Text></Pressable></View>
+    <View style={[styles.footer, { bottom: insets.bottom + 8 }]}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid }} onPress={next} disabled={!valid} style={[styles.button, !valid && styles.disabled]}><Text style={styles.buttonText}>{valid ? "Build My Balanced Plan →" : chosenSkills.length < 3 ? `Choose ${3 - chosenSkills.length} more` : !coversCareer || !coversLife ? "Include both directions" : "Choose your learning rhythm"}</Text></Pressable></View>
   </KeyboardAvoidingView>;
 }
 

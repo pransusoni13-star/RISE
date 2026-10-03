@@ -71,12 +71,28 @@ def test_email_verification_is_expiring_and_single_use(monkeypatch) -> None:
     with TestClient(app) as client:
         created = client.post("/auth/register", json={"email": "verify@example.com", "password": "very-secure-password", "display_name": "Verify Member"})
         assert created.status_code == 201
+        assert created.json()["verification_email_sent"] is True
         headers = {"Authorization": f"Bearer {created.json()['access_token']}"}
         assert delivered["recipient"] == "verify@example.com"
         assert client.get("/users/me/email-verification", headers=headers).json() == {"verified": False}
         assert client.post("/auth/email-verification/confirm", json={"token": delivered["token"]}).status_code == 204
         assert client.get("/users/me/email-verification", headers=headers).json() == {"verified": True}
         assert client.post("/auth/email-verification/confirm", json={"token": delivered["token"]}).status_code == 400
+
+
+def test_email_delivery_failure_is_reported_without_losing_account(monkeypatch) -> None:
+    def unavailable(*_args, **_kwargs) -> None:
+        raise RuntimeError("mail provider unavailable")
+
+    monkeypatch.setattr("app.main.send_email_verification", unavailable)
+    with TestClient(app) as client:
+        created = client.post("/auth/register", json={"email": "mail-failure@example.com", "password": "very-secure-password", "display_name": "Mail Failure"})
+        assert created.status_code == 201
+        assert created.json()["verification_email_sent"] is False
+        headers = {"Authorization": f"Bearer {created.json()['access_token']}"}
+        retry = client.post("/users/me/email-verification", headers=headers)
+        assert retry.status_code == 503
+        assert "could not send" in retry.json()["detail"]
 
 
 def test_progress_is_isolated_between_accounts() -> None:

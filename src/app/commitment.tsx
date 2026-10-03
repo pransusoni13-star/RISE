@@ -40,7 +40,7 @@ export default function CommitmentScreen() {
       ? params.commitment
       : "";
 
-  const [selected, setSelected] = useState(existingCommitment || "Every 7 days");
+  const [selected, setSelected] = useState(existingCommitment);
 
   const handleContinue = async () => {
     if (!selected) return;

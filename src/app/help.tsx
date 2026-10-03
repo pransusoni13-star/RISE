@@ -44,6 +44,12 @@ export default function HelpScreen() {
       <Text style={styles.title}>Help that meets you where you are.</Text>
       <Text style={styles.subtitle}>Quick answers for proof, safety, privacy, and getting useful support.</Text>
 
+      <Pressable accessibilityRole="button" style={styles.tourButton} onPress={() => router.push("/tour" as any)}>
+        <Text style={styles.tourEyebrow}>NEW TO RISE?</Text>
+        <Text style={styles.tourTitle}>Take the guided app tour →</Text>
+        <Text style={styles.tourText}>Learn where every main feature lives and what to do next.</Text>
+      </Pressable>
+
       <Text style={styles.section}>CONTACT RISE</Text>
       <Resource title="Email support" detail={SUPPORT_EMAIL} onPress={() => open(SUPPORT_MAILTO)} />
       <Text selectable style={styles.subtitle}>Include your device, app version, what happened, and what you expected. Never send passwords, sign-in codes, or private proof. If your email app does not open, copy the address above into your email service. Support is not monitored for emergencies.</Text>
@@ -85,4 +91,5 @@ const styles = StyleSheet.create({
   section:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.3,marginTop:20,marginBottom:10},resource:{flexDirection:"row",alignItems:"center",backgroundColor:"#071B16",borderRadius:16,borderWidth:1,borderColor:"#1E3A31",padding:15,marginBottom:9},arrow:{color:"#7AF5B8",fontSize:20,marginLeft:10},
   notice:{backgroundColor:"rgba(255,180,168,0.08)",borderColor:"rgba(255,180,168,0.25)",borderWidth:1,borderRadius:17,padding:16,marginTop:18},noticeTitle:{color:"#FFB4A8",fontWeight:"900"},noticeText:{color:"#DCECE3",fontSize:12,lineHeight:19,marginTop:6},
   legalButton:{height:58,borderRadius:29,backgroundColor:"#7AF5B8",alignItems:"center",justifyContent:"center",marginTop:18},legalButtonText:{color:"#010807",fontWeight:"900",fontSize:14},
+  tourButton:{backgroundColor:"#0D2F22",borderRadius:20,borderWidth:1,borderColor:"#346249",padding:18,marginBottom:6},tourEyebrow:{color:"#7AF5B8",fontSize:9,fontWeight:"900",letterSpacing:1.2},tourTitle:{color:"#F5FFF9",fontSize:18,fontWeight:"900",marginTop:7},tourText:{color:"#A7CBB7",fontSize:12,lineHeight:18,marginTop:5},
 });

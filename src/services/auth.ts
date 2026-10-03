@@ -23,7 +23,10 @@ type AuthResponse = {
   refresh_token: string;
   token_type: "bearer";
   user: RiseUser;
+  verification_email_sent?: boolean;
 };
+
+export type RegistrationResult = { user: RiseUser; verificationEmailSent: boolean };
 
 export type CloudProfile = {
   selected_goals: string[];
@@ -174,13 +177,13 @@ async function authenticatedRequest<T>(path: string, init: RequestInit = {}): Pr
   }
 }
 
-export async function register(input: { email: string; password: string; displayName: string; foundingCode?: string; signupElapsedSeconds?: number; usageAnalyticsOptIn?: boolean }): Promise<RiseUser> {
+export async function register(input: { email: string; password: string; displayName: string; foundingCode?: string; signupElapsedSeconds?: number; usageAnalyticsOptIn?: boolean }): Promise<RegistrationResult> {
   const session = await rawRequest<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify({ email: input.email.trim().toLowerCase(), password: input.password, display_name: input.displayName.trim(), founding_code: input.foundingCode?.trim() || null, signup_elapsed_seconds: input.usageAnalyticsOptIn ? input.signupElapsedSeconds ?? null : null, usage_analytics_opt_in: input.usageAnalyticsOptIn ?? false }) });
   await claimLocalDataForUser(session.user.id);
   await storeSession(session);
   usageAnalyticsConsent = Boolean(input.usageAnalyticsOptIn);
   usageAnalyticsEnabledAt = usageAnalyticsConsent ? Date.now() : 0;
-  return session.user;
+  return { user: session.user, verificationEmailSent: session.verification_email_sent === true };
 }
 
 export async function login(email: string, password: string): Promise<RiseUser> {

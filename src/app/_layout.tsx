@@ -64,6 +64,8 @@ export default function RootLayout() {
 
       <Stack.Screen name="help" />
 
+      <Stack.Screen name="tour" />
+
       <Stack.Screen name="support" />
 
       <Stack.Screen name="settings" />

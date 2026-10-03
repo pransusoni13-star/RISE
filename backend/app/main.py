@@ -107,11 +107,11 @@ def issue_session(db: Session, user: User) -> AuthResponse:
     return AuthResponse(access_token=create_access_token(user.id), refresh_token=raw_refresh, user=UserResponse.model_validate(user))
 
 
-def deliver_email_verification(db: Session, user: User) -> None:
+def deliver_email_verification(db: Session, user: User) -> bool:
     raw_token = create_refresh_token()
     record = db.get(EmailVerification, user.id) or EmailVerification(user_id=user.id)
     if record.verified_at:
-        return
+        return True
     record.token_hash = hash_token(raw_token)
     record.expires_at = now_utc() + timedelta(hours=24)
     record.sent_at = now_utc()
@@ -119,10 +119,13 @@ def deliver_email_verification(db: Session, user: User) -> None:
     db.commit()
     try:
         send_email_verification(settings, user.email, raw_token)
+        return True
     except Exception:
+        logger.exception("Verification email delivery failed", extra={"user_id": user.id})
         record.token_hash = None
         record.expires_at = None
         db.commit()
+        return False
 
 
 @app.get("/health")
@@ -172,7 +175,7 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
         raise HTTPException(status_code=409, detail="Account could not be created") from exc
     db.refresh(user)
     session = issue_session(db, user)
-    deliver_email_verification(db, user)
+    session.verification_email_sent = deliver_email_verification(db, user)
     return session
 
 
@@ -254,7 +257,8 @@ def email_verification_status(user: User = Depends(get_current_user), db: Sessio
 @app.post("/users/me/email-verification", status_code=202)
 def request_email_verification(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, str]:
     enforce_rate_limit(request, "email-verification", limit=4, seconds=3600)
-    deliver_email_verification(db, user)
+    if not deliver_email_verification(db, user):
+        raise HTTPException(status_code=503, detail="RISE could not send the verification email. Please try again shortly or contact support.")
     return {"message": "If verification is still needed, a new link will be sent."}
 
 

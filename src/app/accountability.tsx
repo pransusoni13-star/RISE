@@ -65,7 +65,7 @@ export default function AccountabilityScreen() {
         </Text>
 
         <Text style={styles.subtitle}>
-          Optional: pick the support style that makes consistency easier. Phone reminders are turned on separately in Settings, with your permission.
+          Choose the support style that will make consistency easier. Phone reminders are turned on separately, with your permission.
         </Text>
 
         <View style={styles.infoCard}>
@@ -115,6 +115,9 @@ export default function AccountabilityScreen() {
 
       <View style={styles.footer}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !selected }}
+          disabled={!selected}
           onPress={() => continueNext()}
           style={({ pressed }) => [
             styles.button,
@@ -140,9 +143,6 @@ export default function AccountabilityScreen() {
           >
             →
           </Text>
-        </Pressable>
-        <Pressable onPress={() => continueNext("")} style={styles.skipButton}>
-          <Text style={styles.skipText}>Skip for now</Text>
         </Pressable>
       </View>
     </View>
