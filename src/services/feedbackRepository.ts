@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 
 const STORAGE_KEY = "RISE_PRODUCT_FEEDBACK";
 
@@ -29,7 +30,7 @@ export const feedbackRepository = {
       ...input,
       id: `feedback-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      appVersion: "1.0.0",
+      appVersion: `${Constants.expoConfig?.version || "unknown"} (${Constants.expoConfig?.ios?.buildNumber || "dev"})`,
     };
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([feedback, ...current].slice(0, 25)));
     return feedback;

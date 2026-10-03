@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { feedbackRepository, ProductFeedback } from "../services/feedbackRepository";
-import { submitProductFeedback } from "../services/auth";
+import { getCurrentUser, submitProductFeedback } from "../services/auth";
 
 const categories: [ProductFeedback["category"], string][] = [
   ["idea", "Idea"], ["bug", "Something broke"], ["confusing", "Confusing"], ["mission", "Mission quality"], ["accessibility", "Accessibility"],
@@ -13,17 +13,32 @@ export default function FeedbackScreen() {
   const [rating, setRating] = useState<ProductFeedback["rating"]>(5);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [firstName, setFirstName] = useState("");
   const valid = message.trim().length >= 5;
+
+  useEffect(() => {
+    let active = true;
+    void getCurrentUser().then((user) => {
+      if (active && user?.display_name) setFirstName(user.display_name.trim().split(/\s+/)[0]);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   const submit = async () => {
     if (!valid || saving) return;
     setSaving(true);
     try {
       const saved = await feedbackRepository.add({ category, rating, message: message.trim() });
-      const delivered = await submitProductFeedback({ category: saved.category, rating: saved.rating, message: saved.message, appVersion: saved.appVersion }).catch(() => false);
-      if (!delivered) await Share.share({ title: "RISE feedback", message: `RISE feedback (${saved.category}, ${saved.rating}/5)\n\n${saved.message}\n\nVersion ${saved.appVersion}` });
-      setMessage("");
-      Alert.alert(delivered ? "Feedback received" : "Feedback saved", delivered ? "Thank you. A private copy is on this phone and your note was sent to the RISE beta team." : "A private copy is stored on this phone. Choose an app in the share sheet to send it.");
+      const result = await submitProductFeedback({ category: saved.category, rating: saved.rating, message: saved.message, appVersion: saved.appVersion }).catch(() => ({ received: false, emailNotified: false }));
+      if (result.received) setMessage("");
+      const thanks = firstName ? `Thank you, ${firstName}.` : "Thank you for helping improve RISE.";
+      if (result.received && result.emailNotified) {
+        Alert.alert("Feedback sent privately", `${thanks} Your feedback went directly to rise.app13@gmail.com. No public post or shared copy was created.`);
+      } else if (result.received) {
+        Alert.alert("Feedback safely received", `${thanks} RISE saved your feedback to your account. The private email notification is delayed, but you do not need to upload or share anything again.`);
+      } else {
+        Alert.alert("Saved privately on this phone", "RISE could not reach your account. Sign in, check your connection, then tap Send Feedback again. Nothing was uploaded or shared with another app.");
+      }
     } catch {
       Alert.alert("Could not save feedback", "Please try again.");
     } finally { setSaving(false); }
@@ -34,7 +49,7 @@ export default function FeedbackScreen() {
       <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
       <Text style={styles.eyebrow}>BUILD RISE WITH US</Text>
       <Text style={styles.title}>What should become better?</Text>
-      <Text style={styles.subtitle}>One short note is enough. Signed-in feedback is saved to your account and emailed to the private RISE support inbox. Do not include passwords, health records, client information, or other private details.</Text>
+      <Text style={styles.subtitle}>One short note is enough. Signed-in feedback goes privately to the RISE team at rise.app13@gmail.com. RISE will never open a public post or ask you to “make a copy.” Do not include passwords, health records, client information, or other private details.</Text>
 
       <Text style={styles.label}>TYPE OF FEEDBACK</Text>
       <View style={styles.chips}>{categories.map(([value, label]) => <Pressable accessibilityRole="radio" accessibilityState={{ selected: category === value }} key={value} onPress={() => setCategory(value)} style={[styles.chip, category === value && styles.chipActive]}><Text style={[styles.chipText, category === value && styles.chipTextActive]}>{label}</Text></Pressable>)}</View>
@@ -46,7 +61,7 @@ export default function FeedbackScreen() {
       <TextInput value={message} onChangeText={setMessage} multiline maxLength={1000} returnKeyType="done" blurOnSubmit onSubmitEditing={() => Keyboard.dismiss()} placeholder="Example: I understood the mission, but I could not find where to replace my proof video." placeholderTextColor="#668577" style={styles.input} />
       <Text style={styles.count}>{message.length} / 1000</Text>
     </ScrollView>
-    <View style={styles.footer}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || saving }} disabled={!valid || saving} onPress={submit} style={[styles.button, (!valid || saving) && styles.disabled]}><Text style={styles.buttonText}>{saving ? "Sending..." : "Send Feedback →"}</Text></Pressable><Text style={styles.privacy}>Signed in: saved and emailed to RISE support. Guest: stored here until you share it.</Text></View>
+    <View style={styles.footer}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || saving }} disabled={!valid || saving} onPress={submit} style={[styles.button, (!valid || saving) && styles.disabled]}><Text style={styles.buttonText}>{saving ? "Sending privately..." : "Send Privately to RISE →"}</Text></Pressable><Text style={styles.privacy}>Signed in: saved to your account and privately emailed to RISE. Not signed in: kept only on this phone.</Text></View>
   </KeyboardAvoidingView>;
 }
 

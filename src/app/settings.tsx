@@ -133,7 +133,7 @@ export default function SettingsScreen() {
     {user ? <><Row title="Synced Improvement" text="Quiz baselines, completed missions, and focused minutes" onPress={() => router.push("/account-progress" as any)} /><Row title="Sign Out" text={`Signed in as ${user.email}`} onPress={() => void logout().then(() => router.replace("/account" as never))} /></> : <Row title="Create or Sign In" text="Sync skills and improvement across the beta" onPress={() => router.push("/account" as any)} />}
     <Row title="Popular Skill Quick Starts" text="Begin a proven starter path in one tap" onPress={() => router.push("/popular-skills" as any)} />
     <Row title="RISE Rewards" text="See your coin balance and honest reward rules" onPress={() => router.push("/rewards" as any)} />
-    <Row title="Feedback & Improvements" text="Save and share a bug, idea, or confusing moment" onPress={() => router.push("/feedback" as any)} />
+    <Row title="Feedback & Improvements" text="Send a private bug report, idea, or confusing moment to RISE" onPress={() => router.push("/feedback" as any)} />
     <Row title="Export My RISE Data" text="Review or save a portable copy through an app you choose" onPress={() => void exportLocalData()} />
     <Row title="Help Center" text="Proof, safety, privacy, and trusted resources" onPress={() => router.push("/help" as any)} />
     <Row title="Privacy, Safety & Terms" text="Permissions, acceptable use, and delete controls" onPress={() => router.push("/legal" as any)} />

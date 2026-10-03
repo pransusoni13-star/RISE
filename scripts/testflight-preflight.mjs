@@ -1,5 +1,16 @@
 import { readFileSync } from "node:fs";
 
+// Keep this standalone so release checks work before Expo has loaded .env.
+try {
+  const localEnv = readFileSync(new URL("../.env", import.meta.url), "utf8");
+  for (const line of localEnv.split(/\r?\n/)) {
+    const match = line.match(/^([A-Z][A-Z0-9_]*)=(.*)$/);
+    if (match && process.env[match[1]] === undefined) process.env[match[1]] = match[2].trim();
+  }
+} catch {
+  // CI and EAS may provide all values through their environment instead.
+}
+
 const app = JSON.parse(readFileSync(new URL("../app.json", import.meta.url), "utf8")).expo;
 const eas = JSON.parse(readFileSync(new URL("../eas.json", import.meta.url), "utf8"));
 const problems = [];
@@ -58,7 +69,10 @@ for (const name of ["RISE_PRIVACY_POLICY_URL", "RISE_SUPPORT_URL"]) {
 
 for (const check of checks) {
   try {
-    const response = await fetch(check.url, { signal: AbortSignal.timeout(8000), redirect: "follow" });
+    // The free beta API may cold-start after inactivity. Match the app's
+    // bounded wake-up window so preflight does not report a healthy host as dead.
+    const timeoutMs = check.json ? 75_000 : 15_000;
+    const response = await fetch(check.url, { signal: AbortSignal.timeout(timeoutMs), redirect: "follow" });
     if (!response.ok || new URL(response.url).protocol !== "https:") throw new Error(`HTTP ${response.status} or non-HTTPS redirect`);
     if (check.json) {
       const health = await response.json();

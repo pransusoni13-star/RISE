@@ -13,14 +13,14 @@
     "backgroundColor": "#010807",
     "primaryColor": "#7AF5B8",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/rise-icon.png",
     "scheme": "rise",
     "userInterfaceStyle": "dark",
     "ios": {
       "appleTeamId": "C428XF4X3T",
       "bundleIdentifier": "com.riseapp13.riseapp",
-      "icon": "./assets/expo.icon",
-      "buildNumber": "6",
+      "icon": "./assets/images/rise-icon.png",
+      "buildNumber": "7",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
