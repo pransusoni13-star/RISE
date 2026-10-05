@@ -14,7 +14,10 @@ Do not collect real beta-user data until the release gates below are addressed.
    - `RISE_ADMIN_API_KEY`: a different random secret, at least 32 characters.
    - `RISE_ALLOWED_ORIGINS`: exact HTTPS web origins, comma separated, without paths or trailing slashes.
    - `RISE_PUBLIC_APP_URL`: the public HTTPS web app origin used for reset links.
-   - `RISE_SMTP_HOST`, `RISE_SMTP_PORT`, `RISE_SMTP_USERNAME`, `RISE_SMTP_PASSWORD`, `RISE_SMTP_FROM_EMAIL`: transactional email provider settings. Test delivery and spam placement before invitations.
+   - `RISE_RESEND_API_KEY`: secret Resend API key. Prefer Resend's HTTPS API on hosts that restrict SMTP.
+   - `RISE_EMAIL_FROM`: one authenticated sender identity used for verification, password reset, and private feedback notifications, for example `RISE <hello@your-rise-domain.example>`.
+   - `RISE_EMAIL_PROVIDER`: defaults to `auto`; set it explicitly to `resend` or `smtp` when both are configured. Gmail SMTP is an interim beta fallback only: use an app password, expect daily limits and account-security checks, and migrate to a RISE-owned authenticated domain before a larger launch.
+   - Optional SMTP fallback: `RISE_SMTP_HOST`, `RISE_SMTP_PORT`, `RISE_SMTP_USERNAME`, and `RISE_SMTP_PASSWORD`. It uses the same `RISE_EMAIL_FROM` identity. Test delivery and spam placement before invitations.
    - `RISE_FOUNDING_REDEMPTION_ENABLED=false`: keep disabled until the actual App Store launch.
 4. Expose only through the provider's HTTPS endpoint. Configure `/health` as a readiness check. It checks the database too; expect HTTP 200 with `{"status":"ok"}`.
 5. Configure trusted proxy addresses explicitly through `FORWARDED_ALLOW_IPS` according to the provider. Do not trust arbitrary internet-supplied forwarding headers. Enforce a request-body limit at the gateway, including chunked requests.
@@ -26,6 +29,7 @@ Do not collect real beta-user data until the release gates below are addressed.
 - Add reviewed schema migrations; current `create_all` only initializes missing tables and cannot safely evolve an existing schema.
 - Enable managed backups and successfully restore a test backup into a separate database.
 - Password recovery and email verification are implemented but must be tested end-to-end with the chosen email provider. Keep invitations controlled until delivery, spam placement, expired links, and resend behavior pass staging tests.
+- Before public email delivery, buy or use a RISE-owned domain, add it to Resend, publish the exact SPF and DKIM records Resend provides, add a DMARC policy, wait for Resend to show the domain as verified, then set `RISE_EMAIL_FROM` in Render. The shared `onboarding@resend.dev` sender is for testing and is not suitable for arbitrary beta users. No sender can guarantee inbox placement.
 - Complete operator identity, audience/country decisions, retention/backup-deletion rules, privacy policy and terms review. Publish accessible HTTPS privacy/support pages. Public contact: rise.app13@gmail.com.
 - Resolve or formally assess outstanding dependency advisories; never use a forced Expo downgrade as an audit fix.
 - Test two separate accounts for isolation, logout, deletion, export, progress sync and opt-in ranking. Use synthetic data before production data.

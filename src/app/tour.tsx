@@ -1,7 +1,8 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { markRequiredTourCompleted } from "../services/tourState";
 
 type TourStep = {
   emoji: string;
@@ -95,19 +96,29 @@ const STEPS: TourStep[] = [
     action: "Open Help Center",
     route: "/help",
   },
+  {
+    emoji: "🔐",
+    eyebrow: "YOUR ACCOUNT & PRIVACY",
+    title: "Your controls stay within reach.",
+    where: "Progress → Settings → Account and privacy",
+    description: "Sign in to sync your plan, export your data, control optional analytics, or delete your account and on-device RISE data. Never share a verification or reset link.",
+    action: "Open Settings",
+    route: "/settings",
+  },
 ];
 
 export default function TourScreen() {
+  const params = useLocalSearchParams<{ required?: string }>();
+  const required = params.required === "1";
   const [index, setIndex] = useState(0);
+  const [finishing, setFinishing] = useState(false);
   const step = STEPS[index];
   const last = index === STEPS.length - 1;
 
   return (
     <SafeAreaView style={styles.page} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close RISE tour" onPress={() => router.back()} style={styles.close}>
-          <Text style={styles.closeText}>×</Text>
-        </Pressable>
+        {required ? <View style={styles.requiredBadge}><Text style={styles.requiredText}>REQUIRED ONCE</Text></View> : <Pressable accessibilityRole="button" accessibilityLabel="Close RISE tour" onPress={() => router.back()} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable>}
         <Text style={styles.counter}>{index + 1} OF {STEPS.length}</Text>
       </View>
 
@@ -121,26 +132,29 @@ export default function TourScreen() {
         <Text style={styles.title}>{step.title}</Text>
         <View style={styles.location}><Text style={styles.locationLabel}>WHERE TO FIND IT</Text><Text style={styles.locationText}>{step.where}</Text></View>
         <Text style={styles.description}>{step.description}</Text>
-        <Pressable accessibilityRole="button" onPress={() => router.push(step.route as never)} style={({ pressed }) => [styles.openButton, pressed && styles.pressed]}>
-          <Text style={styles.openButtonText}>{step.action} ↗</Text>
-        </Pressable>
+        {required ? <View style={styles.learnFirst}><Text style={styles.learnFirstText}>Finish all {STEPS.length} steps first. Then RISE will open your Today page.</Text></View> : <Pressable accessibilityRole="button" onPress={() => router.push(step.route as never)} style={({ pressed }) => [styles.openButton, pressed && styles.pressed]}><Text style={styles.openButtonText}>{step.action} ↗</Text></Pressable>}
       </View>
 
       <View style={styles.footer}>
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: index === 0 }} disabled={index === 0} onPress={() => setIndex((value) => value - 1)} style={[styles.secondary, index === 0 && styles.disabled]}>
           <Text style={styles.secondaryText}>← Back</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => last ? router.replace("/(tabs)/today" as never) : setIndex((value) => value + 1)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-          <Text style={styles.primaryText}>{last ? "Finish Tour" : "Next"} →</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: finishing }} disabled={finishing} onPress={() => {
+          if (!last) return setIndex((value) => value + 1);
+          if (!required) return router.replace("/(tabs)/today" as never);
+          setFinishing(true);
+          void markRequiredTourCompleted().then(() => router.replace("/(tabs)/today" as never)).finally(() => setFinishing(false));
+        }} style={({ pressed }) => [styles.primary, (pressed || finishing) && styles.pressed]}>
+          <Text style={styles.primaryText}>{last ? (finishing ? "Saving..." : "Finish Tour") : "Next"} →</Text>
         </Pressable>
       </View>
-      <Text style={styles.replay}>You can replay this tour anytime from Settings or Help.</Text>
+      <Text style={styles.replay}>{required ? "This first tour cannot be skipped. You can replay it anytime from Settings or Help." : "You can replay this tour anytime from Settings or Help."}</Text>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  page:{flex:1,backgroundColor:"#010807",paddingHorizontal:22},header:{height:58,flexDirection:"row",alignItems:"center",justifyContent:"space-between"},close:{width:42,height:42,borderRadius:21,borderWidth:1,borderColor:"#29483B",alignItems:"center",justifyContent:"center"},closeText:{color:"#E8F8EF",fontSize:27,lineHeight:30},counter:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.4},dots:{flexDirection:"row",gap:6,marginTop:12,marginBottom:22},dot:{flex:1,height:4,borderRadius:4,backgroundColor:"#173126"},dotActive:{backgroundColor:"#7AF5B8"},
+  page:{flex:1,backgroundColor:"#010807",paddingHorizontal:22},header:{height:58,flexDirection:"row",alignItems:"center",justifyContent:"space-between"},close:{width:42,height:42,borderRadius:21,borderWidth:1,borderColor:"#29483B",alignItems:"center",justifyContent:"center"},closeText:{color:"#E8F8EF",fontSize:27,lineHeight:30},requiredBadge:{minHeight:34,borderRadius:17,backgroundColor:"#123C2D",paddingHorizontal:13,alignItems:"center",justifyContent:"center"},requiredText:{color:"#7AF5B8",fontSize:9,fontWeight:"900",letterSpacing:1.1},counter:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.4},dots:{flexDirection:"row",gap:6,marginTop:12,marginBottom:22},dot:{flex:1,height:4,borderRadius:4,backgroundColor:"#173126"},dotActive:{backgroundColor:"#7AF5B8"},
   card:{flex:1,backgroundColor:"#071B16",borderWidth:1,borderColor:"#1E3A31",borderRadius:28,padding:24,justifyContent:"center"},icon:{width:70,height:70,borderRadius:22,backgroundColor:"#0D2F22",alignItems:"center",justifyContent:"center",marginBottom:24},emoji:{fontSize:33},eyebrow:{color:"#7AF5B8",fontSize:10,fontWeight:"900",letterSpacing:1.5},title:{color:"#F5FFF9",fontSize:32,lineHeight:38,fontWeight:"900",marginTop:10},location:{backgroundColor:"rgba(122,245,184,0.08)",borderWidth:1,borderColor:"rgba(122,245,184,0.22)",borderRadius:16,padding:14,marginTop:20},locationLabel:{color:"#75B995",fontSize:9,fontWeight:"900",letterSpacing:1.2},locationText:{color:"#E8F8EF",fontSize:14,fontWeight:"900",marginTop:5},description:{color:"#BBD8C8",fontSize:15,lineHeight:23,marginTop:19},openButton:{minHeight:50,borderRadius:25,borderWidth:1,borderColor:"#3C6A53",alignItems:"center",justifyContent:"center",marginTop:23},openButtonText:{color:"#9FE7BB",fontSize:13,fontWeight:"900"},
-  footer:{flexDirection:"row",gap:10,marginTop:18},secondary:{height:56,width:105,borderRadius:28,borderWidth:1,borderColor:"#29483B",alignItems:"center",justifyContent:"center"},secondaryText:{color:"#CBE7D7",fontWeight:"900"},primary:{height:56,flex:1,borderRadius:28,backgroundColor:"#7AF5B8",alignItems:"center",justifyContent:"center"},primaryText:{color:"#010807",fontSize:14,fontWeight:"900"},disabled:{opacity:.28},pressed:{opacity:.78},replay:{color:"#668A78",fontSize:10,textAlign:"center",marginTop:12,marginBottom:4},
+  learnFirst:{minHeight:50,borderRadius:18,borderWidth:1,borderColor:"#3C6A53",backgroundColor:"#0D2F22",paddingHorizontal:15,alignItems:"center",justifyContent:"center",marginTop:23},learnFirstText:{color:"#BDEFD3",fontSize:12,lineHeight:17,textAlign:"center",fontWeight:"800"},footer:{flexDirection:"row",gap:10,marginTop:18},secondary:{height:56,width:105,borderRadius:28,borderWidth:1,borderColor:"#29483B",alignItems:"center",justifyContent:"center"},secondaryText:{color:"#CBE7D7",fontWeight:"900"},primary:{height:56,flex:1,borderRadius:28,backgroundColor:"#7AF5B8",alignItems:"center",justifyContent:"center"},primaryText:{color:"#010807",fontSize:14,fontWeight:"900"},disabled:{opacity:.28},pressed:{opacity:.78},replay:{color:"#668A78",fontSize:10,textAlign:"center",marginTop:12,marginBottom:4},
 });

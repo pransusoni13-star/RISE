@@ -9,6 +9,7 @@ import {
 } from "../services/personalization";
 import { missionRepository } from "../services/missionRepository";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { hasCompletedRequiredTour } from "../services/tourState";
 
 const valueOf = (value: string | string[] | undefined, fallback = "") =>
   Array.isArray(value) ? value[0] || fallback : value || fallback;
@@ -50,8 +51,12 @@ export default function PlanScreen() {
 
   useFocusEffect(React.useCallback(() => {
     let active = true;
-    void Promise.all([loadProfile(), missionRepository.list()]).then(([storedProfile, records]) => {
+    void Promise.all([loadProfile(), missionRepository.list(), hasCompletedRequiredTour()]).then(([storedProfile, records, tourComplete]) => {
       if (!active) return;
+      if (!tourComplete) {
+        router.replace({ pathname: "/tour", params: { required: "1" } } as never);
+        return;
+      }
       setSavedProfile(storedProfile);
       setCompletedIds(records.filter((record) => record.status === "completed").map((record) => record.missionId));
     });

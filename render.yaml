@@ -24,10 +24,12 @@ services:
         value: rise.app13@gmail.com
       - key: RISE_FEEDBACK_INBOX
         value: rise.app13@gmail.com
+      - key: RISE_EMAIL_PROVIDER
+        sync: false
       - key: RISE_RESEND_API_KEY
         sync: false
-      - key: RISE_RESEND_FROM_EMAIL
-        value: RISE <onboarding@resend.dev>
+      - key: RISE_EMAIL_FROM
+        sync: false
       - key: RISE_FOUNDING_REDEMPTION_ENABLED
         value: "false"
       - key: RISE_SMTP_HOST
@@ -37,8 +39,6 @@ services:
       - key: RISE_SMTP_USERNAME
         sync: false
       - key: RISE_SMTP_PASSWORD
-        sync: false
-      - key: RISE_SMTP_FROM_EMAIL
         sync: false
       - key: RISE_SMTP_USE_TLS
         value: "true"

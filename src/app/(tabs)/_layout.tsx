@@ -1,11 +1,29 @@
-import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Tabs, router } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { hasCompletedRequiredTour } from "../../services/tourState";
 
 const icon = (emoji: string) => <Text style={{ fontSize: 19, lineHeight: 25 }} accessibilityElementsHidden>{emoji}</Text>;
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const [tourReady, setTourReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void hasCompletedRequiredTour().then((complete) => {
+      if (!active) return;
+      if (!complete) {
+        router.replace({ pathname: "/tour", params: { required: "1" } } as never);
+        return;
+      }
+      setTourReady(true);
+    });
+    return () => { active = false; };
+  }, []);
+
+  if (!tourReady) return <View style={styles.loading}><ActivityIndicator color="#7AF5B8" /></View>;
   return (
     <Tabs
       screenOptions={{
@@ -73,3 +91,5 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({ loading: { flex: 1, backgroundColor: "#010807", alignItems: "center", justifyContent: "center" } });

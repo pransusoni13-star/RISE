@@ -242,6 +242,28 @@ const templates: Record<string, MissionTemplate> = {
     skills: ["React Native", "TypeScript", "Product engineering"],
     search: "site:reactnative.dev docs components accessibility TypeScript",
   },
+  "customer-research": {
+    titles: [
+      "Draft three customer interview questions",
+      "Test your interview guide",
+      "Run one consent-based interview",
+      "Separate observations from assumptions",
+      "Group repeated customer problems",
+      "Choose one problem to investigate",
+      "Share an evidence-based research summary",
+    ],
+    actions: [
+      "Choose one audience problem and draft three open-ended interview questions about a recent real experience, the current workaround, and the desired outcome.",
+      "Read each question aloud, remove leading language, and ask a practice partner what felt unclear.",
+      "With informed consent, ask one participant the questions and record concise notes without collecting unnecessary personal information.",
+      "Mark each note as a direct observation, participant statement, or your own assumption.",
+      "Compare the notes and group repeated problems, workarounds, and desired outcomes without claiming that one interview represents everyone.",
+      "Choose one problem supported by the clearest evidence and write what you still need to learn.",
+      "Create a one-page summary with the audience, evidence, limitations, and next research question.",
+    ],
+    skills: ["Customer Research", "Interviewing", "Evidence synthesis"],
+    search: "customer research user interview open ended questions beginner",
+  },
   youtube: {
     titles: [
       "Define your viewer promise",
@@ -382,6 +404,7 @@ const genericTemplate: MissionTemplate = {
 
 function resolveTemplate(goal: string, customGoal: string): MissionTemplate {
   const combined = `${goal} ${customGoal}`.toLowerCase();
+  if (/customer research|user research|customer interview|user interview/.test(combined)) return templates["customer-research"];
   if (/spiritual|faith|religion|god|prayer|scripture/.test(combined)) return templates.spirituality;
   if (/\bai\b|artificial intelligence|machine learning|prompt engineering|model evaluation|codex|claude code/.test(combined)) return templates["ai-engineering"];
   if (/react native/.test(combined)) return templates["react-native"];
@@ -406,35 +429,39 @@ function safetyNoteFor(goal: string): string {
   return "Protect private information, use work you created or have permission to use, and stop or simplify any step that feels unsafe.";
 }
 
-function trustedResources(goal: string, template: MissionTemplate, title: string) {
+function trustedResources(goal: string, template: MissionTemplate, title: string, focusSkill: string, level: string) {
   const value = goal.toLowerCase();
+  const searchContext = `${focusSkill} ${title} ${level.includes("advanced") ? "advanced" : "beginner"}`;
+  if (template === templates["customer-research"]) {
+    return { video: `${searchContext} open ended customer interview questions user research`, guideLabel: "GOV.UK guide to in-depth user interviews", guideUrl: "https://www.gov.uk/service-manual/user-research/using-in-depth-interviews" };
+  }
   if (/\bai\b|machine-learning|prompt|model-evaluation/.test(value) || template === templates["ai-engineering"]) {
     const usesCodingAgent = /codex|claude|code|build|ship|api/i.test(title);
     return usesCodingAgent
-      ? { video: `OpenAI Codex Anthropic Claude Code official ${title} full tutorial -shorts`, guideLabel: "Official Codex documentation", guideUrl: "https://learn.chatgpt.com/docs" }
-      : { video: `Google machine learning official ${title} full lesson -shorts`, guideLabel: "Google Machine Learning Crash Course", guideUrl: "https://developers.google.com/machine-learning/crash-course/" };
+      ? { video: `OpenAI Codex Anthropic Claude Code official ${searchContext} full tutorial`, guideLabel: "Official Codex documentation", guideUrl: "https://learn.chatgpt.com/docs" }
+      : { video: `Google machine learning official ${searchContext} full lesson`, guideLabel: "Google Machine Learning Crash Course", guideUrl: "https://developers.google.com/machine-learning/crash-course/" };
   }
   if (/software|code|developer|program/.test(value) || template === templates["react-native"] || template === templates.coding) {
-    return { video: `React Native official ${title} tutorial -shorts`, guideLabel: "React Native official guide", guideUrl: "https://reactnative.dev/docs/getting-started" };
+    return { video: `React Native official ${searchContext} tutorial`, guideLabel: "React Native official guide", guideUrl: "https://reactnative.dev/docs/getting-started" };
   }
   if (/youtube|creator|video/.test(value) || template === templates.youtube || template === templates.hooks || template === templates.thumbnails) {
-    return { video: `YouTube Creators official ${title} -shorts`, guideLabel: "YouTube official creator guidance", guideUrl: "https://support.google.com/youtube/answer/16559650?hl=en" };
+    return { video: `YouTube Creators official ${searchContext}`, guideLabel: "YouTube official creator guidance", guideUrl: "https://support.google.com/youtube/answer/16559650?hl=en" };
   }
   if (/engineer|aerospace/.test(value) || template === templates.engineering) {
-    return { video: `NASA engineering design process ${title} -shorts`, guideLabel: "NASA engineering design process", guideUrl: "https://www.jpl.nasa.gov/edu/resources/image/engineering-design-process-flow-chart/" };
+    return { video: `NASA engineering design process ${searchContext}`, guideLabel: "NASA engineering design process", guideUrl: "https://www.jpl.nasa.gov/edu/resources/image/engineering-design-process-flow-chart/" };
   }
   if (/fitness|athlete|basketball|mobility|wellbeing|nutrition/.test(value)) {
     return /nutrition/.test(value)
-      ? { video: `CDC healthy eating ${title} -shorts`, guideLabel: "CDC healthy eating guidance", guideUrl: "https://www.cdc.gov/nutrition/features/healthy-eating-tips.html" }
-      : { video: `ACE Fitness official ${title} beginner -shorts`, guideLabel: "ACE exercise form library", guideUrl: "https://www.acefitness.org/resources/everyone/exercise-library/" };
+      ? { video: `CDC healthy eating ${searchContext}`, guideLabel: "CDC healthy eating guidance", guideUrl: "https://www.cdc.gov/nutrition/features/healthy-eating-tips.html" }
+      : { video: `ACE Fitness official ${searchContext}`, guideLabel: "ACE exercise form library", guideUrl: "https://www.acefitness.org/resources/everyone/exercise-library/" };
   }
   if (/barber|hair/.test(value) || template === templates.barbering || template === templates.fades) {
-    return { video: `MiladyPro barber education ${title} -shorts`, guideLabel: "Official barber health and safety guide", guideUrl: "https://www.barbercosmo.ca.gov/schools/healthsafety_course.shtml" };
+    return { video: `MiladyPro barber education ${searchContext}`, guideLabel: "Official barber health and safety guide", guideUrl: "https://www.barbercosmo.ca.gov/schools/healthsafety_course.shtml" };
   }
   if (/spiritual|faith/.test(value) || template === templates.spirituality) {
-    return { video: `${title} primary source qualified teacher full lesson -shorts`, guideLabel: "Use your trusted primary source", guideUrl: undefined };
+    return { video: `${searchContext} primary source qualified teacher full lesson`, guideLabel: "Use your trusted primary source", guideUrl: undefined };
   }
-  return { video: `${title} full beginner lesson trusted educator -shorts`, guideLabel: "Khan Academy learning guidance", guideUrl: "https://www.khanacademy.org/college-careers-more/learnstorm-growth-mindset-activities-us" };
+  return { video: `${searchContext} practical tutorial`, guideLabel: undefined, guideUrl: undefined };
 }
 
 const CAREER_GOALS = new Set([
@@ -504,16 +531,16 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
     const track = goalTrack(missionGoal);
     // Keep each selected direction distinct. A faith-related custom goal must
     // not turn the separate career days into spiritual missions (or vice versa).
-    const template = resolveTemplate(missionGoal, missionGoal === "personal" ? `${customGoal} ${weeklySkill}` : missionGoal);
-    const templateIndex = index % template.titles.length;
-    const round = Math.floor(index / template.titles.length) + 1;
-    const title = `${round > 1 ? `Level ${round}: ` : ""}${template.titles[templateIndex]}`;
-    const resources = trustedResources(missionGoal, template, title);
     const recommendedSkills = getRecommendedSkills(missionGoal);
     const matchingFocusSkill = focusSkills.find((focusSkill) =>
       recommendedSkills.some((recommended) => recommended.toLowerCase() === focusSkill.toLowerCase())
     );
     const missionFocusSkill = matchingFocusSkill || recommendedSkills[index % recommendedSkills.length] || weeklySkill;
+    const template = resolveTemplate(missionGoal, `${missionFocusSkill} ${missionGoal === "personal" ? `${customGoal} ${weeklySkill}` : ""}`);
+    const templateIndex = index % template.titles.length;
+    const round = Math.floor(index / template.titles.length) + 1;
+    const title = `${round > 1 ? `Level ${round}: ` : ""}${template.titles[templateIndex]}`;
+    const resources = trustedResources(missionGoal, template, title, missionFocusSkill, level);
     const difficulty: PersonalizedMission["difficulty"] = adaptation === "too_easy"
       ? (day <= 2 ? "Stretch" : "Challenge")
       : adaptation === "too_hard"
@@ -526,23 +553,34 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
     // experience, faith preference, or trusted-source words to YouTube.
     const query = encodeURIComponent(resources.video);
     const isSpiritual = template === templates.spirituality;
+    const isFirstCustomerResearchMission = template === templates["customer-research"] && templateIndex === 0;
+    const steps = isFirstCustomerResearchMission
+      ? [
+          "Choose one audience and write one problem you want to understand.",
+          "Draft three open-ended questions: ask about the last real experience, the current workaround, and the desired outcome.",
+          "Check that each question is neutral, cannot be answered only yes or no, and does not ask for private information.",
+          "Save the draft with a clear audience label, then attach a screenshot or photo as proof.",
+        ]
+      : [
+          `Choose one result you can finish in ${adaptiveDuration} minutes.`,
+          template.actions[templateIndex],
+          "Attach proof and write 2–3 sentences about what changed.",
+        ];
 
     return {
       id: `plan-${planKey}-${(skillSlug || "focus").slice(0, 32)}-${cycleKey}-day-${day}`,
       day,
       title,
       description: `${template.actions[templateIndex]} This builds your ${missionGoal.replace(/-/g, " ")} track and moves you toward “${customGoal}”.`,
-      steps: [
-        `Choose one result you can finish in ${adaptiveDuration} minutes.`,
-        template.actions[templateIndex],
-        "Attach proof and write 2–3 sentences about what changed.",
-      ],
+      steps,
       skills: Array.from(new Set([...focusSkills, ...template.skills])).slice(0, 5),
       duration: adaptiveDuration,
       difficulty,
       reward: 30 + day * 10,
       coinReward: 10 + Math.min(day, 5),
-      proof: "Attach a screenshot/photo or a short video showing the work and its result.",
+      proof: isFirstCustomerResearchMission
+        ? "Attach a screenshot or photo showing the audience, problem, and all three draft interview questions."
+        : "Attach a screenshot/photo or a short video showing the work and its result.",
       skillId: day < 3 ? "foundations" : day < 6 ? "practical-skills" : "projects",
       goal: missionGoal,
       track,
@@ -554,10 +592,14 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       // A faith preference is sensitive. Keep it out of route parameters and
       // external map links; the learning screen reads it locally on demand.
       mapQuery: isSpiritual ? undefined : template.mapQuery,
-      why: `Day ${day} builds on the previous step so you improve one measurable part at a time.${adaptation === "too_hard" ? " Your last mission felt hard, so this version is smaller and more guided." : adaptation === "too_easy" ? " Your last mission felt easy, so this version raises the challenge." : ""}${profile.lastMissionUseful === false ? " The focus has been made more practical because the last mission was not useful enough." : ""}${personalizedContext}`,
+      why: `${day === 1 ? "This creates a clear baseline for the rest of your cycle." : `Day ${day} builds on the previous step so you improve one measurable part at a time.`}${adaptation === "too_hard" ? " Your last mission felt hard, so this version is smaller and more guided." : adaptation === "too_easy" ? " Your last mission felt easy, so this version raises the challenge." : ""}${profile.lastMissionUseful === false ? " The focus has been made more practical because the last mission was not useful enough." : ""}${personalizedContext}`,
       onePercent: `Today you are not trying to master ${missionFocusSkill}. You are improving one specific part: ${title.toLowerCase()}.`,
-      successCriteria: `Finish the mission steps and attach clear evidence that shows your ${missionFocusSkill} work.`,
-      coachTip: level.includes("advanced")
+      successCriteria: isFirstCustomerResearchMission
+        ? "Your proof clearly shows one audience, one problem, and three neutral, open-ended draft questions. It proves a prepared draft—not completed interviews or validated demand."
+        : `Finish the mission steps and attach clear evidence that shows your ${missionFocusSkill} work.`,
+      coachTip: isFirstCustomerResearchMission
+        ? "Worked example (draft only): Audience—students who struggle to start homework. Ask: “Tell me about the last time starting homework felt difficult.” “What did you do next?” “What would have made starting easier?”"
+        : level.includes("advanced")
         ? `Raise the standard: measure one quality signal and compare it with your previous attempt.`
         : `Keep the first attempt small. Clear completion teaches you more than waiting for a perfect attempt.`,
       ifStuck: `Do the smallest version in 5 minutes: create one rough example, study what happened, then improve only one part.`,
@@ -568,7 +610,7 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
         : undefined,
       resourceNote: isSpiritual
         ? undefined
-        : "RISE prioritizes official publisher resources. Links were reviewed in September 2026; verify the publisher and updated date because tools and guidance change.",
+        : "Video cards open a contextual YouTube search, not a reviewed recommendation. When a publisher guide appears, confirm the publisher and updated date before relying on it.",
     };
   });
 }

@@ -56,7 +56,9 @@ export default function ActionScreen() {
   const [status, setStatus] = useState<MissionStatus>("not_started");
   const [saving, setSaving] = useState(false);
   const [showGuidance, setShowGuidance] = useState(false);
+  const [footerHeight, setFooterHeight] = useState(96);
   const saveLock = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
   const [faithProfile, setFaithProfile] = useState<RiseProfile | null>(null);
 
   const mission = useMemo(() => {
@@ -151,7 +153,7 @@ export default function ActionScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={8}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 140 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, paddingBottom: footerHeight + insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}>
           <Pressable onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
           <Text style={styles.day}>DAY {mission.day} • YOUR 1% MISSION</Text>
@@ -236,7 +238,7 @@ export default function ActionScreen() {
 
         {mission.guideUrl && !isSpiritual ? <Pressable accessibilityRole="link" style={styles.toolCard} onPress={() => openLink(mission.guideUrl!)}>
           <View style={styles.toolIcon}><Text>🔎</Text></View>
-          <View style={styles.toolBody}><Text style={styles.toolTitle}>{mission.guideLabel || "Reliable step-by-step guide"}</Text><Text style={styles.toolText}>A direct source selected for this mission—not a general Google search</Text></View>
+          <View style={styles.toolBody}><Text style={styles.toolTitle}>{mission.guideLabel || "Publisher guide"}</Text><Text style={styles.toolText}>A publisher page matched to this topic. Check its scope and updated date before relying on it.</Text></View>
           <Text style={styles.toolArrow}>↗</Text>
         </Pressable> : null}
 
@@ -257,6 +259,7 @@ export default function ActionScreen() {
           blurOnSubmit
           returnKeyType="done"
           onSubmitEditing={() => Keyboard.dismiss()}
+          onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 180)}
           value={reflection}
           onChangeText={setReflection}
         />
@@ -264,7 +267,7 @@ export default function ActionScreen() {
         <Text style={styles.hint}>Next: attach a screenshot, photo, or short video. A text-only completion will not count.</Text>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+      <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Pressable
           style={[styles.button, (!reflectionReview.passed || completedSteps.length !== mission.steps.length) && styles.disabled]}
           onPress={continueToProof}
@@ -338,7 +341,7 @@ const styles = StyleSheet.create({
   input: { minHeight: 105, borderRadius: 17, borderWidth: 1, borderColor: "#29483B", backgroundColor: "#071B16", color: "#F5FFF9", padding: 15, textAlignVertical: "top", fontSize: 14, lineHeight: 21 },
   hint: { color: "#8FB6A2", fontSize: 11, lineHeight: 17, marginTop: 9 },
   hintReady: { color: "#7AF5B8" },
-  footer: { paddingHorizontal: 22, paddingTop: 12, flexShrink: 0 },
+  footer: { paddingHorizontal: 22, paddingTop: 12, flexShrink: 0, backgroundColor: "#010807", borderTopWidth: 1, borderTopColor: "#1E3A31" },
   button: { height: 58, borderRadius: 29, backgroundColor: "#7AF5B8", alignItems: "center", justifyContent: "center" },
   disabled: { opacity: 0.35 },
   buttonText: { color: "#010807", fontSize: 15, fontWeight: "900" },

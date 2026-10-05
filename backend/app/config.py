@@ -19,18 +19,29 @@ class Settings(BaseSettings):
     public_app_url: str = ""
     support_email: str = "rise.app13@gmail.com"
     feedback_inbox: str = "rise.app13@gmail.com"
+    email_provider: str = "auto"
     resend_api_key: str = ""
-    resend_from_email: str = "RISE <onboarding@resend.dev>"
+    email_from: str = "RISE <onboarding@resend.dev>"
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
     smtp_username: str = ""
     smtp_password: str = ""
-    smtp_from_email: str = ""
     smtp_use_tls: bool = True
 
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.allowed_origins.split(",") if origin.strip()]
+
+    @property
+    def resolved_email_provider(self) -> str:
+        provider = self.email_provider.strip().lower()
+        if provider != "auto":
+            return provider
+        if self.resend_api_key:
+            return "resend"
+        if all((self.smtp_host, self.smtp_username, self.smtp_password)):
+            return "smtp"
+        return "none"
 
     def validate_for_startup(self) -> None:
         if self.env.lower() == "production" and len(self.jwt_secret) < 32:
@@ -45,9 +56,17 @@ class Settings(BaseSettings):
             raise RuntimeError("Production RISE_ADMIN_API_KEY must contain at least 32 characters")
         if self.env.lower() == "production" and not self.public_app_url.startswith("https://"):
             raise RuntimeError("Production RISE_PUBLIC_APP_URL must be a public HTTPS URL")
-        smtp_ready = all((self.smtp_host, self.smtp_username, self.smtp_password, self.smtp_from_email))
-        if self.env.lower() == "production" and not (self.resend_api_key or smtp_ready):
+        provider = self.resolved_email_provider
+        if provider not in {"resend", "smtp", "none"}:
+            raise RuntimeError("RISE_EMAIL_PROVIDER must be auto, resend, or smtp")
+        if self.env.lower() == "production" and provider == "none":
             raise RuntimeError("Production requires either RISE_RESEND_API_KEY or complete SMTP delivery settings")
+        if self.env.lower() == "production" and provider == "resend" and not self.resend_api_key:
+            raise RuntimeError("RISE_EMAIL_PROVIDER=resend requires RISE_RESEND_API_KEY")
+        if self.env.lower() == "production" and provider == "smtp" and not all((self.smtp_host, self.smtp_username, self.smtp_password)):
+            raise RuntimeError("RISE_EMAIL_PROVIDER=smtp requires complete SMTP delivery settings")
+        if self.env.lower() == "production" and "@resend.dev" in self.email_from.lower():
+            raise RuntimeError("Production RISE_EMAIL_FROM must use an authenticated sender; onboarding@resend.dev is testing-only")
 
 
 @lru_cache

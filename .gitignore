@@ -15,10 +15,7 @@ __pycache__/
 dist/
 dist-check/
 dist-next/
-dist-build5-check/
-dist-build6-check/
-dist-build7-check/
-dist-build8-check/
+dist-build*-check/
 web-build/
 expo-env.d.ts
 

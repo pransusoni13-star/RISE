@@ -215,9 +215,44 @@ def test_production_settings_require_private_database_and_https_origin() -> None
         assert False, "production SQLite should be rejected"
     except RuntimeError as error:
         assert "PostgreSQL" in str(error)
-    settings = Settings(env="production", jwt_secret="a-strong-production-secret-at-least-32", database_url="postgresql+psycopg://rise:password@db/rise", allowed_origins="https://rise.example", admin_api_key="test-admin-key-long-enough-for-a-test-123", public_app_url="https://rise.example", smtp_host="smtp.example", smtp_username="rise", smtp_password="private-test-password", smtp_from_email="support@rise.example")
+    settings = Settings(env="production", jwt_secret="a-strong-production-secret-at-least-32", database_url="postgresql+psycopg://rise:password@db/rise", allowed_origins="https://rise.example", admin_api_key="test-admin-key-long-enough-for-a-test-123", public_app_url="https://rise.example", smtp_host="smtp.example", smtp_username="rise", smtp_password="private-test-password", email_from="RISE <support@rise.example>")
     settings.validate_for_startup()
     assert settings.cors_origins == ["https://rise.example"]
+
+
+def test_production_settings_reject_resend_testing_sender() -> None:
+    settings = Settings(env="production", jwt_secret="a-strong-production-secret-at-least-32", database_url="postgresql+psycopg://rise:password@db/rise", allowed_origins="https://rise.example", admin_api_key="test-admin-key-long-enough-for-a-test-123", public_app_url="https://rise.example", resend_api_key="re_test_key")
+    try:
+        settings.validate_for_startup()
+        assert False, "the shared Resend testing sender should be rejected in production"
+    except RuntimeError as error:
+        assert "testing-only" in str(error)
+
+
+def test_production_settings_require_the_selected_email_provider() -> None:
+    common = {
+        "env": "production",
+        "jwt_secret": "a-strong-production-secret-at-least-32",
+        "database_url": "postgresql+psycopg://rise:password@db/rise",
+        "allowed_origins": "https://rise.example",
+        "admin_api_key": "test-admin-key-long-enough-for-a-test-123",
+        "public_app_url": "https://rise.example",
+        "email_from": "RISE <rise.app13@gmail.com>",
+    }
+    try:
+        Settings(**common, email_provider="smtp").validate_for_startup()
+        assert False, "selected SMTP should require complete SMTP settings"
+    except RuntimeError as error:
+        assert "complete SMTP" in str(error)
+
+    Settings(
+        **common,
+        email_provider="smtp",
+        resend_api_key="re_present_but_disabled",
+        smtp_host="smtp.gmail.com",
+        smtp_username="rise.app13@gmail.com",
+        smtp_password="private-test-password",
+    ).validate_for_startup()
 
 
 def test_usage_analytics_requires_opt_in_and_metadata_is_bounded() -> None:
