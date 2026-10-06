@@ -28,6 +28,8 @@ services:
         sync: false
       - key: RISE_RESEND_API_KEY
         sync: false
+      - key: RISE_RESEND_FROM_EMAIL
+        sync: false
       - key: RISE_EMAIL_FROM
         sync: false
       - key: RISE_FOUNDING_REDEMPTION_ENABLED

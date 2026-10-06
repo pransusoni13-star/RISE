@@ -86,7 +86,7 @@ export default function ScheduleScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Text style={styles.progress}>03 / 03</Text>
+        <View style={styles.headerRow}><Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable><Text style={styles.progress}>03 / 03</Text></View>
 
         <Text style={styles.title}>
           How much time can you{"\n"}
@@ -220,12 +220,16 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
 
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 28 },
+  back: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: "#29483B", alignItems: "center", justifyContent: "center" },
+  backText: { color: "#7AF5B8", fontSize: 28, marginTop: -4 },
+
   progress: {
     fontSize: 13,
     fontWeight: "900",
     letterSpacing: 2,
     color: "#7AF5B8",
-    marginBottom: 28,
+    marginBottom: 0,
   },
 
   title: {

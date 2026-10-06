@@ -435,19 +435,31 @@ def dashboard(user: User = Depends(get_current_user), db: Session = Depends(get_
 
 
 def leaderboard_snapshot(db: Session, user: User) -> dict:
+    month_start = now_utc().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     rows = db.execute(
         select(
             LeaderboardConsent.user_id,
             func.coalesce(func.sum(case((ProgressEvent.event_type == "mission_completed", 1), else_=0)), 0),
             func.coalesce(func.sum(ProgressEvent.minutes), 0),
         )
-        .outerjoin(ProgressEvent, ProgressEvent.user_id == LeaderboardConsent.user_id)
+        .outerjoin(
+            ProgressEvent,
+            (ProgressEvent.user_id == LeaderboardConsent.user_id)
+            & (ProgressEvent.created_at >= month_start),
+        )
         .group_by(LeaderboardConsent.user_id)
     ).all()
     scores = [(participant_id, int(missions), int(minutes)) for participant_id, missions, minutes in rows]
     scores.sort(key=lambda item: (-item[1], -item[2], item[0]))
     rank = next((index for index, item in enumerate(scores, 1) if item[0] == user.id), None)
-    return {"opted_in": rank is not None, "rank": rank, "participants": len(scores), "missions": scores[rank - 1][1] if rank else 0}
+    return {
+        "opted_in": rank is not None,
+        "rank": rank,
+        "participants": len(scores),
+        "missions": scores[rank - 1][1] if rank else 0,
+        "period": "month",
+        "period_start": month_start.date().isoformat(),
+    }
 
 
 @app.get("/users/me/leaderboard")

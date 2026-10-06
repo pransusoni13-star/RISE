@@ -15,6 +15,7 @@ Do not collect real beta-user data until the release gates below are addressed.
    - `RISE_ALLOWED_ORIGINS`: exact HTTPS web origins, comma separated, without paths or trailing slashes.
    - `RISE_PUBLIC_APP_URL`: the public HTTPS web app origin used for reset links.
    - `RISE_RESEND_API_KEY`: secret Resend API key. Prefer Resend's HTTPS API on hosts that restrict SMTP.
+   - `RISE_RESEND_FROM_EMAIL`: optional dedicated Resend sender for private feedback alerts. On Render Free this lets feedback use HTTPS even if account email still uses another provider. The `resend.dev` testing sender can deliver only to the email address associated with the Resend account; use a verified RISE domain for any other recipient.
    - `RISE_EMAIL_FROM`: one authenticated sender identity used for verification, password reset, and private feedback notifications, for example `RISE <hello@your-rise-domain.example>`.
    - `RISE_EMAIL_PROVIDER`: defaults to `auto`; set it explicitly to `resend` or `smtp` when both are configured. Gmail SMTP is an interim beta fallback only: use an app password, expect daily limits and account-security checks, and migrate to a RISE-owned authenticated domain before a larger launch.
    - Optional SMTP fallback: `RISE_SMTP_HOST`, `RISE_SMTP_PORT`, `RISE_SMTP_USERNAME`, and `RISE_SMTP_PASSWORD`. It uses the same `RISE_EMAIL_FROM` identity. Test delivery and spam placement before invitations.

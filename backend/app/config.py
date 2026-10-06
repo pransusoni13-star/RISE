@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     feedback_inbox: str = "rise.app13@gmail.com"
     email_provider: str = "auto"
     resend_api_key: str = ""
+    resend_from_email: str = ""
     email_from: str = "RISE <onboarding@resend.dev>"
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)

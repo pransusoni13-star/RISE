@@ -600,6 +600,7 @@ export default function ProjectScreen() {
   const [reflection, setReflection] = useState("");
   const [checkedRequirements, setCheckedRequirements] = useState<number[]>([]);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [footerHeight, setFooterHeight] = useState(96);
 
   const project = useMemo(() => {
     const library =
@@ -634,11 +635,14 @@ export default function ProjectScreen() {
     <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 24 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: footerHeight + insets.bottom + 28 }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <Text style={styles.brand}>RISE PROJECT ENGINE</Text>
+        <View style={styles.topRow}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
+          <Text style={styles.brand}>RISE PROJECT ENGINE</Text>
+        </View>
 
         <Text style={styles.heading}>
           Build something real.
@@ -767,7 +771,8 @@ export default function ProjectScreen() {
         </Text>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+      <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        {!readyForProof ? <Text accessibilityRole="alert" style={styles.footerReason}>{checkedRequirements.length !== project.requirements.length ? `Check each requirement after you complete it (${checkedRequirements.length}/${project.requirements.length}).` : reflectionReview.message}</Text> : null}
         <Pressable
           onPress={completeProject}
           accessibilityRole="button"
@@ -805,12 +810,16 @@ const styles = StyleSheet.create({
     paddingBottom: 130,
   },
 
+  topRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  back: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: "#29483B", alignItems: "center", justifyContent: "center" },
+  backText: { color: "#7AF5B8", fontSize: 28, marginTop: -4 },
+
   brand: {
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 2,
     color: "#7AF5B8",
-    marginBottom: 12,
+    marginBottom: 0,
   },
 
   heading: {
@@ -1002,7 +1011,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     flexShrink: 0,
+    backgroundColor: "#010807",
+    borderTopWidth: 1,
+    borderTopColor: "#1E3A31",
   },
+
+  footerReason: { color: "#B4D4C2", fontSize: 11, lineHeight: 16, textAlign: "center", marginBottom: 9 },
 
   completeButton: {
     backgroundColor: "#19A463",

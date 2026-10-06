@@ -33,6 +33,7 @@ export type MissionRecord = {
   missionId: string;
   status: MissionStatus;
   completedSteps: number[];
+  chosenResult?: string;
   reflection?: string;
   proof?: ProofMetadata;
   startedAt?: string;

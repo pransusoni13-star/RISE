@@ -54,7 +54,7 @@ export type ProgressDashboard = {
   total_minutes: number;
 };
 
-export type LeaderboardSnapshot = { opted_in: boolean; rank: number | null; participants: number; missions: number };
+export type LeaderboardSnapshot = { opted_in: boolean; rank: number | null; participants: number; missions: number; period: "month"; period_start: string };
 
 let webSession: AuthResponse | null = null;
 let usageAnalyticsConsent = false;

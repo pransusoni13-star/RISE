@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 TEST_DB = Path(__file__).with_name("test-rise.db")
@@ -11,7 +12,7 @@ from sqlalchemy.exc import OperationalError
 from app.database import Base, SessionLocal, engine
 from app.config import Settings
 from app.main import app, settings, attempts, attempt_lock
-from app.models import FoundingInvite
+from app.models import FoundingInvite, ProgressEvent, now_utc
 from app.security import hash_token
 
 
@@ -153,7 +154,9 @@ def test_founding_registration_and_progress_are_idempotent(monkeypatch) -> None:
         dashboard = client.get("/users/me/dashboard", headers=headers).json()
         assert dashboard["skills"][0]["improvement_points"] == 30
         assert client.get("/users/me/leaderboard", headers=headers).json()["opted_in"] is False
-        assert client.put("/users/me/leaderboard", headers=headers).json()["rank"] == 1
+        leaderboard = client.put("/users/me/leaderboard", headers=headers).json()
+        assert leaderboard["rank"] == 1
+        assert leaderboard["period"] == "month"
         assert client.delete("/users/me/leaderboard", headers=headers).json()["opted_in"] is False
         export = client.get("/users/me/export", headers=headers)
         assert export.status_code == 200
@@ -161,6 +164,21 @@ def test_founding_registration_and_progress_are_idempotent(monkeypatch) -> None:
         assert len(export.json()["progress_events"]) == 2
         assert client.delete("/users/me", headers=headers).status_code == 204
         assert client.get("/users/me", headers=headers).status_code == 401
+
+
+def test_leaderboard_counts_only_current_month_missions() -> None:
+    with TestClient(app) as client:
+        session = client.post("/auth/register", json={"email": "monthly@example.com", "password": "very-secure-password", "display_name": "Monthly Member"}).json()
+        headers = {"Authorization": f"Bearer {session['access_token']}"}
+        for client_event_id in ("mission:old", "mission:current"):
+            assert client.post("/progress/events", json={"client_event_id": client_event_id, "event_type": "mission_completed", "skill_slug": "focus"}, headers=headers).status_code == 201
+        with SessionLocal() as db:
+            old_event = db.query(ProgressEvent).filter(ProgressEvent.client_event_id == "mission:old").one()
+            old_event.created_at = now_utc() - timedelta(days=40)
+            db.commit()
+        leaderboard = client.put("/users/me/leaderboard", headers=headers).json()
+        assert leaderboard["missions"] == 1
+        assert leaderboard["period"] == "month"
 
 
 def test_invite_cannot_be_claimed_by_another_email(monkeypatch) -> None:

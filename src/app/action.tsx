@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { loadProfile, PersonalizedMission, RiseProfile } from "../services/personalization";
 import { spiritualPractice, spiritualResource, spiritualVideoSearch } from "../services/spiritualResources";
 import { missionRepository, MissionStatus } from "../services/missionRepository";
+import { missionResultQuality, stepsForMissionResult } from "../services/missionProgress";
 import { reflectionQuality } from "../services/proofValidation";
 
 const fallbackMission: PersonalizedMission = {
@@ -52,12 +53,14 @@ export default function ActionScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const [reflection, setReflection] = useState("");
+  const [chosenResult, setChosenResult] = useState("");
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [status, setStatus] = useState<MissionStatus>("not_started");
   const [saving, setSaving] = useState(false);
   const [showGuidance, setShowGuidance] = useState(false);
   const [footerHeight, setFooterHeight] = useState(96);
   const saveLock = useRef(false);
+  const loadedMissionId = useRef<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const [faithProfile, setFaithProfile] = useState<RiseProfile | null>(null);
 
@@ -78,6 +81,7 @@ export default function ActionScreen() {
     }
   }, [params.mission]);
   const reflectionReview = useMemo(() => reflectionQuality(reflection), [reflection]);
+  const resultReview = useMemo(() => missionResultQuality(chosenResult), [chosenResult]);
   const isSpiritual = Boolean(mission.sourceNote);
   const faithSource = isSpiritual ? spiritualResource(faithProfile?.spiritualTradition) : undefined;
 
@@ -89,15 +93,41 @@ export default function ActionScreen() {
   }, [isSpiritual]);
 
   useEffect(() => {
+    loadedMissionId.current = null;
     missionRepository.get(mission.id).then((record) => {
-      setCompletedSteps(record.completedSteps);
+      const storedResult = record.chosenResult || "";
+      loadedMissionId.current = mission.id;
+      setChosenResult(storedResult);
+      setCompletedSteps(record.status === "completed" ? record.completedSteps : stepsForMissionResult(storedResult, record.completedSteps));
       setReflection(record.reflection || "");
       setStatus(record.status);
     });
   }, [mission.id]);
 
+  useEffect(() => {
+    if (loadedMissionId.current !== mission.id || status === "completed") return;
+    const timer = setTimeout(() => {
+      const nextSteps = stepsForMissionResult(chosenResult, completedSteps);
+      const stepsChanged = nextSteps.join(",") !== completedSteps.join(",");
+      const nextStatus: MissionStatus = nextSteps.length === 0
+        ? "not_started"
+        : nextSteps.length === mission.steps.length
+          ? "proof_required"
+          : "in_progress";
+      if (stepsChanged) setCompletedSteps(nextSteps);
+      setStatus(nextStatus);
+      void missionRepository.patch(mission.id, {
+        chosenResult: resultReview.normalized,
+        completedSteps: nextSteps,
+        status: nextStatus,
+        ...(nextSteps.length ? { startedAt: new Date().toISOString() } : {}),
+      }).catch(() => undefined);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [chosenResult, completedSteps, mission.id, mission.steps.length, resultReview.normalized, status]);
+
   const toggleStep = async (index: number) => {
-    if (status === "completed" || saveLock.current) return;
+    if (index === 0 || status === "completed" || saveLock.current) return;
     saveLock.current = true;
     setSaving(true);
     const next = completedSteps.includes(index)
@@ -127,11 +157,11 @@ export default function ActionScreen() {
   };
 
   const continueToProof = async () => {
-    if (saveLock.current || !reflectionReview.passed || completedSteps.length !== mission.steps.length) return;
+    if (saveLock.current || !resultReview.passed || !reflectionReview.passed || completedSteps.length !== mission.steps.length) return;
     saveLock.current = true;
     setSaving(true);
     try {
-    await missionRepository.patch(mission.id, { status: status === "completed" ? "completed" : "proof_required", reflection: reflection.trim() });
+    await missionRepository.patch(mission.id, { status: status === "completed" ? "completed" : "proof_required", chosenResult: resultReview.normalized, reflection: reflection.trim() });
     router.push({
       pathname: "/proof",
       params: {
@@ -143,7 +173,7 @@ export default function ActionScreen() {
         coins: String(mission.coinReward),
         missionId: mission.id,
         duration: String(mission.duration),
-        missionContext: [mission.title, mission.description, mission.successCriteria, ...mission.skills].join(" "),
+        missionContext: [mission.title, resultReview.normalized, mission.description, mission.successCriteria, ...mission.skills].join(" "),
       },
     } as any);
     } catch {
@@ -194,9 +224,27 @@ export default function ActionScreen() {
           <Text style={styles.safetyText}>{mission.safetyNote || "Protect private information and stop or simplify any step that feels unsafe."}</Text>
         </View>
 
+        <View style={styles.missionInputCard}>
+          <Text style={styles.missionInputLabel}>DEFINE YOUR MISSION</Text>
+          <Text style={styles.missionInputTitle}>What specific result will you finish?</Text>
+          <Text style={styles.missionInputExample}>Example: {mission.goal === "customer-research" ? "Identify one audience problem and write 3 interview questions." : `Finish one small ${mission.focusSkill} result I can show or test today.`}</Text>
+          <TextInput
+            accessibilityLabel="My chosen mission result"
+            style={styles.missionInput}
+            placeholder="Write one clear, observable result…"
+            placeholderTextColor="#668577"
+            value={chosenResult}
+            onChangeText={setChosenResult}
+            maxLength={240}
+            returnKeyType="done"
+            onSubmitEditing={() => Keyboard.dismiss()}
+          />
+          <Text style={[styles.hint, resultReview.passed && styles.hintReady]}>{resultReview.passed ? "✓ Step 1 complete · saved on this device" : resultReview.message}</Text>
+        </View>
+
         <Text style={styles.section}>YOUR STEPS · {completedSteps.length}/{mission.steps.length} DONE</Text>
         {mission.steps.map((step, index) => (
-          <Pressable accessibilityRole="checkbox" disabled={saving || status === "completed"} accessibilityState={{ checked: completedSteps.includes(index), disabled: saving || status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, completedSteps.includes(index) && styles.stepCardDone]} onPress={() => toggleStep(index)}>
+          <Pressable accessibilityRole="checkbox" disabled={index === 0 || saving || status === "completed"} accessibilityHint={index === 0 ? "Completed automatically after you define a clear mission result above" : "Double tap after you complete this action"} accessibilityState={{ checked: completedSteps.includes(index), disabled: index === 0 || saving || status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, completedSteps.includes(index) && styles.stepCardDone]} onPress={() => toggleStep(index)}>
             <View style={[styles.stepNumber, completedSteps.includes(index) && styles.stepNumberDone]}><Text style={styles.stepNumberText}>{completedSteps.includes(index) ? "✓" : index + 1}</Text></View>
             <Text style={[styles.stepText, completedSteps.includes(index) && styles.stepTextDone]}>{step}</Text>
           </Pressable>
@@ -248,7 +296,7 @@ export default function ActionScreen() {
           <Text style={styles.toolArrow}>›</Text>
         </Pressable>
 
-        <Text style={styles.section}>YOUR CHECK-IN</Text>
+        <Text style={styles.section}>YOUR REFLECTION</Text>
         <Text style={styles.reflectionGuide}>Write 2–3 complete sentences: what you made or practiced, what you learned, and what you will improve next.</Text>
         <TextInput
           style={styles.input}
@@ -268,12 +316,13 @@ export default function ActionScreen() {
       </ScrollView>
 
       <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        {!resultReview.passed || completedSteps.length !== mission.steps.length || !reflectionReview.passed ? <Text accessibilityRole="alert" style={styles.footerReason}>{!resultReview.passed ? "Define your mission result above to begin." : completedSteps.length !== mission.steps.length ? `Complete ${mission.steps.length - completedSteps.length} remaining step${mission.steps.length - completedSteps.length === 1 ? "" : "s"}.` : reflectionReview.message}</Text> : null}
         <Pressable
-          style={[styles.button, (!reflectionReview.passed || completedSteps.length !== mission.steps.length) && styles.disabled]}
+          style={[styles.button, (!resultReview.passed || !reflectionReview.passed || completedSteps.length !== mission.steps.length) && styles.disabled]}
           onPress={continueToProof}
           accessibilityRole="button"
-          accessibilityState={{ disabled: saving || !reflectionReview.passed || completedSteps.length !== mission.steps.length }}
-          disabled={saving || !reflectionReview.passed || completedSteps.length !== mission.steps.length}
+          accessibilityState={{ disabled: saving || !resultReview.passed || !reflectionReview.passed || completedSteps.length !== mission.steps.length }}
+          disabled={saving || !resultReview.passed || !reflectionReview.passed || completedSteps.length !== mission.steps.length}
         >
           <Text style={styles.buttonText}>{saving ? "Saving…" : status === "completed" ? "Review My Proof →" : "Attach Proof to Complete →"}</Text>
         </Pressable>
@@ -314,6 +363,11 @@ const styles = StyleSheet.create({
   safetyCard: { backgroundColor: "rgba(255,207,112,0.07)", borderRadius: 17, borderWidth: 1, borderColor: "rgba(255,207,112,0.25)", padding: 15, marginBottom: 20 },
   safetyLabel: { color: "#FFCF70", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
   safetyText: { color: "#F4E8C8", fontSize: 12, lineHeight: 19, marginTop: 6 },
+  missionInputCard: { backgroundColor: "#0D2F22", borderRadius: 18, borderWidth: 1, borderColor: "#3D765A", padding: 16, marginBottom: 20 },
+  missionInputLabel: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
+  missionInputTitle: { color: "#F5FFF9", fontSize: 17, lineHeight: 22, fontWeight: "900", marginTop: 7 },
+  missionInputExample: { color: "#A7CBB7", fontSize: 11, lineHeight: 17, marginTop: 6, marginBottom: 11 },
+  missionInput: { minHeight: 52, borderRadius: 13, borderWidth: 1, borderColor: "#4A7E65", backgroundColor: "#071B16", color: "#F5FFF9", paddingHorizontal: 13, paddingVertical: 11, fontSize: 14 },
   sourceCard: { backgroundColor: "rgba(255,207,112,0.06)", borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,207,112,0.2)", padding: 14, marginBottom: 10 },
   sourceTitle: { color: "#FFCF70", fontSize: 9, fontWeight: "900", letterSpacing: 1.1 },
   resourceNote: { backgroundColor: "rgba(122,245,184,0.06)", borderRadius: 16, borderWidth: 1, borderColor: "rgba(122,245,184,0.2)", padding: 14, marginBottom: 10 },
@@ -342,6 +396,7 @@ const styles = StyleSheet.create({
   hint: { color: "#8FB6A2", fontSize: 11, lineHeight: 17, marginTop: 9 },
   hintReady: { color: "#7AF5B8" },
   footer: { paddingHorizontal: 22, paddingTop: 12, flexShrink: 0, backgroundColor: "#010807", borderTopWidth: 1, borderTopColor: "#1E3A31" },
+  footerReason: { color: "#B4D4C2", fontSize: 11, lineHeight: 16, textAlign: "center", marginBottom: 9 },
   button: { height: 58, borderRadius: 29, backgroundColor: "#7AF5B8", alignItems: "center", justifyContent: "center" },
   disabled: { opacity: 0.35 },
   buttonText: { color: "#010807", fontSize: 15, fontWeight: "900" },

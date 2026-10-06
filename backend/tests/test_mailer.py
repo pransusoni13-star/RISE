@@ -1,7 +1,7 @@
 from app.config import Settings
 import httpx
 
-from app.mailer import _send, send_email_verification
+from app.mailer import _send, send_email_verification, send_product_feedback_notification
 
 
 def test_resend_https_delivery_is_preferred_over_smtp(monkeypatch) -> None:
@@ -131,3 +131,49 @@ def test_verification_email_has_text_and_html_with_one_link(monkeypatch) -> None
     assert payload["text"].count("https://rise.example/verify-email?token=one-time-token") == 1
     assert payload["html"].count("href=") == 1
     assert "24 hours" in payload["html"]
+
+
+def test_feedback_uses_dedicated_resend_https_sender_when_smtp_is_selected(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class SuccessfulResponse:
+        is_error = False
+
+        def raise_for_status(self) -> None:
+            return None
+
+    def capture_post(url: str, **kwargs):
+        captured.update(url=url, **kwargs)
+        return SuccessfulResponse()
+
+    monkeypatch.setattr("app.mailer.httpx.post", capture_post)
+    monkeypatch.setattr("app.mailer.smtplib.SMTP", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("Feedback must use Resend HTTPS")))
+    settings = Settings(
+        email_provider="smtp",
+        resend_api_key="re_test_key",
+        resend_from_email="RISE Feedback <onboarding@resend.dev>",
+        email_from="RISE <rise.app13@gmail.com>",
+        public_app_url="https://rise.example",
+        smtp_host="smtp.gmail.com",
+        smtp_username="rise.app13@gmail.com",
+        smtp_password="app-password",
+    )
+
+    send_product_feedback_notification(
+        settings,
+        "rise.app13@gmail.com",
+        feedback_id="feedback-123",
+        member_email="member@example.com",
+        category="bug",
+        rating=2,
+        message="The button did not respond.",
+        app_version="1.0.0 (12)",
+        submitted_at="2026-10-05T22:00:00Z",
+    )
+
+    assert captured["url"] == "https://api.resend.com/emails"
+    payload = captured["json"]
+    assert isinstance(payload, dict)
+    assert payload["from"] == "RISE Feedback <onboarding@resend.dev>"
+    assert payload["to"] == ["rise.app13@gmail.com"]
+    assert payload["subject"] == "[RISE beta feedback] Bug · 2/5"

@@ -22,26 +22,30 @@ def _safe_provider_message(settings: Settings, response: httpx.Response) -> str:
     return detail[:300]
 
 
+def _send_resend(settings: Settings, recipient: str, sender: str, subject: str, text_body: str, html_body: str | None = None) -> None:
+    try:
+        response = httpx.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {settings.resend_api_key}"},
+            json={"from": sender, "to": [recipient], "subject": subject, "text": text_body, "html": html_body},
+            timeout=10,
+        )
+    except httpx.RequestError:
+        logger.error("Resend delivery failed: status=unavailable message=network request failed")
+        raise
+    if response.is_error:
+        logger.error(
+            "Resend delivery failed: status=%s message=%s",
+            response.status_code,
+            _safe_provider_message(settings, response),
+        )
+    response.raise_for_status()
+
+
 def _send(settings: Settings, recipient: str, subject: str, text_body: str, html_body: str | None = None) -> None:
     provider = settings.resolved_email_provider
     if provider == "resend":
-        try:
-            response = httpx.post(
-                "https://api.resend.com/emails",
-                headers={"Authorization": f"Bearer {settings.resend_api_key}"},
-                json={"from": settings.email_from, "to": [recipient], "subject": subject, "text": text_body, "html": html_body},
-                timeout=10,
-            )
-        except httpx.RequestError:
-            logger.error("Resend delivery failed: status=unavailable message=network request failed")
-            raise
-        if response.is_error:
-            logger.error(
-                "Resend delivery failed: status=%s message=%s",
-                response.status_code,
-                _safe_provider_message(settings, response),
-            )
-        response.raise_for_status()
+        _send_resend(settings, recipient, settings.email_from, subject, text_body, html_body)
         return
     if provider != "smtp" or not all((settings.smtp_host, settings.smtp_username, settings.smtp_password, settings.public_app_url)):
         if settings.env.lower() == "production":
@@ -110,4 +114,10 @@ def send_product_feedback_notification(
             "<p>This message does not include proof files, reflections, passwords, or analytics. Handle the member's email and note as private support data.</p>",
         ]
     )
+    # Free Render instances block SMTP ports. When a dedicated Resend sender is
+    # configured, use its HTTPS API for private feedback while leaving account
+    # email on the explicitly selected provider.
+    if settings.resend_api_key and settings.resend_from_email:
+        _send_resend(settings, recipient, settings.resend_from_email, subject, body, html)
+        return
     _send(settings, recipient, subject, body, html)
