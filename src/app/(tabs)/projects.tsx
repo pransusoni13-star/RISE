@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
+import { AppPageHeader } from "../../components/appPageHeader";
 
 const STORAGE_KEY = "RISE_SELECTED_GOALS";
 
@@ -37,18 +38,23 @@ export default function ProjectsTabScreen() {
     () => [
       {
         title: "Starter project",
-        description: "Package a visible result you can share with others.",
+        description: "Easy · Finish one focused result with a clear before-and-after example.",
         difficulty: "Easy",
       },
       {
         title: "Practical project",
-        description: "Create something concrete that demonstrates your growth.",
+        description: "Medium · Combine several skills into a useful result and get one person’s feedback.",
         difficulty: "Medium",
       },
       {
         title: "Launch Challenge",
-        description: "Put your learning into a real-world, public-facing outcome.",
+        description: "Hard · Build, test, revise, and explain a multi-step real-world outcome.",
         difficulty: "Hard",
+      },
+      {
+        title: "Insane capstone",
+        description: "Insane · Launch a complete result, measure real use, document limitations, and ship an evidence-based revision.",
+        difficulty: "Insane",
       },
     ],
     []
@@ -60,7 +66,7 @@ export default function ProjectsTabScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.logo}>RISE</Text>
+      <AppPageHeader />
       <Text style={styles.heading}>Projects</Text>
       <Text style={styles.subtitle}>Turn your learning into visible results that build confidence.</Text>
 

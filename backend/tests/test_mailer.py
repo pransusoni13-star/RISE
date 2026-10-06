@@ -34,6 +34,33 @@ def test_resend_https_delivery_is_preferred_over_smtp(monkeypatch) -> None:
     assert captured["checked"] is True
 
 
+def test_dedicated_resend_sender_is_used_for_account_email(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class SuccessfulResponse:
+        is_error = False
+
+        def raise_for_status(self) -> None:
+            return None
+
+    def capture_post(url: str, **kwargs):
+        captured.update(url=url, **kwargs)
+        return SuccessfulResponse()
+
+    monkeypatch.setattr("app.mailer.httpx.post", capture_post)
+    settings = Settings(
+        email_provider="resend",
+        resend_api_key="re_test_key",
+        resend_from_email="RISE <verify@rise.example>",
+        email_from="RISE <legacy@rise.example>",
+        public_app_url="https://rise.example",
+    )
+
+    send_email_verification(settings, "member@example.com", "one-time-token")
+
+    assert captured["json"]["from"] == "RISE <verify@rise.example>"
+
+
 def test_explicit_smtp_provider_does_not_use_resend(monkeypatch) -> None:
     sent: dict[str, object] = {}
 

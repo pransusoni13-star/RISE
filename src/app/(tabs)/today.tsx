@@ -26,19 +26,24 @@ import {
   RiseProfile,
 } from "../../services/personalization";
 import { getReminderState, ReminderState } from "../../services/reminders";
+import { AppPageHeader } from "../../components/appPageHeader";
+import { getUnlockedDay } from "../../services/dayUnlock";
+import { getCurrentUser, RiseUser } from "../../services/auth";
 
 export default function TodayTabScreen() {
   const [progress, setProgress] = useState<RISEProgress>(createDefaultProgress());
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [reminder, setReminder] = useState<ReminderState | null>(null);
+  const [user, setUser] = useState<RiseUser | null>(null);
 
   useFocusEffect(useCallback(() => {
     let active = true;
-    void Promise.all([progressRepository.load(), loadProfile(), getReminderState()]).then(([storedProgress, storedProfile, reminderState]) => {
+    void Promise.all([progressRepository.load(), loadProfile(), getReminderState(), getCurrentUser().catch(() => null)]).then(([storedProgress, storedProfile, reminderState, storedUser]) => {
       if (!active) return;
       setProgress(storedProgress);
       setProfile(storedProfile);
       setReminder(reminderState);
+      setUser(storedUser);
     });
     return () => { active = false; };
   }, []));
@@ -60,12 +65,12 @@ export default function TodayTabScreen() {
   const todayMission = useMemo(() => {
     if (!profile) return null;
     const plan = createSevenDayPlan(profile);
-    return plan.find((mission) =>
-      !progress.events.some((event) => event.title.includes(mission.title))
-    ) || plan[plan.length - 1];
-  }, [profile, progress.events]);
+    return plan[getUnlockedDay(profile.skillStartDate, plan.length) - 1] || plan[0];
+  }, [profile]);
+  const todayComplete = Boolean(todayMission && progress.events.some((event) => event.title.includes(todayMission.title)));
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 21 ? "Good evening" : "Good night";
+  const firstName = user?.display_name.trim().split(/\s+/)[0];
   const shortMission = (todayMission?.description || adaptiveSummary.recommendation.description).split(/(?<=[.!?])\s+/)[0];
 
   return (
@@ -74,8 +79,8 @@ export default function TodayTabScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.topBar}><Text style={styles.logo}>RISE</Text><Pressable accessibilityRole="button" accessibilityLabel="Open guided RISE tour" onPress={() => router.push("/tour" as never)} style={styles.tourButton}><Text style={styles.tourButtonText}>Tour</Text></Pressable></View>
-      <Text style={styles.greeting}>{greeting}.</Text>
+      <AppPageHeader showTour />
+      <Text style={styles.greeting}>{greeting}{firstName ? `, ${firstName}` : ""}.</Text>
       <Text style={styles.goalLabel}>YOUR GOAL</Text>
       <Text style={styles.goalText}>{profile?.customGoal || currentSkill?.goal || "Personal Growth"}</Text>
 
@@ -98,10 +103,11 @@ export default function TodayTabScreen() {
           <Text style={styles.metaText}>{todayMission?.focusSkill || todayMission?.skills[0] || currentSkill?.name || "Foundations"}</Text>
         </View>
         <Pressable
-          style={styles.primaryButton}
+          style={[styles.primaryButton, todayComplete && styles.primaryButtonComplete]}
+          disabled={todayComplete}
           onPress={() => router.push({ pathname: "/action", params: todayMission ? { mission: JSON.stringify(todayMission) } : {} } as any)}
         >
-          <Text style={styles.primaryButtonText}>Start Mission</Text>
+          <Text style={styles.primaryButtonText}>{todayComplete ? "Today complete · Come back tomorrow" : "Start Today’s Mission"}</Text>
         </Pressable>
       </View>
 
@@ -169,15 +175,6 @@ const styles = StyleSheet.create({
     paddingTop: 68,
     paddingBottom: 120,
   },
-  logo: {
-    fontSize: 18,
-    fontWeight: "900",
-    letterSpacing: 5,
-    color: "#7AF5B8",
-  },
-  topBar:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:16},
-  tourButton:{minHeight:42,borderRadius:21,borderWidth:1,borderColor:"#29483B",paddingHorizontal:16,alignItems:"center",justifyContent:"center"},
-  tourButtonText:{color:"#BDEFD3",fontSize:11,fontWeight:"900"},
   greeting: {
     fontSize: 34,
     fontWeight: "900",
@@ -279,6 +276,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
   },
+  primaryButtonComplete: { backgroundColor: "#315544" },
   primaryButtonText: {
     color: "#010807",
     fontSize: 15,

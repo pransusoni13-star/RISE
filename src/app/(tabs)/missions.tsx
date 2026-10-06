@@ -8,6 +8,8 @@ import {
   RiseProfile,
 } from "../../services/personalization";
 import { missionRepository, MissionRecord } from "../../services/missionRepository";
+import { AppPageHeader } from "../../components/appPageHeader";
+import { daysUntilMission, getUnlockedDay } from "../../services/dayUnlock";
 
 export default function MissionsTabScreen() {
   const [profile, setProfile] = useState<RiseProfile | null>(null);
@@ -28,6 +30,7 @@ export default function MissionsTabScreen() {
     [profile]
   );
   const completedCount = missions.filter((mission) => records[mission.id]?.status === "completed").length;
+  const unlockedDay = getUnlockedDay(profile?.skillStartDate, missions.length || 1);
 
   const openMission = (mission: PersonalizedMission) => {
     router.push({ pathname: "/action", params: { mission: JSON.stringify(mission) } } as any);
@@ -39,11 +42,10 @@ export default function MissionsTabScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Text style={styles.logo}>RISE</Text>
+      <AppPageHeader />
       <Text style={styles.heading}>Your 1% missions</Text>
       <Text style={styles.subtitle}>
-        A connected plan for “{profile.customGoal}.” Choose any mission to see
-        the steps, learning link, local options, and required proof.
+        A connected plan for “{profile.customGoal}.” One new day unlocks each day so you can learn, practice, and prove the work without rushing past it.
       </Text>
       <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/progress" as never)} style={({ pressed }) => [styles.progressLink, pressed && styles.progressLinkPressed]}><View><Text style={styles.progressLabel}>YOUR CYCLE</Text><Text style={styles.progressValue}>{completedCount} of {missions.length} days complete</Text></View><Text style={styles.progressAction}>View my progress ↗</Text></Pressable>
 
@@ -52,10 +54,13 @@ export default function MissionsTabScreen() {
         <Text style={styles.pathNoteText}>Learn → practice → apply → prove → improve</Text>
       </View>
 
-      {missions.map((mission) => (
-        <Pressable key={mission.id} style={styles.card} onPress={() => openMission(mission)}>
+      {missions.map((mission) => {
+        const locked = mission.day > unlockedDay;
+        const wait = daysUntilMission(mission.day, unlockedDay);
+        return (
+        <Pressable key={mission.id} disabled={locked} accessibilityState={{ disabled: locked }} style={[styles.card, locked && styles.cardLocked]} onPress={() => openMission(mission)}>
           <View style={styles.topRow}>
-            <Text style={styles.day}>DAY {mission.day} {records[mission.id]?.status === "completed" ? "• COMPLETE" : ""}</Text>
+            <Text style={styles.day}>DAY {mission.day} {records[mission.id]?.status === "completed" ? "• COMPLETE" : locked ? "• LOCKED" : "• READY"}</Text>
             <Text style={styles.reward}>+{mission.reward} XP</Text>
           </View>
           <Text style={[styles.track, mission.track === "life" && styles.lifeTrack]}>{mission.track.toUpperCase()} • {mission.focusSkill}</Text>
@@ -63,10 +68,10 @@ export default function MissionsTabScreen() {
           <Text style={styles.cardDescription}>{mission.description}</Text>
           <View style={styles.row}>
             <Text style={styles.meta}>{mission.duration} min • {mission.difficulty} • +{mission.coinReward} 🪙</Text>
-            <Text style={styles.open}>Open mission →</Text>
+            <Text style={styles.open}>{locked ? (wait === 1 ? "Come back tomorrow" : `Available in ${wait} days`) : "Open mission →"}</Text>
           </View>
         </Pressable>
-      ))}
+      )})}
     </ScrollView>
   );
 }
@@ -87,6 +92,7 @@ const styles = StyleSheet.create({
   pathNoteTitle: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
   pathNoteText: { color: "#E8F8EF", fontSize: 13, fontWeight: "800", marginTop: 6 },
   card: { backgroundColor: "#071B16", borderRadius: 20, padding: 18, borderWidth: 1, borderColor: "#1E3A31", marginBottom: 13 },
+  cardLocked: { opacity: 0.48, borderStyle: "dashed" },
   topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   day: { color: "#7AF5B8", fontSize: 10, fontWeight: "900", letterSpacing: 1.2 },
   track: { alignSelf: "flex-start", color: "#D8FFE9", backgroundColor: "#164A37", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, fontSize: 10, fontWeight: "900", marginTop: 10 },

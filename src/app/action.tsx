@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { loadProfile, PersonalizedMission, RiseProfile } from "../services/personalization";
 import { spiritualPractice, spiritualResource, spiritualVideoSearch } from "../services/spiritualResources";
 import { missionRepository, MissionStatus } from "../services/missionRepository";
-import { missionResultQuality, stepsForMissionResult } from "../services/missionProgress";
+import { missionResultQuality } from "../services/missionProgress";
 import { reflectionQuality } from "../services/proofValidation";
 
 const fallbackMission: PersonalizedMission = {
@@ -26,9 +26,8 @@ const fallbackMission: PersonalizedMission = {
   title: "Define your 1% target",
   description: "Choose one small, useful improvement you can complete today.",
   steps: [
-    "Write one clear result you can finish today.",
     "Work on it without switching tasks.",
-    "Capture a screenshot or short video and note one lesson.",
+    "Review the result, improve the weakest part once, and save the final version.",
   ],
   skills: ["Focus", "Execution", "Reflection"],
   duration: 30,
@@ -98,36 +97,33 @@ export default function ActionScreen() {
       const storedResult = record.chosenResult || "";
       loadedMissionId.current = mission.id;
       setChosenResult(storedResult);
-      setCompletedSteps(record.status === "completed" ? record.completedSteps : stepsForMissionResult(storedResult, record.completedSteps));
+      setCompletedSteps(Array.from(new Set(record.completedSteps.filter((step) => step >= 0 && step < mission.steps.length))));
       setReflection(record.reflection || "");
       setStatus(record.status);
     });
-  }, [mission.id]);
+  }, [mission.id, mission.steps.length]);
 
   useEffect(() => {
     if (loadedMissionId.current !== mission.id || status === "completed") return;
     const timer = setTimeout(() => {
-      const nextSteps = stepsForMissionResult(chosenResult, completedSteps);
-      const stepsChanged = nextSteps.join(",") !== completedSteps.join(",");
-      const nextStatus: MissionStatus = nextSteps.length === 0
+      const nextStatus: MissionStatus = !resultReview.passed && completedSteps.length === 0
         ? "not_started"
-        : nextSteps.length === mission.steps.length
+        : resultReview.passed && completedSteps.length === mission.steps.length
           ? "proof_required"
           : "in_progress";
-      if (stepsChanged) setCompletedSteps(nextSteps);
       setStatus(nextStatus);
       void missionRepository.patch(mission.id, {
         chosenResult: resultReview.normalized,
-        completedSteps: nextSteps,
+        completedSteps,
         status: nextStatus,
-        ...(nextSteps.length ? { startedAt: new Date().toISOString() } : {}),
+        ...(resultReview.passed || completedSteps.length ? { startedAt: new Date().toISOString() } : {}),
       }).catch(() => undefined);
     }, 350);
     return () => clearTimeout(timer);
-  }, [chosenResult, completedSteps, mission.id, mission.steps.length, resultReview.normalized, status]);
+  }, [chosenResult, completedSteps, mission.id, mission.steps.length, resultReview.normalized, resultReview.passed, status]);
 
   const toggleStep = async (index: number) => {
-    if (index === 0 || status === "completed" || saveLock.current) return;
+    if (status === "completed" || saveLock.current) return;
     saveLock.current = true;
     setSaving(true);
     const next = completedSteps.includes(index)
@@ -239,12 +235,12 @@ export default function ActionScreen() {
             returnKeyType="done"
             onSubmitEditing={() => Keyboard.dismiss()}
           />
-          <Text style={[styles.hint, resultReview.passed && styles.hintReady]}>{resultReview.passed ? "✓ Step 1 complete · saved on this device" : resultReview.message}</Text>
+          <Text style={[styles.hint, resultReview.passed && styles.hintReady]}>{resultReview.passed ? "✓ Result defined · saved on this device" : resultReview.message}</Text>
         </View>
 
         <Text style={styles.section}>YOUR STEPS · {completedSteps.length}/{mission.steps.length} DONE</Text>
         {mission.steps.map((step, index) => (
-          <Pressable accessibilityRole="checkbox" disabled={index === 0 || saving || status === "completed"} accessibilityHint={index === 0 ? "Completed automatically after you define a clear mission result above" : "Double tap after you complete this action"} accessibilityState={{ checked: completedSteps.includes(index), disabled: index === 0 || saving || status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, completedSteps.includes(index) && styles.stepCardDone]} onPress={() => toggleStep(index)}>
+          <Pressable accessibilityRole="checkbox" disabled={saving || status === "completed"} accessibilityHint="Double tap only after you complete this action" accessibilityState={{ checked: completedSteps.includes(index), disabled: saving || status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, completedSteps.includes(index) && styles.stepCardDone]} onPress={() => toggleStep(index)}>
             <View style={[styles.stepNumber, completedSteps.includes(index) && styles.stepNumberDone]}><Text style={styles.stepNumberText}>{completedSteps.includes(index) ? "✓" : index + 1}</Text></View>
             <Text style={[styles.stepText, completedSteps.includes(index) && styles.stepTextDone]}>{step}</Text>
           </Pressable>
@@ -296,8 +292,7 @@ export default function ActionScreen() {
           <Text style={styles.toolArrow}>›</Text>
         </Pressable>
 
-        <Text style={styles.section}>YOUR REFLECTION</Text>
-        <Text style={styles.reflectionGuide}>Write 2–3 complete sentences: what you made or practiced, what you learned, and what you will improve next.</Text>
+        <View style={styles.requiredReflectionHeader}><Text style={styles.requiredReflectionLabel}>REQUIRED BEFORE PROOF</Text><Text style={styles.requiredReflectionTitle}>Write your 2–3 sentence reflection</Text><Text style={styles.reflectionGuide}>Sentence 1: what you made or practised. Sentence 2: what you learned. Optional sentence 3: what you will improve next.</Text></View>
         <TextInput
           style={styles.input}
           placeholder={mission.reflectionPrompt || "What did you make, learn, or improve?"}
@@ -316,7 +311,7 @@ export default function ActionScreen() {
       </ScrollView>
 
       <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        {!resultReview.passed || completedSteps.length !== mission.steps.length || !reflectionReview.passed ? <Text accessibilityRole="alert" style={styles.footerReason}>{!resultReview.passed ? "Define your mission result above to begin." : completedSteps.length !== mission.steps.length ? `Complete ${mission.steps.length - completedSteps.length} remaining step${mission.steps.length - completedSteps.length === 1 ? "" : "s"}.` : reflectionReview.message}</Text> : null}
+        {!resultReview.passed || completedSteps.length !== mission.steps.length || !reflectionReview.passed ? <Pressable accessibilityRole="button" onPress={() => scrollRef.current?.scrollToEnd({ animated: true })}><Text accessibilityRole="alert" style={styles.footerReason}>{!resultReview.passed ? "Define your mission result above to begin." : completedSteps.length !== mission.steps.length ? `Complete ${mission.steps.length - completedSteps.length} remaining step${mission.steps.length - completedSteps.length === 1 ? "" : "s"}.` : `${reflectionReview.message} Tap here to jump to the required reflection.`}</Text></Pressable> : null}
         <Pressable
           style={[styles.button, (!resultReview.passed || !reflectionReview.passed || completedSteps.length !== mission.steps.length) && styles.disabled]}
           onPress={continueToProof}
@@ -391,8 +386,11 @@ const styles = StyleSheet.create({
   toolTitle: { color: "#F5FFF9", fontSize: 13, fontWeight: "900" },
   toolText: { color: "#8FB6A2", fontSize: 11, marginTop: 4 },
   toolArrow: { color: "#7AF5B8", fontSize: 18 },
-  reflectionGuide: { color: "#A7CBB7", fontSize: 12, lineHeight: 18, marginTop: -8, marginBottom: 10 },
-  input: { minHeight: 105, borderRadius: 17, borderWidth: 1, borderColor: "#29483B", backgroundColor: "#071B16", color: "#F5FFF9", padding: 15, textAlignVertical: "top", fontSize: 14, lineHeight: 21 },
+  requiredReflectionHeader: { backgroundColor: "rgba(255,207,112,0.08)", borderWidth: 2, borderColor: "#8A7138", borderRadius: 18, padding: 16, marginTop: 8, marginBottom: 10 },
+  requiredReflectionLabel: { color: "#FFCF70", fontSize: 10, fontWeight: "900", letterSpacing: 1.3 },
+  requiredReflectionTitle: { color: "#FFF8E7", fontSize: 18, fontWeight: "900", marginTop: 6 },
+  reflectionGuide: { color: "#E4D8B9", fontSize: 12, lineHeight: 18, marginTop: 7 },
+  input: { minHeight: 126, borderRadius: 17, borderWidth: 2, borderColor: "#8A7138", backgroundColor: "#071B16", color: "#F5FFF9", padding: 15, textAlignVertical: "top", fontSize: 14, lineHeight: 21 },
   hint: { color: "#8FB6A2", fontSize: 11, lineHeight: 17, marginTop: 9 },
   hintReady: { color: "#7AF5B8" },
   footer: { paddingHorizontal: 22, paddingTop: 12, flexShrink: 0, backgroundColor: "#010807", borderTopWidth: 1, borderTopColor: "#1E3A31" },

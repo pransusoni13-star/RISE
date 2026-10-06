@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 
 import {
   RISEProgress,
@@ -16,6 +16,7 @@ import {
 } from "../../services/rewards";
 import { createSevenDayPlan, loadProfile, RiseProfile } from "../../services/personalization";
 import { missionRepository, MissionRecord } from "../../services/missionRepository";
+import { AppPageHeader } from "../../components/appPageHeader";
 
 export default function ProgressTabScreen() {
   const [progress, setProgress] = useState<RISEProgress>(createDefaultProgress());
@@ -96,7 +97,7 @@ export default function ProgressTabScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.topBar}><Text style={styles.logo}>RISE</Text><Pressable accessibilityRole="button" accessibilityLabel="Open settings" onPress={() => router.push("/settings" as any)} style={styles.settingsButton}><Text style={styles.settingsText}>Settings</Text></Pressable></View>
+      <AppPageHeader />
       <Text style={styles.heading}>Progress</Text>
       <Text style={styles.subtitle}>Your momentum, milestones, and growth story.</Text>
 

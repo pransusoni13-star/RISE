@@ -556,15 +556,12 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
     const isFirstCustomerResearchMission = template === templates["customer-research"] && templateIndex === 0;
     const steps = isFirstCustomerResearchMission
       ? [
-          "Choose one audience and write one problem you want to understand.",
-          "Draft three open-ended questions: ask about the last real experience, the current workaround, and the desired outcome.",
-          "Check that each question is neutral, cannot be answered only yes or no, and does not ask for private information.",
-          "Save the draft with a clear audience label, then attach a screenshot or photo as proof.",
+          "Choose one audience and problem, then draft three neutral, open-ended questions about a recent experience, current workaround, and desired outcome.",
+          "Read the questions aloud, remove leading or private wording, and save a clearly labelled final draft.",
         ]
       : [
-          `Choose one result you can finish in ${adaptiveDuration} minutes.`,
           template.actions[templateIndex],
-          "Attach proof and write 2–3 sentences about what changed.",
+          "Review the result against today’s success criteria, improve the weakest part once, and save the final version.",
         ];
 
     return {
@@ -581,7 +578,7 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       proof: isFirstCustomerResearchMission
         ? "Attach a screenshot or photo showing the audience, problem, and all three draft interview questions."
         : "Attach a screenshot/photo or a short video showing the work and its result.",
-      skillId: day < 3 ? "foundations" : day < 6 ? "practical-skills" : "projects",
+      skillId: (missionFocusSkill.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || skillSlug || "focused-practice").slice(0, 48),
       goal: missionGoal,
       track,
       focusSkill: missionFocusSkill,

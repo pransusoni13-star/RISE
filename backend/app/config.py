@@ -64,6 +64,8 @@ class Settings(BaseSettings):
             raise RuntimeError("Production requires either RISE_RESEND_API_KEY or complete SMTP delivery settings")
         if self.env.lower() == "production" and provider == "resend" and not self.resend_api_key:
             raise RuntimeError("RISE_EMAIL_PROVIDER=resend requires RISE_RESEND_API_KEY")
+        if self.env.lower() == "production" and provider == "resend" and not (self.resend_from_email or self.email_from):
+            raise RuntimeError("RISE_EMAIL_PROVIDER=resend requires RISE_RESEND_FROM_EMAIL or RISE_EMAIL_FROM")
         if self.env.lower() == "production" and provider == "smtp" and not all((self.smtp_host, self.smtp_username, self.smtp_password)):
             raise RuntimeError("RISE_EMAIL_PROVIDER=smtp requires complete SMTP delivery settings")
         if self.env.lower() == "production" and "@resend.dev" in self.email_from.lower():

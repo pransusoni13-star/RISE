@@ -45,7 +45,11 @@ def _send_resend(settings: Settings, recipient: str, sender: str, subject: str, 
 def _send(settings: Settings, recipient: str, subject: str, text_body: str, html_body: str | None = None) -> None:
     provider = settings.resolved_email_provider
     if provider == "resend":
-        _send_resend(settings, recipient, settings.email_from, subject, text_body, html_body)
+        # Keep the sender in one environment-backed place. A dedicated Resend
+        # sender takes precedence so account mail works over HTTPS on hosts that
+        # block outbound SMTP ports (including Render's free service).
+        sender = settings.resend_from_email or settings.email_from
+        _send_resend(settings, recipient, sender, subject, text_body, html_body)
         return
     if provider != "smtp" or not all((settings.smtp_host, settings.smtp_username, settings.smtp_password, settings.public_app_url)):
         if settings.env.lower() == "production":

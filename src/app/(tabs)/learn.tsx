@@ -2,25 +2,24 @@ import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { createSevenDayPlan, loadProfile, PersonalizedMission, RiseProfile } from "../../services/personalization";
-import { missionRepository } from "../../services/missionRepository";
 import { spiritualResource, spiritualVideoSearch } from "../../services/spiritualResources";
+import { AppPageHeader } from "../../components/appPageHeader";
+import { getUnlockedDay } from "../../services/dayUnlock";
 
 export default function LearnTabScreen() {
   const [profile, setProfile] = useState<RiseProfile | null>(null);
-  const [completedIds, setCompletedIds] = useState<string[]>([]);
 
   useFocusEffect(useCallback(() => {
     let active = true;
-    void Promise.all([loadProfile(), missionRepository.list()]).then(([saved, records]) => {
+    void loadProfile().then((saved) => {
       if (!active) return;
       setProfile(saved);
-      setCompletedIds(records.filter((record) => record.status === "completed").map((record) => record.missionId));
     });
     return () => { active = false; };
   }, []));
 
   const plan = useMemo(() => profile ? createSevenDayPlan(profile) : [], [profile]);
-  const mission = plan.find((item) => !completedIds.includes(item.id)) || plan[plan.length - 1];
+  const mission = plan[getUnlockedDay(profile?.skillStartDate, plan.length) - 1] || plan[0];
   const guides = useMemo(() => mission ? rankedGuides(mission) : [], [mission]);
   const isSpiritual = Boolean(mission?.sourceNote);
   const faithSource = isSpiritual ? spiritualResource(profile?.spiritualTradition) : undefined;
@@ -38,9 +37,9 @@ export default function LearnTabScreen() {
   if (!profile || !mission) return <View style={styles.loading}><ActivityIndicator color="#7AF5B8" /></View>;
 
   return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <Text style={styles.logo}>RISE</Text>
+    <AppPageHeader />
     <Text style={styles.eyebrow}>CURRENT SKILL</Text>
-    <Text style={styles.heading}>{profile.weeklySkill}</Text>
+    <Text style={styles.heading}>{mission.focusSkill}</Text>
     <Text style={styles.subtitle}>Learning here supports your exact next mission for “{profile.customGoal}.”</Text>
 
     <View style={styles.focusCard}>
@@ -50,7 +49,7 @@ export default function LearnTabScreen() {
     </View>
 
     <Text style={styles.section}>YOUR LEARNING LOOP</Text>
-    <LearningCard number="1" title={`Understand ${profile.weeklySkill}`} text={`Learn only the concept needed for ${mission.title.toLowerCase()}.`} />
+    <LearningCard number="1" title={`Understand ${mission.focusSkill}`} text={`Learn only the concept needed for ${mission.title.toLowerCase()}.`} />
     <LearningCard number="2" title="Study a strong example" text="Notice the choices that create the result, not just the final result." />
     <LearningCard number="3" title="Apply it immediately" text="Return to RISE, complete the steps, and prove the result." />
 
