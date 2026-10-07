@@ -16,8 +16,6 @@ import {
   getCurrentLevelXP,
   getNextUnlock,
   getXPForNextLevel,
-  getWeakestSkill,
-  getStrongestSkill,
 } from "../../services/progressEngine";
 import { progressRepository } from "../../services/progressRepository";
 import {
@@ -55,8 +53,6 @@ export default function TodayTabScreen() {
 
   const currentSkill = useMemo(() => getCurrentSkill(progress.skills), [progress.skills]);
   const nextUnlock = useMemo(() => getNextUnlock(progress.skills), [progress.skills]);
-  const weakestSkill = useMemo(() => getWeakestSkill(progress.skills), [progress.skills]);
-  const strongestSkill = useMemo(() => getStrongestSkill(progress.skills), [progress.skills]);
 
   const currentLevelXP = getCurrentLevelXP(progress.totalXP);
   const nextLevelXP = getXPForNextLevel(progress.level);
@@ -80,87 +76,48 @@ export default function TodayTabScreen() {
       showsVerticalScrollIndicator={false}
     >
       <AppPageHeader showTour />
-      <Text style={styles.greeting}>{greeting}{firstName ? `, ${firstName}` : ""}.</Text>
-      <Text style={styles.goalLabel}>YOUR GOAL</Text>
-      <Text style={styles.goalText}>{profile?.customGoal || currentSkill?.goal || "Personal Growth"}</Text>
+      <Text style={styles.greeting}>{greeting}{firstName ? `, ${firstName}` : ""} 👋</Text>
+      <View style={styles.goalChip}><Text style={styles.goalChipIcon}>🎯</Text><Text style={styles.goalText} numberOfLines={1}>{profile?.customGoal || currentSkill?.goal || "Personal Growth"}</Text></View>
 
-      <View style={styles.levelCard}>
-        <Text style={styles.levelLabel}>LEVEL {progress.level}</Text>
-        <Text style={styles.xpText}>{progress.totalXP} XP</Text>
-        <View style={styles.progressBackground}>
-          <View style={[styles.progressFill, { width: `${levelProgress * 100}%` }]} />
-        </View>
-        <Text style={styles.nextLevel}>{Math.max(nextLevelXP - currentLevelXP, 0)} XP until next level</Text>
+      <View style={styles.levelStrip}>
+        <View><Text style={styles.statValue}>{progress.level}</Text><Text style={styles.statLabel}>LEVEL</Text></View>
+        <View style={styles.statDivider} />
+        <View><Text style={styles.statValue}>{progress.totalXP}</Text><Text style={styles.statLabel}>XP</Text></View>
+        <View style={styles.levelTrack}><View style={[styles.progressFill, { width: `${levelProgress * 100}%` }]} /></View>
+        <Text style={styles.levelLeft}>{Math.max(nextLevelXP - currentLevelXP, 0)} to go</Text>
       </View>
 
       <View style={styles.primaryCard}>
-        <Text style={styles.cardEyebrow}>TODAY&apos;S RISE {todayMission ? `• ${todayMission.track.toUpperCase()}` : ""}</Text>
+        <View style={styles.missionTop}><Text style={styles.missionEmoji}>⚡</Text><Text style={styles.cardEyebrow}>TODAY&apos;S RISE {todayMission ? `• ${todayMission.track.toUpperCase()}` : ""}</Text></View>
         <Text style={styles.primaryTitle}>{todayMission?.title || adaptiveSummary.recommendation.title}</Text>
         <Text style={styles.primaryDescription}>{shortMission}</Text>
         <View style={styles.primaryMetaRow}>
-          <Text style={styles.metaText}>{todayMission?.duration || 30} min</Text>
-          <Text style={styles.metaText}>+{todayMission?.reward || 30} XP</Text>
-          <Text style={styles.metaText}>{todayMission?.focusSkill || todayMission?.skills[0] || currentSkill?.name || "Foundations"}</Text>
+          <Text style={styles.metaPill}>⏱ {todayMission?.duration || 30} min</Text>
+          <Text style={styles.metaPill}>✨ +{todayMission?.reward || 30} XP</Text>
+          <Text style={styles.metaPill}>🎓 {todayMission?.focusSkill || todayMission?.skills[0] || currentSkill?.name || "Foundations"}</Text>
         </View>
         <Pressable
           style={[styles.primaryButton, todayComplete && styles.primaryButtonComplete]}
           disabled={todayComplete}
           onPress={() => router.push({ pathname: "/action", params: todayMission ? { mission: JSON.stringify(todayMission) } : {} } as any)}
         >
-          <Text style={styles.primaryButtonText}>{todayComplete ? "Today complete · Come back tomorrow" : "Start Today’s Mission"}</Text>
+          <Text style={styles.primaryButtonText}>{todayComplete ? "✓ Done today — see you tomorrow" : "Start mission →"}</Text>
         </Pressable>
       </View>
 
-      <Pressable style={styles.reminderCard} accessibilityRole="button" onPress={() => router.push("/settings" as never)}>
-        <Text style={styles.reminderTitle}>YOUR DAILY CHECK-IN</Text>
-        <Text style={styles.reminderText}>{reminder?.enabled ? `Phone reminder set for ${reminder.time}. Your mission is here whenever you're ready.` : "Your mission is always here. Set an optional phone reminder in Settings to help you return."}</Text>
-        <Text style={styles.reminderAction}>Reminder settings →</Text>
+      <Text style={styles.quickLabel}>QUICK START</Text>
+      <View style={styles.quickRow}>
+        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/learn" as any)}><Text style={styles.quickEmoji}>📖</Text><Text style={styles.quickTitle}>Learn</Text><Text style={styles.quickText}>One useful idea</Text></Pressable>
+        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/progress" as any)}><Text style={styles.quickEmoji}>📈</Text><Text style={styles.quickTitle}>Progress</Text><Text style={styles.quickText}>See your wins</Text></Pressable>
+      </View>
+
+      <Pressable style={styles.reminderRow} accessibilityRole="button" onPress={() => router.push("/settings" as never)}>
+        <Text style={styles.reminderIcon}>{reminder?.enabled ? "🔔" : "🔕"}</Text>
+        <Text style={styles.reminderText}>{reminder?.enabled ? `Reminder set for ${reminder.time}` : "Turn on a daily reminder"}</Text>
+        <Text style={styles.reminderAction}>›</Text>
       </Pressable>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>YOUR PATH</Text>
-      </View>
-
-      <View style={styles.pathRow}>
-        <View style={styles.pathStep}><Text style={styles.pathStepText}>Learn</Text></View>
-        <Text style={styles.pathArrow}>→</Text>
-        <View style={styles.pathStep}><Text style={styles.pathStepText}>Quiz</Text></View>
-        <Text style={styles.pathArrow}>→</Text>
-        <View style={styles.pathStep}><Text style={styles.pathStepText}>Mission</Text></View>
-        <Text style={styles.pathArrow}>→</Text>
-        <View style={styles.pathStep}><Text style={styles.pathStepText}>Project</Text></View>
-      </View>
-
-      <View style={styles.infoCard}>
-        <Text style={styles.infoLabel}>WHY THIS?</Text>
-        <Text style={styles.infoText}>
-          {weakestSkill
-            ? `Your weakest skill is ${weakestSkill.name}, so RISE is prioritizing that area before moving you into a bigger challenge.`
-            : "RISE is building your momentum with a focused next step."}
-        </Text>
-      </View>
-
-      <View style={styles.gridRow}>
-        <View style={styles.smallCard}>
-          <Text style={styles.smallLabel}>CURRENT SKILL</Text>
-          <Text style={styles.smallTitle}>{currentSkill?.name || "Foundations"}</Text>
-          <Text style={styles.smallMeta}>Level {currentSkill?.level || 1}</Text>
-          <Text style={styles.smallMeta}>{currentSkill?.xp || 0} / {currentSkill?.requiredXP || 100} XP</Text>
-        </View>
-
-        <View style={styles.smallCard}>
-          <Text style={styles.smallLabel}>NEXT UNLOCK</Text>
-          <Text style={styles.smallTitle}>{nextUnlock?.name || "Keep building"}</Text>
-          <Text style={styles.smallMeta}>{strongestSkill ? `Strongest: ${strongestSkill.name}` : "Consistency"}</Text>
-        </View>
-      </View>
-
-      <Pressable
-        style={styles.secondaryButton}
-        onPress={() => router.push("/learning" as any)}
-      >
-        <Text style={styles.secondaryButtonText}>Continue Learning</Text>
-      </Pressable>
+      <Text style={styles.nextUnlock}>Next unlock: {nextUnlock?.name || "Keep building"}</Text>
     </ScrollView>
   );
 }
@@ -171,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#010807",
   },
   content: {
-    padding: 24,
+    paddingHorizontal: 22,
     paddingTop: 68,
     paddingBottom: 120,
   },
@@ -181,60 +138,29 @@ const styles = StyleSheet.create({
     color: "#F5FFF9",
     marginBottom: 8,
   },
-  goalLabel: {
-    color: "#7AF5B8",
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    marginBottom: 5,
-  },
+  goalChip: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", maxWidth: "100%", backgroundColor: "#0C241B", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 9, marginBottom: 16 },
+  goalChipIcon: { fontSize: 13, marginRight: 7 },
   goalText: {
     color: "#F5FFF9",
-    fontSize: 24,
+    flexShrink: 1,
+    fontSize: 13,
     fontWeight: "800",
-    marginBottom: 20,
   },
-  levelCard: {
-    backgroundColor: "#071B16",
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-    marginBottom: 20,
-  },
-  levelLabel: {
-    color: "#B4D4C2",
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-  },
-  xpText: {
-    color: "#7AF5B8",
-    fontSize: 22,
-    fontWeight: "900",
-    marginTop: 6,
-    marginBottom: 12,
-  },
-  progressBackground: {
-    height: 9,
-    backgroundColor: "#1B2B26",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
+  levelStrip: { flexDirection: "row", alignItems: "center", backgroundColor: "#071B16", borderRadius: 18, padding: 14, borderWidth: 1, borderColor: "#1E3A31", marginBottom: 16, gap: 10 },
+  statValue: { color: "#F5FFF9", fontSize: 18, fontWeight: "900" },
+  statLabel: { color: "#779987", fontSize: 8, fontWeight: "900", letterSpacing: 1 },
+  statDivider: { width: 1, height: 30, backgroundColor: "#29483B" },
+  levelTrack: { flex: 1, height: 8, backgroundColor: "#1B2B26", borderRadius: 10, overflow: "hidden" },
   progressFill: {
     height: "100%",
     backgroundColor: "#19A463",
     borderRadius: 10,
   },
-  nextLevel: {
-    color: "#B4D4C2",
-    fontSize: 12,
-    marginTop: 10,
-  },
+  levelLeft: { color: "#8FB6A2", fontSize: 10, fontWeight: "800" },
   primaryCard: {
     backgroundColor: "#0D2F22",
-    borderRadius: 24,
-    padding: 22,
+    borderRadius: 26,
+    padding: 20,
     borderWidth: 1,
     borderColor: "#1E3A31",
     marginBottom: 20,
@@ -244,36 +170,33 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1.5,
-    marginBottom: 10,
   },
+  missionTop: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  missionEmoji: { fontSize: 18 },
   primaryTitle: {
     color: "#F5FFF9",
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: "900",
     marginBottom: 8,
   },
   primaryDescription: {
     color: "#C8EED9",
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 20,
     marginBottom: 16,
   },
   primaryMetaRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     gap: 8,
     marginBottom: 18,
     flexWrap: "wrap",
   },
-  metaText: {
-    color: "#B4D4C2",
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  metaPill: { color: "#DFFDEE", fontSize: 11, fontWeight: "800", backgroundColor: "#164A37", borderRadius: 999, paddingHorizontal: 9, paddingVertical: 6 },
   primaryButton: {
     backgroundColor: "#7AF5B8",
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: 16,
+    paddingVertical: 16,
     alignItems: "center",
   },
   primaryButtonComplete: { backgroundColor: "#315544" },
@@ -282,106 +205,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
   },
-  sectionHeader: {
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    color: "#7AF5B8",
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-  },
-  pathRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 20,
-  },
-  pathStep: {
-    backgroundColor: "#071B16",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  pathStepText: {
-    color: "#F5FFF9",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  pathArrow: {
-    color: "#7AF5B8",
-    fontSize: 16,
-    fontWeight: "900",
-  },
-  infoCard: {
-    backgroundColor: "#071B16",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-    marginBottom: 20,
-  },
-  infoLabel: {
-    color: "#7AF5B8",
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  infoText: {
-    color: "#C8EED9",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  gridRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 20,
-  },
-  smallCard: {
-    flex: 1,
-    backgroundColor: "#071B16",
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-  },
-  smallLabel: {
-    color: "#B4D4C2",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.3,
-    marginBottom: 8,
-  },
-  smallTitle: {
-    color: "#F5FFF9",
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 5,
-  },
-  smallMeta: {
-    color: "#C8EED9",
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  secondaryButton: {
-    backgroundColor: "#071B16",
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    color: "#F5FFF9",
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  reminderCard:{backgroundColor:"#071B16",borderRadius:18,borderWidth:1,borderColor:"#1E3A31",padding:17,marginBottom:20},
-  reminderTitle:{color:"#7AF5B8",fontSize:11,fontWeight:"900",letterSpacing:1.2},
-  reminderText:{color:"#C8EED9",fontSize:13,lineHeight:20,marginTop:7},
-  reminderAction:{color:"#7AF5B8",fontSize:12,fontWeight:"800",marginTop:10},
+  quickLabel: { color: "#789886", fontSize: 9, fontWeight: "900", letterSpacing: 1.4, marginBottom: 9 },
+  quickRow: { flexDirection: "row", gap: 11, marginBottom: 13 },
+  quickCard: { flex: 1, backgroundColor: "#071B16", borderRadius: 18, borderWidth: 1, borderColor: "#1E3A31", padding: 15 },
+  quickEmoji: { fontSize: 20 },
+  quickTitle: { color: "#F5FFF9", fontSize: 15, fontWeight: "900", marginTop: 8 },
+  quickText: { color: "#8FB6A2", fontSize: 11, marginTop: 3 },
+  reminderRow: { minHeight: 54, flexDirection: "row", alignItems: "center", backgroundColor: "#071B16", borderRadius: 16, paddingHorizontal: 15, marginBottom: 12 },
+  reminderIcon: { fontSize: 17, marginRight: 10 },
+  reminderText: { flex: 1, color: "#C8EED9", fontSize: 12, fontWeight: "800" },
+  reminderAction: { color: "#7AF5B8", fontSize: 22, fontWeight: "900" },
+  nextUnlock: { color: "#668A78", fontSize: 10, textAlign: "center" },
 });

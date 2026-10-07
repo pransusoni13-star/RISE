@@ -37,24 +37,32 @@ export default function ProjectsTabScreen() {
   const projects = useMemo(
     () => [
       {
-        title: "Starter project",
-        description: "Easy · Finish one focused result with a clear before-and-after example.",
+        emoji: "🌱",
+        title: "Quick win",
+        description: "Finish one useful result today.",
         difficulty: "Easy",
+        color: "#7AF5B8",
       },
       {
-        title: "Practical project",
-        description: "Medium · Combine several skills into a useful result and get one person’s feedback.",
+        emoji: "⚡",
+        title: "Real challenge",
+        description: "Combine skills and get one person’s feedback.",
         difficulty: "Medium",
+        color: "#63B3FF",
       },
       {
-        title: "Launch Challenge",
-        description: "Hard · Build, test, revise, and explain a multi-step real-world outcome.",
+        emoji: "🚀",
+        title: "Launch it",
+        description: "Build, test, improve, and share.",
         difficulty: "Hard",
+        color: "#FFB35C",
       },
       {
-        title: "Insane capstone",
-        description: "Insane · Launch a complete result, measure real use, document limitations, and ship an evidence-based revision.",
+        emoji: "🔥",
+        title: "Go all in",
+        description: "Launch, measure real use, and ship a better version.",
         difficulty: "Insane",
+        color: "#FF718B",
       },
     ],
     []
@@ -67,13 +75,13 @@ export default function ProjectsTabScreen() {
       showsVerticalScrollIndicator={false}
     >
       <AppPageHeader />
-      <Text style={styles.heading}>Projects</Text>
-      <Text style={styles.subtitle}>Turn your learning into visible results that build confidence.</Text>
+      <Text style={styles.heading}>Build something 🛠️</Text>
+      <Text style={styles.subtitle}>Pick your challenge. Make it real.</Text>
 
       {projects.map((project) => (
         <Pressable
           key={project.title}
-          style={styles.card}
+          style={({ pressed }) => [styles.card, { borderColor: project.color }, pressed && styles.pressed]}
           onPress={() =>
             router.push({
               pathname: "/project",
@@ -86,11 +94,12 @@ export default function ProjectsTabScreen() {
             } as any)
           }
         >
+          <View style={styles.projectTop}><Text style={styles.projectEmoji}>{project.emoji}</Text><Text style={[styles.difficulty, { color: project.color }]}>{project.difficulty.toUpperCase()}</Text></View>
           <Text style={styles.cardTitle}>{project.title}</Text>
           <Text style={styles.cardDescription}>{project.description}</Text>
           <View style={styles.row}>
-            <Text style={styles.meta}>Build + share</Text>
-            <Text style={styles.reward}>{project.difficulty} · Proof required</Text>
+            <Text style={styles.meta}>Proof required</Text>
+            <Text style={[styles.reward, { color: project.color }]}>Start →</Text>
           </View>
         </Pressable>
       ))}
@@ -104,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#010807",
   },
   content: {
-    padding: 24,
+    paddingHorizontal: 22,
     paddingTop: 68,
     paddingBottom: 120,
   },
@@ -125,27 +134,30 @@ const styles = StyleSheet.create({
     color: "#C8EED9",
     fontSize: 15,
     lineHeight: 22,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   card: {
     backgroundColor: "#071B16",
     borderRadius: 22,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
     borderColor: "#1E3A31",
-    marginBottom: 16,
+    marginBottom: 13,
   },
+  projectTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  projectEmoji: { fontSize: 25 },
+  difficulty: { fontSize: 10, fontWeight: "900", letterSpacing: 1.4 },
   cardTitle: {
     color: "#F5FFF9",
     fontSize: 22,
     fontWeight: "900",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   cardDescription: {
     color: "#C8EED9",
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 14,
   },
   row: {
     flexDirection: "row",
@@ -162,4 +174,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "900",
   },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.99 }] },
 });

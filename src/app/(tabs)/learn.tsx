@@ -38,32 +38,34 @@ export default function LearnTabScreen() {
 
   return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <AppPageHeader />
-    <Text style={styles.eyebrow}>CURRENT SKILL</Text>
-    <Text style={styles.heading}>{mission.focusSkill}</Text>
-    <Text style={styles.subtitle}>Learning here supports your exact next mission for “{profile.customGoal}.”</Text>
+    <Text style={styles.eyebrow}>TODAY&apos;S SKILL</Text>
+    <Text style={styles.heading}>{mission.focusSkill} 📖</Text>
+    <Text style={styles.subtitle}>Learn one thing. Use it right away.</Text>
 
     <View style={styles.focusCard}>
-      <Text style={styles.focusLabel}>LEARN FOR TODAY’S MISSION</Text>
+      <Text style={styles.focusLabel}>YOUR TARGET</Text>
       <Text style={styles.focusTitle}>{mission.title}</Text>
-      <Text style={styles.focusText}>{mission.why}</Text>
+      <Text style={styles.focusText} numberOfLines={2}>{mission.why}</Text>
     </View>
 
-    <Text style={styles.section}>YOUR LEARNING LOOP</Text>
-    <LearningCard number="1" title={`Understand ${mission.focusSkill}`} text={`Learn only the concept needed for ${mission.title.toLowerCase()}.`} />
-    <LearningCard number="2" title="Study a strong example" text="Notice the choices that create the result, not just the final result." />
-    <LearningCard number="3" title="Apply it immediately" text="Return to RISE, complete the steps, and prove the result." />
+    <Text style={styles.section}>3 MOVES</Text>
+    <View style={styles.moves}>
+      <LearningCard emoji="👀" title="Understand" />
+      <LearningCard emoji="✨" title="See it" />
+      <LearningCard emoji="⚡" title="Use it" />
+    </View>
 
     <Text style={styles.section}>{isSpiritual ? "START WITH YOUR SOURCES" : "TRUSTED STARTING POINTS"}</Text>
     {isSpiritual ? <>
-      <View style={styles.faithContext}><Text style={styles.faithTitle}>{faithSource ? `Your ${profile.spiritualTradition} path` : "Your spiritual path"}</Text><Text style={styles.faithText}>{profile.trustedSources?.trim() ? `You named ${profile.trustedSources.trim()} as important to your practice. Let that guide which passage, teacher, or action you choose. ` : "Choose a passage, practice, or teacher meaningful to you. "}{faithSource?.text || "RISE will not guess your beliefs or choose a tradition for you."}</Text></View>
-      {faithSource ? <Pressable accessibilityRole="link" onPress={() => void openLearningResource(faithSource.url)} style={({ pressed }) => [styles.guideCard, pressed && { opacity: .8 }]}><Text style={styles.guideRank}>📖</Text><View style={styles.guideBody}><Text style={styles.guideTitle}>{faithSource.label}</Text><Text style={styles.guideReason}>A reading library to explore, not the only authority for your tradition.</Text></View><Text style={styles.guideArrow}>↗</Text></Pressable> : null}
-    </> : guides.length ? guides.map((guide, index) => <Pressable key={guide.url} accessibilityRole="link" onPress={() => void openLearningResource(guide.url)} style={({ pressed }) => [styles.guideCard, pressed && { opacity: .8 }]}><Text style={styles.guideRank}>#{index + 1}</Text><View style={styles.guideBody}><Text style={styles.guideTitle}>{guide.label}</Text><Text style={styles.guideReason}>{guide.reason}</Text></View><Text style={styles.guideArrow}>↗</Text></Pressable>) : <Text style={styles.sourceCaution}>For this topic, begin with the primary book or qualified teacher you trust. RISE does not rank beliefs or claim an authority for you.</Text>}
+      <View style={styles.faithContext}><Text style={styles.faithTitle}>{faithSource ? `Your ${profile.spiritualTradition} path` : "Your spiritual path"}</Text><Text style={styles.faithText} numberOfLines={2}>{profile.trustedSources?.trim() ? `Start with ${profile.trustedSources.trim()}. ` : "Choose a source meaningful to you. "}{faithSource?.text || "RISE will not choose a belief for you."}</Text></View>
+      {faithSource ? <Pressable accessibilityRole="link" onPress={() => void openLearningResource(faithSource.url)} style={({ pressed }) => [styles.guideCard, pressed && { opacity: .8 }]}><Text style={styles.guideRank}>📖</Text><View style={styles.guideBody}><Text style={styles.guideTitle}>{faithSource.label}</Text><Text style={styles.guideReason}>Open reading library</Text></View><Text style={styles.guideArrow}>↗</Text></Pressable> : null}
+    </> : guides.length ? guides.map((guide, index) => <Pressable key={guide.url} accessibilityRole="link" onPress={() => void openLearningResource(guide.url)} style={({ pressed }) => [styles.guideCard, pressed && { opacity: .8 }]}><Text style={styles.guideRank}>{index === 0 ? "⭐" : "↗"}</Text><View style={styles.guideBody}><Text style={styles.guideTitle}>{guide.label}</Text><Text style={styles.guideReason} numberOfLines={1}>{guide.reason}</Text></View><Text style={styles.guideArrow}>↗</Text></Pressable>) : <Text style={styles.sourceCaution}>Start with a primary book or qualified teacher you trust.</Text>}
     <Pressable accessibilityRole="link" style={({ pressed }) => [styles.resourceButton, pressed && { opacity: .8 }]} onPress={() => void openLearningResource(isSpiritual ? spiritualVideoSearch(profile.spiritualTradition, mission.title) : mission.resourceUrl)}>
-      <Text style={styles.resourceButtonText}>{isSpiritual ? `Search ${faithSource ? profile.spiritualTradition : "topic"} videos ↗` : "Explore full-length videos ↗"}</Text>
+      <Text style={styles.resourceButtonText}>{isSpiritual ? "Find a helpful video ↗" : "Watch & learn ↗"}</Text>
     </Pressable>
-    <Text style={styles.sourceCaution}>{isSpiritual ? "Optional: opening YouTube shares the selected tradition and mission topic in the search. Your private books or teacher notes are not sent. Results are not vetted endorsements." : "Video results are a topic search, not vetted endorsements. Check the creator and claims before relying on a lesson."}</Text>
+    <Text style={styles.sourceCaution}>External results are not RISE endorsements. Check the source.</Text>
     <Pressable accessibilityRole="button" style={({ pressed }) => [styles.missionButton, pressed && { opacity: .8 }]} onPress={() => router.push({ pathname: "/action", params: { mission: JSON.stringify(mission) } } as any)}>
-      <Text style={styles.missionButtonText}>Try this in your mission →</Text>
+      <Text style={styles.missionButtonText}>I’m ready — start mission →</Text>
     </Pressable>
   </ScrollView>;
 }
@@ -77,15 +79,15 @@ function rankedGuides(mission: PersonalizedMission) {
   return ranked.sort((a, b) => b.score - a.score).slice(0, 2);
 }
 
-function LearningCard({ number, title, text }: { number: string; title: string; text: string }) {
-  return <View style={styles.card}><View style={styles.number}><Text style={styles.numberText}>{number}</Text></View><View style={styles.cardBody}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.cardText}>{text}</Text></View></View>;
+function LearningCard({ emoji, title }: { emoji: string; title: string }) {
+  return <View style={styles.card}><Text style={styles.moveEmoji}>{emoji}</Text><Text style={styles.cardTitle}>{title}</Text></View>;
 }
 
 const styles = StyleSheet.create({
   loading:{flex:1,backgroundColor:"#010807",alignItems:"center",justifyContent:"center"},page:{flex:1,backgroundColor:"#010807"},content:{padding:24,paddingTop:60,paddingBottom:120},logo:{fontSize:18,fontWeight:"900",letterSpacing:5,color:"#7AF5B8",marginBottom:24},
   eyebrow:{color:"#7AF5B8",fontSize:10,fontWeight:"900",letterSpacing:1.4},heading:{fontSize:36,fontWeight:"900",color:"#F5FFF9",marginTop:7},subtitle:{color:"#C8EED9",fontSize:15,lineHeight:22,marginTop:8,marginBottom:22},
-  focusCard:{backgroundColor:"rgba(122,245,184,0.08)",borderRadius:19,borderWidth:1,borderColor:"rgba(122,245,184,0.22)",padding:17,marginBottom:25},focusLabel:{color:"#7AF5B8",fontSize:9,fontWeight:"900",letterSpacing:1.2},focusTitle:{color:"#F5FFF9",fontSize:19,fontWeight:"900",marginTop:7},focusText:{color:"#C8EED9",fontSize:13,lineHeight:19,marginTop:6},section:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.3,marginBottom:11},
-  card:{flexDirection:"row",backgroundColor:"#071B16",borderRadius:17,borderWidth:1,borderColor:"#1E3A31",padding:14,marginBottom:10},number:{width:34,height:34,borderRadius:17,backgroundColor:"#11382B",alignItems:"center",justifyContent:"center",marginRight:12},numberText:{color:"#7AF5B8",fontWeight:"900"},cardBody:{flex:1},cardTitle:{color:"#F5FFF9",fontSize:14,fontWeight:"900"},cardText:{color:"#A7CBB7",fontSize:12,lineHeight:18,marginTop:4},
+  focusCard:{backgroundColor:"rgba(122,245,184,0.08)",borderRadius:21,borderWidth:1,borderColor:"rgba(122,245,184,0.22)",padding:17,marginBottom:21},focusLabel:{color:"#7AF5B8",fontSize:9,fontWeight:"900",letterSpacing:1.2},focusTitle:{color:"#F5FFF9",fontSize:19,fontWeight:"900",marginTop:7},focusText:{color:"#C8EED9",fontSize:13,lineHeight:19,marginTop:6},section:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.3,marginBottom:11},
+  moves:{flexDirection:"row",gap:9,marginBottom:22},card:{flex:1,backgroundColor:"#071B16",borderRadius:17,borderWidth:1,borderColor:"#1E3A31",paddingVertical:14,paddingHorizontal:8,alignItems:"center"},moveEmoji:{fontSize:20,marginBottom:7},cardTitle:{color:"#F5FFF9",fontSize:12,fontWeight:"900"},
   resourceButton:{height:54,borderRadius:27,borderWidth:1.5,borderColor:"#7AF5B8",alignItems:"center",justifyContent:"center",marginTop:12},resourceButtonText:{color:"#7AF5B8",fontSize:13,fontWeight:"900"},missionButton:{height:56,borderRadius:28,backgroundColor:"#7AF5B8",alignItems:"center",justifyContent:"center",marginTop:10},missionButtonText:{color:"#010807",fontSize:14,fontWeight:"900"},
   guideCard:{minHeight:70,flexDirection:"row",alignItems:"center",backgroundColor:"#071B16",borderRadius:15,borderWidth:1,borderColor:"#315544",padding:13,marginBottom:9},guideRank:{color:"#7AF5B8",fontSize:13,fontWeight:"900",width:32},guideBody:{flex:1},guideTitle:{color:"#F5FFF9",fontSize:13,fontWeight:"800"},guideReason:{color:"#A7CBB7",fontSize:11,lineHeight:17,marginTop:3},guideArrow:{color:"#7AF5B8",fontSize:17,marginLeft:8},sourceCaution:{color:"#8FB6A2",fontSize:11,lineHeight:17,marginTop:8,marginBottom:10},
   faithContext:{backgroundColor:"#172318",borderRadius:15,borderWidth:1,borderColor:"#655338",padding:15,marginBottom:12},faithTitle:{color:"#FFCF70",fontSize:13,fontWeight:"900"},faithText:{color:"#E6DDC8",fontSize:12,lineHeight:19,marginTop:6},

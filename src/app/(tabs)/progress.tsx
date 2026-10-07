@@ -23,6 +23,8 @@ export default function ProgressTabScreen() {
   const [redeemed, setRedeemed] = useState<string[]>([]);
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [missionRecords, setMissionRecords] = useState<MissionRecord[]>([]);
+  const [showRewards, setShowRewards] = useState(false);
+  const [showWins, setShowWins] = useState(false);
 
   useFocusEffect(React.useCallback(() => {
     let active = true;
@@ -98,46 +100,40 @@ export default function ProgressTabScreen() {
       showsVerticalScrollIndicator={false}
     >
       <AppPageHeader />
-      <Text style={styles.heading}>Progress</Text>
-      <Text style={styles.subtitle}>Your momentum, milestones, and growth story.</Text>
+      <Text style={styles.heading}>Your wins 📈</Text>
+      <Text style={styles.subtitle}>Every real step adds up.</Text>
 
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>CURRENT STATUS</Text>
+        <Text style={styles.summaryLabel}>RIGHT NOW</Text>
         <Text style={styles.summaryTitle}>{profile?.customGoal || "Personal Growth"}</Text>
-        <Text style={styles.summaryText}>Building {profile?.weeklySkill || adaptiveSummary.currentSkill?.name || "Foundations"} • {cycleCompleted}/{cycleTotal} missions proved</Text>
+        <Text style={styles.summaryText}>{profile?.weeklySkill || adaptiveSummary.currentSkill?.name || "Foundations"} · {cycleCompleted}/{cycleTotal} missions proved</Text>
       </View>
 
       <View style={styles.gridRow}>
         <View style={styles.smallCard}>
-          <Text style={styles.smallLabel}>TOTAL XP</Text>
+          <Text style={styles.smallLabel}>✨ TOTAL XP</Text>
           <Text style={styles.smallValue}>{progress.totalXP}</Text>
         </View>
         <View style={styles.smallCard}>
-          <Text style={styles.smallLabel}>STREAK</Text>
+          <Text style={styles.smallLabel}>🔥 STREAK</Text>
           <Text style={styles.smallValue}>{streakCount} days</Text>
         </View>
       </View>
 
       <View style={styles.reviewCard}>
-        <View style={styles.reviewHeader}><View><Text style={styles.sectionTitle}>YOUR CYCLE REVIEW</Text><Text style={styles.reviewTitle}>{cyclePercent}% complete</Text></View><Text style={styles.reviewProof}>{photoCount} photos · {videoCount} videos</Text></View>
+        <View style={styles.reviewHeader}><View><Text style={styles.sectionTitle}>THIS CYCLE</Text><Text style={styles.reviewTitle}>{cyclePercent}% complete</Text></View><Text style={styles.reviewProof}>{photoCount + videoCount} proofs</Text></View>
         <View style={styles.track}><View style={[styles.trackFill, { width: `${cyclePercent}%` }]} /></View>
         <Text style={styles.reviewInsight}>{reviewInsight}</Text>
         <View style={styles.skillWrap}>{profile?.focusSkills?.map((skill, index) => <View key={skill} style={styles.skillPill}><Text style={styles.skillText}>{index === 0 ? `Primary · ${skill}` : skill}</Text></View>)}</View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>CYCLE BADGES</Text>
-        {(profile?.cycleBadges || []).length ? profile!.cycleBadges!.map((badge) => <View key={badge} style={styles.listItem}><Text style={styles.listEmoji}>🏅</Text><View style={styles.listTextWrap}><Text style={styles.listTitle}>{badge}</Text><Text style={styles.listSubtitle}>Earned by passing a cycle quiz at 80% or higher.</Text></View></View>) : <Text style={styles.emptyState}>Complete your cycle and pass its quiz to earn your first badge.</Text>}
-        <Text style={styles.benchmarkNote}>Your own growth matters most. Signed-in members can optionally view a private monthly mission comparison in Settings → Synced Improvement. It is not proof of skill or independently verified work.</Text>
-      </View>
-
-      <View style={styles.section}>
         <View style={styles.rewardHeader}>
-          <Text style={styles.sectionTitle}>COIN REWARDS</Text>
+          <Text style={styles.sectionTitle}>REWARDS</Text>
           <Text style={styles.coinBalance}>{progress.coins} 🪙</Text>
         </View>
-        <Text style={styles.rewardIntro}>Small rewards for real proof of work.</Text>
-        {COIN_REWARDS.map((reward) => {
+        <Text style={styles.rewardIntro}>Real work earns coins. Coins unlock extras.</Text>
+        {(showRewards ? COIN_REWARDS : COIN_REWARDS.slice(0, 2)).map((reward) => {
           const unlocked = redeemed.includes(reward.id);
           const canAfford = progress.coins >= reward.cost;
           return (
@@ -145,7 +141,7 @@ export default function ProgressTabScreen() {
               <Text style={styles.rewardEmoji}>{reward.emoji}</Text>
               <View style={styles.rewardBody}>
                 <Text style={styles.rewardTitle}>{reward.title}</Text>
-                <Text style={styles.rewardDescription}>{reward.description}</Text>
+                <Text style={styles.rewardDescription} numberOfLines={1}>{reward.description}</Text>
               </View>
               <Pressable
                 onPress={() => redeem(reward)}
@@ -157,6 +153,18 @@ export default function ProgressTabScreen() {
             </View>
           );
         })}
+        {COIN_REWARDS.length > 2 ? <Pressable accessibilityRole="button" onPress={() => setShowRewards((value) => !value)} style={styles.moreButton}><Text style={styles.moreButtonText}>{showRewards ? "Show less" : `See all ${COIN_REWARDS.length} rewards`} {showRewards ? "↑" : "↓"}</Text></Pressable> : null}
+      </View>
+
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showWins }} onPress={() => setShowWins((value) => !value)} style={styles.winsToggle}>
+        <View><Text style={styles.winsToggleLabel}>🏅 BADGES & MILESTONES</Text><Text style={styles.winsToggleValue}>{(profile?.cycleBadges || []).length + achievements.length} unlocked</Text></View>
+        <Text style={styles.winsToggleArrow}>{showWins ? "↑" : "↓"}</Text>
+      </Pressable>
+
+      {showWins ? <>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>BADGES</Text>
+        {(profile?.cycleBadges || []).length ? profile!.cycleBadges!.map((badge) => <View key={badge} style={styles.listItem}><Text style={styles.listEmoji}>🏅</Text><View style={styles.listTextWrap}><Text style={styles.listTitle}>{badge}</Text><Text style={styles.listSubtitle}>Cycle quiz passed.</Text></View></View>) : <Text style={styles.emptyState}>Pass a cycle quiz to earn your first badge.</Text>}
       </View>
 
       <View style={styles.section}>
@@ -172,7 +180,7 @@ export default function ProgressTabScreen() {
             </View>
           ))
         ) : (
-          <Text style={styles.emptyState}>No achievements yet — keep building your streak.</Text>
+          <Text style={styles.emptyState}>Your first achievement is close.</Text>
         )}
       </View>
 
@@ -189,9 +197,11 @@ export default function ProgressTabScreen() {
             </View>
           ))
         ) : (
-          <Text style={styles.emptyState}>Milestones will appear as you gain momentum.</Text>
+          <Text style={styles.emptyState}>More milestones unlock as you grow.</Text>
         )}
+        <Text style={styles.benchmarkNote}>Your growth matters most. Optional private comparisons in Settings are not independent proof of skill.</Text>
       </View>
+      </> : null}
     </ScrollView>
   );
 }
@@ -347,4 +357,10 @@ const styles = StyleSheet.create({
   redeemButton: { minWidth: 68, borderRadius: 12, backgroundColor: "#7AF5B8", paddingHorizontal: 10, paddingVertical: 9, alignItems: "center" },
   redeemDisabled: { opacity: 0.45 },
   redeemText: { color: "#010807", fontSize: 11, fontWeight: "900" },
+  moreButton: { minHeight: 42, borderRadius: 13, borderWidth: 1, borderColor: "#315544", alignItems: "center", justifyContent: "center", marginTop: 3 },
+  moreButtonText: { color: "#BDEFD3", fontSize: 11, fontWeight: "900" },
+  winsToggle: { minHeight: 72, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#071B16", borderWidth: 1, borderColor: "#1E3A31", borderRadius: 18, paddingHorizontal: 17, marginBottom: 18 },
+  winsToggleLabel: { color: "#7AF5B8", fontSize: 10, fontWeight: "900", letterSpacing: 1.1 },
+  winsToggleValue: { color: "#F5FFF9", fontSize: 14, fontWeight: "900", marginTop: 5 },
+  winsToggleArrow: { color: "#7AF5B8", fontSize: 18, fontWeight: "900" },
 });

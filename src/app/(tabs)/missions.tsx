@@ -43,16 +43,9 @@ export default function MissionsTabScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <AppPageHeader />
-      <Text style={styles.heading}>Your 1% missions</Text>
-      <Text style={styles.subtitle}>
-        A connected plan for “{profile.customGoal}.” One new day unlocks each day so you can learn, practice, and prove the work without rushing past it.
-      </Text>
-      <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/progress" as never)} style={({ pressed }) => [styles.progressLink, pressed && styles.progressLinkPressed]}><View><Text style={styles.progressLabel}>YOUR CYCLE</Text><Text style={styles.progressValue}>{completedCount} of {missions.length} days complete</Text></View><Text style={styles.progressAction}>View my progress ↗</Text></Pressable>
-
-      <View style={styles.pathNote}>
-        <Text style={styles.pathNoteTitle}>HOW THE PATH WORKS</Text>
-        <Text style={styles.pathNoteText}>Learn → practice → apply → prove → improve</Text>
-      </View>
+      <Text style={styles.heading}>Missions 🎯</Text>
+      <Text style={styles.subtitle}>One a day. Do it. Prove it. Grow.</Text>
+      <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/progress" as never)} style={({ pressed }) => [styles.progressLink, pressed && styles.progressLinkPressed]}><View><Text style={styles.progressLabel}>YOUR 7-DAY RUN</Text><Text style={styles.progressValue}>{completedCount}/{missions.length} complete</Text></View><Text style={styles.progressAction}>See progress ›</Text></Pressable>
 
       {missions.map((mission) => {
         const locked = mission.day > unlockedDay;
@@ -65,10 +58,10 @@ export default function MissionsTabScreen() {
           </View>
           <Text style={[styles.track, mission.track === "life" && styles.lifeTrack]}>{mission.track.toUpperCase()} • {mission.focusSkill}</Text>
           <Text style={styles.cardTitle}>{mission.title}</Text>
-          <Text style={styles.cardDescription}>{mission.description}</Text>
+          <Text style={styles.cardDescription} numberOfLines={2}>{mission.description}</Text>
           <View style={styles.row}>
-            <Text style={styles.meta}>{mission.duration} min • {mission.difficulty} • +{mission.coinReward} 🪙</Text>
-            <Text style={styles.open}>{locked ? (wait === 1 ? "Come back tomorrow" : `Available in ${wait} days`) : "Open mission →"}</Text>
+            <Text style={styles.meta}>⏱ {mission.duration}m  ·  +{mission.coinReward} 🪙</Text>
+            <Text style={styles.open}>{locked ? (wait === 1 ? "Tomorrow 🔒" : `${wait} days 🔒`) : "Let’s go →"}</Text>
           </View>
         </Pressable>
       )})}
@@ -82,23 +75,20 @@ const styles = StyleSheet.create({
   content: { padding: 24, paddingTop: 60, paddingBottom: 120 },
   logo: { fontSize: 18, fontWeight: "900", letterSpacing: 5, color: "#7AF5B8", marginBottom: 20 },
   heading: { fontSize: 34, fontWeight: "900", color: "#F5FFF9", marginBottom: 8 },
-  subtitle: { color: "#C8EED9", fontSize: 15, lineHeight: 22, marginBottom: 18 },
+  subtitle: { color: "#9FC3AF", fontSize: 15, lineHeight: 22, marginBottom: 18 },
   progressLink: { minHeight: 70, borderRadius: 16, borderWidth: 1, borderColor: "#3B7555", backgroundColor: "#0D2F22", paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 },
   progressLinkPressed: { opacity: .82 },
   progressLabel: { color: "#8FB6A2", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
   progressValue: { color: "#F5FFF9", fontSize: 15, fontWeight: "900", marginTop: 4 },
   progressAction: { color: "#7AF5B8", fontSize: 11, fontWeight: "900" },
-  pathNote: { borderRadius: 16, backgroundColor: "rgba(122,245,184,0.08)", borderWidth: 1, borderColor: "rgba(122,245,184,0.2)", padding: 14, marginBottom: 22 },
-  pathNoteTitle: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
-  pathNoteText: { color: "#E8F8EF", fontSize: 13, fontWeight: "800", marginTop: 6 },
-  card: { backgroundColor: "#071B16", borderRadius: 20, padding: 18, borderWidth: 1, borderColor: "#1E3A31", marginBottom: 13 },
+  card: { backgroundColor: "#071B16", borderRadius: 22, padding: 17, borderWidth: 1, borderColor: "#1E3A31", marginBottom: 12 },
   cardLocked: { opacity: 0.48, borderStyle: "dashed" },
   topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   day: { color: "#7AF5B8", fontSize: 10, fontWeight: "900", letterSpacing: 1.2 },
   track: { alignSelf: "flex-start", color: "#D8FFE9", backgroundColor: "#164A37", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, fontSize: 10, fontWeight: "900", marginTop: 10 },
   lifeTrack: { backgroundColor: "#233D69", color: "#E6EEFF" },
-  cardTitle: { color: "#F5FFF9", fontSize: 20, fontWeight: "900", marginTop: 8, marginBottom: 7 },
-  cardDescription: { color: "#C8EED9", fontSize: 13, lineHeight: 19, marginBottom: 14 },
+  cardTitle: { color: "#F5FFF9", fontSize: 20, fontWeight: "900", marginTop: 8, marginBottom: 5 },
+  cardDescription: { color: "#A7CBB7", fontSize: 12, lineHeight: 18, marginBottom: 13 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   meta: { color: "#8FB6A2", fontSize: 11, fontWeight: "700" },
   reward: { color: "#7AF5B8", fontSize: 12, fontWeight: "900" },

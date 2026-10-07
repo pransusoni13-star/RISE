@@ -13,9 +13,9 @@ export default function HomeScreen() {
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.brandRow}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>PUBLIC BETA</Text></View>
       <View style={styles.card}>
-        <Text style={styles.eyebrow}>YOUR NEXT CHAPTER STARTS SMALL</Text>
-        <Text accessibilityRole="header" style={styles.title}>Build a life you’re proud to live.</Text>
-        <Text style={styles.subtitle}>Choose where you want to grow. RISE turns it into one focused mission you can finish today.</Text>
+      <Text style={styles.eyebrow}>GROW 1% EVERY DAY</Text>
+      <Text accessibilityRole="header" style={styles.title}>Learn less. Do more.</Text>
+      <Text style={styles.subtitle}>One personalized mission. Real proof. Visible progress.</Text>
         <View accessibilityLabel="A balanced plan for career and life growth" style={styles.focusRow}>
           <View style={styles.focusItem}><Text style={styles.focusLabel}>CAREER</Text><Text style={styles.focusText}>Build useful skills</Text></View>
           <View pointerEvents="none" style={styles.focusDivider} />

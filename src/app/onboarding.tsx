@@ -21,17 +21,17 @@ export default function OnboardingScreen() {
   return <View style={styles.page}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.top}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>FREE BETA</Text></View>
-      <Text style={styles.eyebrow}>ONE SMALL STEP AT A TIME</Text>
-      <Text style={styles.title}>A personal path that learns with you.</Text>
-      <Text style={styles.subtitle}>Choose one future direction and one life direction, build three connected skills, and complete clear missions with reviewed proof.</Text>
+      <Text style={styles.eyebrow}>YOUR PLAN. YOUR PACE.</Text>
+      <Text style={styles.title}>Let’s build your RISE.</Text>
+      <Text style={styles.subtitle}>Career + life goals become one clear daily mission.</Text>
 
       <View style={styles.path}>
-        <Path number="1" title="Choose two directions" text="One career or learning goal plus one health, life, or personal goal." />
-        <Path number="2" title="Get one useful mission" text="Sized to your time, experience, feedback, and trusted sources." />
-        <Path number="3" title="Do, prove, improve" text="Attach real work, reflect briefly, and let the next mission adapt." />
+        <Path number="1" title="Choose" text="What matters now." />
+        <Path number="2" title="Do" text="One focused mission." />
+        <Path number="3" title="Prove" text="Show the work. See growth." />
       </View>
 
-      <View style={styles.privacy}><Text style={styles.privacyTitle}>Private by default</Text><Text style={styles.privacyText}>Your proof photos and videos stay on this device. If you sign in, RISE can sync your selected skills and progress; a guest plan remains on this device. RISE has no advertising tracker.</Text></View>
+      <View style={styles.privacy}><Text style={styles.privacyTitle}>🔒 Private by default</Text><Text style={styles.privacyText}>Proof stays on this device. Signed-in members can sync selected skills and progress. No advertising tracker.</Text></View>
 
       <Check checked={ageConfirmed} onPress={() => setAgeConfirmed((value) => !value)} title="I am 13 or older" text="RISE is not designed for children under 13." />
       <Check checked={limitsConfirmed} onPress={() => setLimitsConfirmed((value) => !value)} title="I understand the safety limits" text="RISE provides educational suggestions, not medical, legal, financial, religious, or other professional advice." />

@@ -7,11 +7,10 @@ import { markRequiredTourCompleted } from "../services/tourState";
 type TourStep = { emoji: string; eyebrow: string; title: string; description: string; previewTitle: string; previewRows: string[] };
 
 const STEPS: TourStep[] = [
-  { emoji: "☀️", eyebrow: "1 · TODAY", title: "Start with one clear win.", description: "Today shows the only mission available now, your goal, time, reward, and reminder.", previewTitle: "TODAY’S RISE", previewRows: ["Learn the focused skill", "Complete today’s mission", "Return tomorrow for Day 2"] },
-  { emoji: "📖", eyebrow: "2 · LEARN", title: "Learn only what you need.", description: "Open the matched lesson and trusted guide, then apply it immediately instead of collecting random information.", previewTitle: "LEARN → APPLY", previewRows: ["Understand the concept", "Study a strong example", "Use it in your mission"] },
-  { emoji: "🎯", eyebrow: "3 · MISSIONS", title: "Do the work—not just a tap.", description: "Define a result, finish every step, write 2–3 sentences, and attach real proof before completion.", previewTitle: "PROOF CHECK", previewRows: ["✓ Clear result", "✓ Every action step", "Required: reflection + proof"] },
-  { emoji: "🛠️", eyebrow: "4 · PROJECTS", title: "Turn practice into something visible.", description: "Choose Easy, Medium, Hard, or Insane. Each level increases scope, evidence, and independence.", previewTitle: "PROJECT LEVEL", previewRows: ["Easy · one focused result", "Hard · tested multi-step build", "Insane · launch and measure"] },
-  { emoji: "⚙️", eyebrow: "5 · CONTROL", title: "Your plan stays in your hands.", description: "Use Change plan or Settings from every main page. Review progress, reminders, privacy, feedback, export, and account controls.", previewTitle: "ALWAYS AVAILABLE", previewRows: ["Change plan", "Settings & reminders", "Progress & feedback"] },
+  { emoji: "☀️", eyebrow: "1 · START", title: "One clear win.", description: "Open Today. See your mission. Start.", previewTitle: "TODAY’S RISE", previewRows: ["Learn one idea", "Finish one mission", "Earn XP"] },
+  { emoji: "🎯", eyebrow: "2 · DO", title: "Real work counts.", description: "Finish the steps, reflect, and add proof.", previewTitle: "MISSION CHECK", previewRows: ["Define the result", "Do every step", "Reflect + prove"] },
+  { emoji: "🛠️", eyebrow: "3 · BUILD", title: "Make it visible.", description: "Pick a project level and create something real.", previewTitle: "CHOOSE A LEVEL", previewRows: ["🌱 Quick win", "🚀 Launch it", "🔥 Go all in"] },
+  { emoji: "📈", eyebrow: "4 · GROW", title: "Watch yourself level up.", description: "Track XP, streaks, proof, and new skills.", previewTitle: "YOUR PROGRESS", previewRows: ["See your wins", "Change your plan", "Come back tomorrow"] },
 ];
 
 export default function TourScreen() {
@@ -49,7 +48,7 @@ export default function TourScreen() {
       <Pressable accessibilityRole="button" accessibilityState={{ disabled: index === 0 }} disabled={index === 0} onPress={() => setIndex((value) => value - 1)} style={[styles.secondary, index === 0 && styles.disabled]}><Text style={styles.secondaryText}>← Back</Text></Pressable>
       <Pressable accessibilityRole="button" accessibilityState={{ disabled: finishing }} disabled={finishing} onPress={() => void finish()} style={({ pressed }) => [styles.primary, (pressed || finishing) && styles.pressed]}><Text style={styles.primaryText}>{last ? (finishing ? "Saving…" : "Enter RISE") : "Show me next"} →</Text></Pressable>
     </View>
-    <Text style={styles.replay}>{required ? "Five quick previews, then your personal plan opens." : "Replay this quick guide anytime from Settings."}</Text>
+    <Text style={styles.replay}>{required ? "Four quick screens. Then you’re in." : "Replay anytime from Settings."}</Text>
   </SafeAreaView>;
 }
 
