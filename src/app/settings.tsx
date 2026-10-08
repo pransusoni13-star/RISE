@@ -10,7 +10,7 @@ export default function SettingsScreen() {
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [user, setUser] = useState<RiseUser | null>(null);
   const [usageAnalyticsOptIn, setUsageAnalyticsOptIn] = useState(false);
-  const [reminder, setReminder] = useState<ReminderState>({ enabled: false, time: "20:00", permission: "unavailable" });
+  const [reminder, setReminder] = useState<ReminderState>({ enabled: false, time: "20:00", times: ["20:00"], permission: "unavailable" });
   const [reminderBusy, setReminderBusy] = useState(false);
   const [pendingSync, setPendingSync] = useState(0);
   const [syncBusy, setSyncBusy] = useState(false);
@@ -122,13 +122,13 @@ export default function SettingsScreen() {
     <Row title="Take the RISE Tour" text="See where everything is and jump directly to each feature" onPress={() => router.push("/tour" as any)} />
     <View style={styles.planCard}>
       <Text style={styles.cardTitle}>Daily check-in</Text>
-      <Text style={styles.cardText}>{reminder.permission === "unavailable" ? "On the web beta, check in on Today. Phone reminders are available in the iOS and Android app." : reminder.enabled ? `On at ${reminder.time}. Tap the notification to open Today's mission.` : "Off. Choose a time and turn on a gentle phone reminder."}</Text>
+      <Text style={styles.cardText}>{reminder.permission === "unavailable" ? "On the web beta, check in on Today. Phone reminders are available in the iOS and Android app." : reminder.enabled ? `On at ${reminder.times.join(", ")}. Tap a notification to open Today's mission.` : "Off. Choose a time and turn on a gentle phone reminder."}</Text>
       {reminder.permission !== "unavailable" ? <>
         <View style={styles.timeRow}>{(["08:00", "12:00", "18:00", "20:00"] as ReminderTime[]).map((time) => <Pressable key={time} accessibilityRole="button" accessibilityLabel={`Set reminder for ${time}`} onPress={() => void changeReminder(true, time)} disabled={reminderBusy} style={[styles.timeChoice, reminder.enabled && reminder.time === time && styles.timeChoiceSelected]}><Text style={styles.timeText}>{time}</Text></Pressable>)}</View>
         {reminder.enabled ? <Pressable accessibilityRole="button" onPress={() => void changeReminder(false, reminder.time)} disabled={reminderBusy}><Text style={styles.reminderLink}>Turn reminders off</Text></Pressable> : null}
         {reminder.permission === "denied" ? <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()}><Text style={styles.reminderLink}>Open phone notification settings</Text></Pressable> : null}
       </> : null}
-      <Text style={styles.cardText}>One reminder per day, only if you opt in. Focus modes and phone settings can delay or silence it.</Text>
+      <Text style={styles.cardText}>Choose up to three reminders during plan setup. Focus modes and phone settings can delay or silence them.</Text>
     </View>
     {user ? <Row title={`Share improvement analytics: ${usageAnalyticsOptIn ? "On" : "Off"}`} text="Optional. Turning off excludes you from operator reports and deletes past usage-time and signup-time records; your own mission progress stays." onPress={() => void toggleUsageAnalytics()} /> : null}
     {user ? <><Row title="Synced Improvement" text="Quiz baselines, completed missions, and focused minutes" onPress={() => router.push("/account-progress" as any)} /><Row title="Sign Out" text={`Signed in as ${user.email}`} onPress={() => void logout().then(() => router.replace("/account" as never))} /></> : <Row title="Create or Sign In" text="Sync skills and improvement across the beta" onPress={() => router.push("/account" as any)} />}

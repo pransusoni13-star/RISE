@@ -140,7 +140,10 @@ def health() -> dict[str, str]:
 
 @app.get("/config/public")
 def public_config() -> dict[str, bool]:
-    return {"founding_redemption_enabled": settings.founding_redemption_enabled}
+    return {
+        "founding_redemption_enabled": settings.founding_redemption_enabled,
+        "email_delivery_ready": settings.email_delivery_ready,
+    }
 
 
 @app.post("/auth/register", response_model=AuthResponse, status_code=201)

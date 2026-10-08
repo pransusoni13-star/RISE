@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { updateProfile } from "../services/personalization";
-import { ReminderTime, setDailyReminder } from "../services/reminders";
+import { ReminderTime, setDailyReminders } from "../services/reminders";
 
 const options = [
   "10 minutes",
@@ -36,7 +36,27 @@ export default function ScheduleScreen() {
 
   const [selected, setSelected] = useState(existingTime);
   const [reminderEnabled, setReminderEnabled] = useState(false);
-  const [reminderTime, setReminderTime] = useState<ReminderTime>("20:00");
+  const [reminderCount, setReminderCount] = useState<1 | 2 | 3>(1);
+  const [reminderTimesSelected, setReminderTimesSelected] = useState<ReminderTime[]>(["20:00"]);
+  const [reminderMenuOpen, setReminderMenuOpen] = useState(false);
+
+  const chooseReminderCount = (count: 1 | 2 | 3) => {
+    const defaults: ReminderTime[] = ["08:00", "12:00", "20:00"];
+    setReminderCount(count);
+    setReminderTimesSelected((current) => {
+      const next = [...current];
+      for (const value of defaults) if (next.length < count && !next.includes(value)) next.push(value);
+      return next.slice(0, count);
+    });
+  };
+
+  const toggleReminderTime = (time: ReminderTime) => {
+    setReminderTimesSelected((current) => {
+      if (current.includes(time)) return current.length === 1 ? current : current.filter((value) => value !== time);
+      if (current.length >= reminderCount) return [...current.slice(1), time];
+      return [...current, time];
+    });
+  };
 
   const continueNext = async () => {
     if (!selected) return;
@@ -44,7 +64,7 @@ export default function ScheduleScreen() {
     await updateProfile({ availableTime: selected });
     if (reminderEnabled) {
       try {
-        const reminder = await setDailyReminder(true, reminderTime);
+        const reminder = await setDailyReminders(true, reminderTimesSelected);
         if (!reminder.enabled && reminder.permission !== "unavailable") {
           Alert.alert("Reminder not enabled", "Allow notifications in your phone settings whenever you want RISE check-ins.");
         }
@@ -152,7 +172,7 @@ export default function ScheduleScreen() {
         >
           <View style={styles.reminderCopy}>
             <Text style={styles.reminderTitle}>Keep me accountable</Text>
-            <Text style={styles.reminderText}>One optional daily phone reminder to finish your mission and earn XP + coins.</Text>
+            <Text style={styles.reminderText}>Choose one, two, or three optional phone check-ins each day.</Text>
           </View>
           <View style={[styles.switchTrack, reminderEnabled && styles.switchTrackActive]}><View style={[styles.switchKnob, reminderEnabled && styles.switchKnobActive]} /></View>
         </Pressable>
@@ -160,13 +180,12 @@ export default function ScheduleScreen() {
         {reminderEnabled && (
           <View style={styles.reminderTimes}>
             <Text style={styles.reminderTimesTitle}>Choose your daily check-in</Text>
-            <View style={styles.reminderTimesRow}>
-              {reminderTimes.map((item) => (
-                <Pressable key={item.value} accessibilityRole="radio" accessibilityState={{ selected: reminderTime === item.value }} onPress={() => setReminderTime(item.value)} style={[styles.timeChip, reminderTime === item.value && styles.timeChipActive]}>
-                  <Text style={[styles.timeChipText, reminderTime === item.value && styles.timeChipTextActive]}>{item.label}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <Text style={styles.reminderFieldLabel}>How many times each day?</Text>
+            <View style={styles.reminderTimesRow}>{([1, 2, 3] as const).map((count) => <Pressable key={count} accessibilityRole="radio" accessibilityState={{ selected: reminderCount === count }} onPress={() => chooseReminderCount(count)} style={[styles.timeChip, reminderCount === count && styles.timeChipActive]}><Text style={[styles.timeChipText, reminderCount === count && styles.timeChipTextActive]}>{count}×</Text></Pressable>)}</View>
+            <Text style={styles.reminderFieldLabel}>When should RISE remind you?</Text>
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: reminderMenuOpen }} onPress={() => setReminderMenuOpen((open) => !open)} style={styles.dropdownButton}><Text style={styles.dropdownText}>{reminderTimes.filter((item) => reminderTimesSelected.includes(item.value)).map((item) => item.label).join(" · ")}</Text><Text style={styles.dropdownArrow}>{reminderMenuOpen ? "⌃" : "⌄"}</Text></Pressable>
+            {reminderMenuOpen ? <View style={styles.dropdownMenu}>{reminderTimes.map((item) => { const selectedTime = reminderTimesSelected.includes(item.value); return <Pressable key={item.value} accessibilityRole="checkbox" accessibilityState={{ checked: selectedTime }} onPress={() => toggleReminderTime(item.value)} style={[styles.dropdownOption, selectedTime && styles.dropdownOptionActive]}><Text style={[styles.dropdownOptionText, selectedTime && styles.timeChipTextActive]}>{selectedTime ? "✓ " : ""}{item.label}</Text></Pressable>; })}</View> : null}
+            <Text style={styles.reminderSelectionHelp}>Select {reminderCount} time{reminderCount === 1 ? "" : "s"}. Choosing another replaces the oldest selection.</Text>
             <Text style={styles.reminderFinePrint}>Phone settings, Focus mode, and battery rules can delay alerts. You stay in control and can turn this off in Settings.</Text>
           </View>
         )}
@@ -287,11 +306,20 @@ const styles = StyleSheet.create({
   switchKnobActive: { alignSelf: "flex-end", backgroundColor: "#010807" },
   reminderTimes: { marginTop: 12, borderRadius: 18, borderWidth: 1, borderColor: "#1E3A31", padding: 14, backgroundColor: "#071B16" },
   reminderTimesTitle: { color: "#F5FFF9", fontSize: 13, fontWeight: "900", marginBottom: 10 },
+  reminderFieldLabel: { color: "#BBD8C8", fontSize: 12, fontWeight: "800", marginTop: 10, marginBottom: 8 },
   reminderTimesRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   timeChip: { minWidth: 60, minHeight: 42, borderRadius: 999, borderWidth: 1, borderColor: "#345247", alignItems: "center", justifyContent: "center", paddingHorizontal: 12 },
   timeChipActive: { backgroundColor: "#7AF5B8", borderColor: "#7AF5B8" },
   timeChipText: { color: "#DFFDEE", fontSize: 12, fontWeight: "800" },
   timeChipTextActive: { color: "#010807" },
+  dropdownButton: { minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: "#345247", backgroundColor: "#0D2F22", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  dropdownText: { color: "#F5FFF9", fontSize: 13, fontWeight: "900" },
+  dropdownArrow: { color: "#7AF5B8", fontSize: 18, fontWeight: "900" },
+  dropdownMenu: { marginTop: 7, borderRadius: 14, borderWidth: 1, borderColor: "#345247", overflow: "hidden" },
+  dropdownOption: { minHeight: 46, justifyContent: "center", paddingHorizontal: 14, backgroundColor: "#071B16", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#29483B" },
+  dropdownOptionActive: { backgroundColor: "#7AF5B8" },
+  dropdownOptionText: { color: "#DFFDEE", fontSize: 13, fontWeight: "800" },
+  reminderSelectionHelp: { color: "#8FB6A2", fontSize: 10, lineHeight: 15, marginTop: 7 },
   reminderFinePrint: { color: "#8FB6A2", fontSize: 11, lineHeight: 16, marginTop: 10 },
 
   option: {

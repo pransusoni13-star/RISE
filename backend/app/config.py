@@ -44,6 +44,16 @@ class Settings(BaseSettings):
             return "smtp"
         return "none"
 
+    @property
+    def email_delivery_ready(self) -> bool:
+        provider = self.resolved_email_provider
+        if provider == "resend":
+            sender = (self.resend_from_email or self.email_from).lower()
+            return bool(self.resend_api_key and sender and "@resend.dev" not in sender)
+        if provider == "smtp":
+            return all((self.smtp_host, self.smtp_username, self.smtp_password, self.email_from))
+        return False
+
     def validate_for_startup(self) -> None:
         if self.env.lower() == "production" and len(self.jwt_secret) < 32:
             raise RuntimeError("RISE_JWT_SECRET must contain at least 32 characters in production")

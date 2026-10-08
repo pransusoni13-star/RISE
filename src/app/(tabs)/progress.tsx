@@ -132,7 +132,7 @@ export default function ProgressTabScreen() {
           <Text style={styles.sectionTitle}>REWARDS</Text>
           <Text style={styles.coinBalance}>{progress.coins} 🪙</Text>
         </View>
-        <Text style={styles.rewardIntro}>Real work earns coins. Coins unlock extras.</Text>
+        <Text style={styles.rewardIntro}>Real work earns coins. Your balance is lifetime progress, so changing your plan will not erase it.</Text>
         {(showRewards ? COIN_REWARDS : COIN_REWARDS.slice(0, 2)).map((reward) => {
           const unlocked = redeemed.includes(reward.id);
           const canAfford = progress.coins >= reward.cost;

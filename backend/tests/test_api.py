@@ -198,7 +198,9 @@ def test_login_attempts_are_rate_limited() -> None:
 
 def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkeypatch) -> None:
     with TestClient(app) as client:
-        assert client.get("/config/public").json()["founding_redemption_enabled"] is False
+        public_config = client.get("/config/public").json()
+        assert public_config["founding_redemption_enabled"] is False
+        assert public_config["email_delivery_ready"] is False
         blocked = client.post("/auth/register", json={"email": "founder@example.com", "password": "very-secure-password", "display_name": "First Founder", "founding_code": "FOUNDING-ONE"})
         assert blocked.status_code == 403
         response = client.post("/auth/register", json={"email": "founder@example.com", "password": "very-secure-password", "display_name": "First Founder", "signup_elapsed_seconds": 48, "usage_analytics_opt_in": True})
@@ -245,6 +247,12 @@ def test_production_settings_reject_resend_testing_sender() -> None:
         assert False, "the shared Resend testing sender should be rejected in production"
     except RuntimeError as error:
         assert "testing-only" in str(error)
+
+
+def test_email_delivery_readiness_rejects_shared_sender_and_accepts_authenticated_sender() -> None:
+    assert Settings(resend_api_key="re_test_key").email_delivery_ready is False
+    assert Settings(resend_api_key="re_test_key", resend_from_email="RISE <hello@rise.example>").email_delivery_ready is True
+    assert Settings(email_provider="smtp", smtp_host="smtp.example", smtp_username="rise", smtp_password="private-test-password", email_from="RISE <hello@rise.example>").email_delivery_ready is True
 
 
 def test_production_settings_require_the_selected_email_provider() -> None:

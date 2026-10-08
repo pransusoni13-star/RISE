@@ -9,15 +9,15 @@ export function AppPageHeader({ showTour = false }: { showTour?: boolean }) {
         <Text style={styles.logo}>RISE</Text>
       </Pressable>
       <View style={styles.actions}>
-        {showTour ? <HeaderButton label="Guide" symbol="?" route="/tour" /> : null}
-        <HeaderButton label="Plan" symbol="↻" route="/goals" />
+        {showTour ? <HeaderButton label="Guide" route="/tour" /> : null}
+        <HeaderButton label="Plan" route="/goals" />
         <HeaderButton label="Settings" symbol="⚙" route="/settings" compact />
       </View>
     </View>
   );
 }
 
-function HeaderButton({ label, route, symbol, compact = false }: { label: string; route: string; symbol: string; compact?: boolean }) {
+function HeaderButton({ label, route, symbol, compact = false }: { label: string; route: string; symbol?: string; compact?: boolean }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -26,7 +26,7 @@ function HeaderButton({ label, route, symbol, compact = false }: { label: string
       onPress={() => router.push(route as never)}
       style={({ pressed }) => [styles.button, compact && styles.compactButton, pressed && styles.pressed]}
     >
-      <Text style={styles.buttonText}>{compact ? symbol : `${symbol} ${label}`}</Text>
+      <Text style={styles.buttonText}>{compact ? symbol : label}</Text>
     </Pressable>
   );
 }

@@ -71,10 +71,31 @@ export default function ProofScreen() {
   const [feedbackSaving, setFeedbackSaving] = useState(false);
 
   useEffect(() => {
-    missionRepository.get(missionId).then((record) => {
-      if (!reflection && record.reflection) setReflection(record.reflection);
+    let active = true;
+    void missionRepository.get(missionId).then(async (record) => {
+      if (!active) return;
+      if (record.reflection) setReflection(record.reflection);
+      if (record.feedback) {
+        setDifficultyFeedback(record.feedback.difficulty);
+        setUsefulFeedback(record.feedback.useful);
+        setBlockerFeedback(record.feedback.blocker);
+      }
+      if (record.status === "completed" && record.proof) {
+        setProofType(record.proof.type);
+        setAssetUri(record.proof.uri);
+        setProofDescription(record.proof.description || "");
+        setMatchesMission(record.proof.review?.checks.some((check) => check.id === "matches_mission" && check.passed) ?? true);
+        setOwnsWork(record.proof.review?.checks.some((check) => check.id === "owns_work" && check.passed) ?? true);
+        const profile = await loadProfile();
+        if (!active) return;
+        const plan = createSevenDayPlan(profile);
+        const index = plan.findIndex((mission) => mission.id === missionId);
+        setNextMission(index >= 0 ? plan[index + 1] || null : plan[0] || null);
+        setSubmitted(true);
+      }
     });
-  }, [missionId, reflection]);
+    return () => { active = false; };
+  }, [missionId]);
 
   const proofReview = useMemo(() => reviewProof({
     asset: assetDetails,
@@ -412,11 +433,11 @@ export default function ProofScreen() {
 
               <View style={styles.xpContent}>
                 <Text style={styles.xpAmount}>
-                  Already rewarded
+                  Proof saved
                 </Text>
 
                 <Text style={styles.xpText}>
-                  This proof has already been counted.
+                  Your evidence and reward are already safe. You do not need to upload again.
                 </Text>
               </View>
             </View>

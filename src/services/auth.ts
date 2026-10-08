@@ -314,9 +314,14 @@ export async function submitProductFeedback(input: { category: "idea" | "bug" | 
   return { received: result.received, emailNotified: result.email_notified };
 }
 
-export async function getPublicConfig(): Promise<{ founding_redemption_enabled: boolean }> {
-  if (!API_URL) return { founding_redemption_enabled: false };
-  try { return await rawRequest("/config/public"); } catch { return { founding_redemption_enabled: false }; }
+export async function getPublicConfig(): Promise<{ founding_redemption_enabled: boolean; email_delivery_ready: boolean }> {
+  if (!API_URL) return { founding_redemption_enabled: false, email_delivery_ready: false };
+  try {
+    const config = await rawRequest<{ founding_redemption_enabled?: boolean; email_delivery_ready?: boolean }>("/config/public");
+    return { founding_redemption_enabled: config.founding_redemption_enabled === true, email_delivery_ready: config.email_delivery_ready === true };
+  } catch {
+    return { founding_redemption_enabled: false, email_delivery_ready: false };
+  }
 }
 
 export async function claimFoundingMembership(code: string): Promise<RiseUser> {

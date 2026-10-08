@@ -390,7 +390,7 @@ const templates: Record<string, MissionTemplate> = {
 const genericTemplate: MissionTemplate = {
   titles: [
     "Define your 1% target",
-    "Study a strong example",
+    "Copy one proven move",
     "Practice the smallest skill",
     "Get real feedback",
     "Apply it in the real world",
@@ -399,7 +399,7 @@ const genericTemplate: MissionTemplate = {
   ],
   actions: [
     "Turn your goal into one observable result you can improve this week.",
-    "Find a credible example of excellent work. List three choices that make it effective.",
+    "Open the RISE resource below. Copy one useful technique for 10 minutes, then write one sentence about what improved.",
     "Practice the smallest repeatable part of the skill with full attention.",
     "Show your work to one relevant person and ask what would make it more useful.",
     "Use the skill to create a real result for yourself or another person.",
