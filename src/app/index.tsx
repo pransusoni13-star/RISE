@@ -1,6 +1,8 @@
 import { router } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { hasSavedProfile } from "../services/personalization";
 
 const steps = [
   { number: "01", title: "Choose what matters", detail: "One career direction and one life priority." },
@@ -9,6 +11,29 @@ const steps = [
 ];
 
 export default function HomeScreen() {
+  const [checkingPlan, setCheckingPlan] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    void hasSavedProfile()
+      .then((hasPlan) => {
+        if (!active) return;
+        if (hasPlan) {
+          router.replace("/(tabs)/today" as never);
+          return;
+        }
+        setCheckingPlan(false);
+      })
+      .catch(() => {
+        if (active) setCheckingPlan(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  if (checkingPlan) {
+    return <SafeAreaView style={styles.loadingPage}><ActivityIndicator color="#7AF5B8" /><Text style={styles.loadingText}>Opening your RISE home…</Text></SafeAreaView>;
+  }
+
   return <SafeAreaView style={styles.page}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.brandRow}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>PUBLIC BETA</Text></View>
@@ -37,6 +62,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingPage:{flex:1,backgroundColor:"#010807",alignItems:"center",justifyContent:"center",gap:12},loadingText:{color:"#9FC3AF",fontSize:12,fontWeight:"800"},
   page:{flex:1,backgroundColor:"#010807"},content:{flexGrow:1,width:"100%",maxWidth:520,alignSelf:"center",justifyContent:"center",paddingHorizontal:20,paddingTop:24,paddingBottom:26},
   brandRow:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:14,paddingHorizontal:3},logo:{color:"#F5FFF9",fontSize:18,fontWeight:"900",letterSpacing:4},beta:{color:"#9FC3AF",fontSize:9,fontWeight:"900",letterSpacing:1.1,borderWidth:1,borderColor:"#315544",borderRadius:5,paddingHorizontal:8,paddingVertical:5},
   card:{backgroundColor:"#071B16",borderWidth:1,borderColor:"#315544",borderRadius:20,paddingHorizontal:22,paddingTop:25,paddingBottom:21},eyebrow:{color:"#7AF5B8",fontSize:10,fontWeight:"900",letterSpacing:1.3},title:{color:"#F5FFF9",fontSize:36,lineHeight:41,fontWeight:"900",letterSpacing:-1,marginTop:11},subtitle:{color:"#C4DACD",fontSize:15,lineHeight:23,fontWeight:"600",marginTop:13},

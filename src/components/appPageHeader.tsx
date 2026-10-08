@@ -5,7 +5,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 export function AppPageHeader({ showTour = false }: { showTour?: boolean }) {
   return (
     <View style={styles.header}>
-      <Text style={styles.logo}>RISE</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Go to RISE home" hitSlop={8} onPress={() => router.replace("/(tabs)/today" as never)} style={({ pressed }) => pressed && styles.pressed}>
+        <Text style={styles.logo}>RISE</Text>
+      </Pressable>
       <View style={styles.actions}>
         {showTour ? <HeaderButton label="Guide" symbol="?" route="/tour" /> : null}
         <HeaderButton label="Plan" symbol="↻" route="/goals" />

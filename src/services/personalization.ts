@@ -140,6 +140,14 @@ export async function loadProfile(): Promise<RiseProfile> {
   }
 }
 
+export async function hasSavedProfile(): Promise<boolean> {
+  try {
+    return Boolean(await AsyncStorage.getItem(PERSONALIZATION_KEY));
+  } catch {
+    return false;
+  }
+}
+
 export async function saveProfile(profile: RiseProfile): Promise<void> {
   const { spiritualTradition, trustedSources, ...safeProfile } = profile;
   await Promise.all([
