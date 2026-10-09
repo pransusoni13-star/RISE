@@ -5,8 +5,10 @@ import { loadProfile, RiseProfile } from "../services/personalization";
 import { createRiseDataExport, deleteAllRiseData } from "../services/localData";
 import { deleteCloudAccount, flushCloudSyncQueue, getCloudDataExport, getCurrentUser, getPendingSyncCount, getUsageAnalyticsConsent, logout, RiseUser, setUsageAnalyticsConsent } from "../services/auth";
 import { cancelDailyReminder, getReminderState, ReminderState, ReminderTime, setDailyReminder } from "../services/reminders";
+import { RiseAppearanceMode, useRiseAppearance } from "../services/appearance";
 
 export default function SettingsScreen() {
+  const { mode, setMode, theme } = useRiseAppearance();
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [user, setUser] = useState<RiseUser | null>(null);
   const [usageAnalyticsOptIn, setUsageAnalyticsOptIn] = useState(false);
@@ -88,21 +90,28 @@ export default function SettingsScreen() {
     } },
   ]);
 
-  return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
-    <Text style={styles.eyebrow}>YOUR RISE</Text>
-    <Text style={styles.title}>Settings</Text>
-    <Text style={styles.subtitle}>Your plan, privacy, and on-device data in one place.</Text>
+  return <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={[styles.back, { borderColor: theme.border }]}><Text style={[styles.backText, { color: theme.accent }]}>‹</Text></Pressable>
+    <Text style={[styles.eyebrow, { color: theme.accent }]}>YOUR RISE</Text>
+    <Text style={[styles.title, { color: theme.text }]}>Settings</Text>
+    <Text style={[styles.subtitle, { color: theme.muted }]}>Your plan, privacy, and on-device data in one place.</Text>
 
-    <View style={styles.statusCard}>
-      <View style={[styles.statusDot, pendingSync > 0 && styles.statusDotWaiting]} /><View style={styles.body}><Text style={styles.cardTitle}>{user ? pendingSync > 0 ? `${pendingSync} update${pendingSync === 1 ? "" : "s"} waiting to sync` : "Account progress is synced" : "Private on-device mode"}</Text><Text style={styles.cardText}>{user ? pendingSync > 0 ? "Your work is safe on this phone. RISE retries automatically when the service is reachable." : "Goals, selected skills, mission completion, and quiz scores can sync. Proof files and reflections stay on this device." : "Sign in to sync skill and progress metadata. Proof photos and videos remain on this device."}</Text>{user && pendingSync > 0 ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: syncBusy }} disabled={syncBusy} onPress={() => void retrySync()}><Text style={styles.reminderLink}>{syncBusy ? "Trying…" : "Try sync now"}</Text></Pressable> : null}</View>
+    <Text style={[styles.section, { color: theme.muted }]}>APPEARANCE</Text>
+    <View style={[styles.planCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <Text style={[styles.cardTitle, { color: theme.text }]}>Choose how RISE looks</Text>
+      <Text style={[styles.cardText, { color: theme.muted }]}>Your choice is saved on this device and applies immediately.</Text>
+      <View style={styles.appearanceRow}>{(["dark", "light"] as RiseAppearanceMode[]).map((value) => <Pressable key={value} accessibilityRole="radio" accessibilityState={{ selected: mode === value }} onPress={() => void setMode(value)} style={[styles.appearanceChoice, { borderColor: theme.border, backgroundColor: theme.background }, mode === value && { backgroundColor: theme.accent, borderColor: theme.accent }]}><Text style={[styles.appearanceText, { color: theme.text }, mode === value && { color: theme.accentInk }]}>{value === "dark" ? "Dark" : "Light"}</Text></Pressable>)}</View>
     </View>
 
-    <Text style={styles.section}>MY PERSONAL PLAN</Text>
-    <View style={styles.planCard}>
-      <Text style={styles.planLabel}>DIRECTION</Text><Text style={styles.planValue}>{profile?.customGoal || "Personal growth"}</Text>
-      <Text style={styles.planLabel}>THREE-SKILL STACK</Text><Text style={styles.planValue}>{profile?.focusSkills?.join(" · ") || profile?.weeklySkill || "Not chosen"}</Text>
-      <Text style={styles.planLabel}>PACE</Text><Text style={styles.planValue}>{profile?.availableTime || "30 minutes"} · {profile?.commitment || "Every 7 days"}</Text>
+    <View style={[styles.statusCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
+      <View style={[styles.statusDot, pendingSync > 0 && styles.statusDotWaiting]} /><View style={styles.body}><Text style={[styles.cardTitle, { color: theme.text }]}>{user ? pendingSync > 0 ? `${pendingSync} update${pendingSync === 1 ? "" : "s"} waiting to sync` : "Account progress is synced" : "Private on-device mode"}</Text><Text style={[styles.cardText, { color: theme.muted }]}>{user ? pendingSync > 0 ? "Your work is safe on this phone. RISE retries automatically when the service is reachable." : "Goals, selected skills, mission completion, and quiz scores can sync. Proof files and reflections stay on this device." : "Sign in to sync skill and progress metadata. Proof photos and videos remain on this device."}</Text>{user && pendingSync > 0 ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: syncBusy }} disabled={syncBusy} onPress={() => void retrySync()}><Text style={[styles.reminderLink, { color: theme.accent }]}>{syncBusy ? "Trying…" : "Try sync now"}</Text></Pressable> : null}</View>
+    </View>
+
+    <Text style={[styles.section, { color: theme.muted }]}>MY PERSONAL PLAN</Text>
+    <View style={[styles.planCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <Text style={[styles.planLabel, { color: theme.muted }]}>DIRECTION</Text><Text style={[styles.planValue, { color: theme.text }]}>{profile?.customGoal || "Personal growth"}</Text>
+      <Text style={[styles.planLabel, { color: theme.muted }]}>THREE-SKILL STACK</Text><Text style={[styles.planValue, { color: theme.text }]}>{profile?.focusSkills?.join(" · ") || profile?.weeklySkill || "Not chosen"}</Text>
+      <Text style={[styles.planLabel, { color: theme.muted }]}>PACE</Text><Text style={[styles.planValue, { color: theme.text }]}>{profile?.availableTime || "30 minutes"} · {profile?.commitment || "Every 7 days"}</Text>
     </View>
     <Row title="Change direction and skills" text="Rebuild your personal mission cycle" onPress={() => router.push("/goals" as any)} />
     <Row title="Change available time" text="Choose 10, 20, 30, or 60 minutes" onPress={() => router.push({ pathname: "/schedule", params: {
@@ -118,17 +127,17 @@ export default function SettingsScreen() {
       availableTime: profile?.availableTime,
     } } as any)} />
 
-    <Text style={styles.section}>HELP & CONTROL</Text>
+    <Text style={[styles.section, { color: theme.muted }]}>HELP & CONTROL</Text>
     <Row title="Take the RISE Tour" text="See where everything is and jump directly to each feature" onPress={() => router.push("/tour" as any)} />
-    <View style={styles.planCard}>
-      <Text style={styles.cardTitle}>Daily check-in</Text>
-      <Text style={styles.cardText}>{reminder.permission === "unavailable" ? "On the web beta, check in on Today. Phone reminders are available in the iOS and Android app." : reminder.enabled ? `On at ${reminder.times.join(", ")}. Tap a notification to open Today's mission.` : "Off. Choose a time and turn on a gentle phone reminder."}</Text>
+    <View style={[styles.planCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <Text style={[styles.cardTitle, { color: theme.text }]}>Daily check-in</Text>
+      <Text style={[styles.cardText, { color: theme.muted }]}>{reminder.permission === "unavailable" ? "On the web beta, check in on Today. Phone reminders are available in the iOS and Android app." : reminder.enabled ? `On at ${reminder.times.join(", ")}. Tap a notification to open Today's mission.` : "Off. Choose a time and turn on a gentle phone reminder."}</Text>
       {reminder.permission !== "unavailable" ? <>
-        <View style={styles.timeRow}>{(["08:00", "12:00", "18:00", "20:00"] as ReminderTime[]).map((time) => <Pressable key={time} accessibilityRole="button" accessibilityLabel={`Set reminder for ${time}`} onPress={() => void changeReminder(true, time)} disabled={reminderBusy} style={[styles.timeChoice, reminder.enabled && reminder.time === time && styles.timeChoiceSelected]}><Text style={styles.timeText}>{time}</Text></Pressable>)}</View>
+        <View style={styles.timeRow}>{(["08:00", "12:00", "18:00", "20:00"] as ReminderTime[]).map((time) => { const selected = reminder.enabled && reminder.time === time; return <Pressable key={time} accessibilityRole="button" accessibilityLabel={`Set reminder for ${time}`} onPress={() => void changeReminder(true, time)} disabled={reminderBusy} style={[styles.timeChoice, { borderColor: theme.border }, selected && { backgroundColor: theme.accent, borderColor: theme.accent }]}><Text style={[styles.timeText, { color: selected ? theme.accentInk : theme.text }]}>{time}</Text></Pressable>; })}</View>
         {reminder.enabled ? <Pressable accessibilityRole="button" onPress={() => void changeReminder(false, reminder.time)} disabled={reminderBusy}><Text style={styles.reminderLink}>Turn reminders off</Text></Pressable> : null}
         {reminder.permission === "denied" ? <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()}><Text style={styles.reminderLink}>Open phone notification settings</Text></Pressable> : null}
       </> : null}
-      <Text style={styles.cardText}>Choose up to three reminders during plan setup. Focus modes and phone settings can delay or silence them.</Text>
+      <Text style={[styles.cardText, { color: theme.muted }]}>Choose up to three reminders during plan setup. Focus modes and phone settings can delay or silence them.</Text>
     </View>
     {user ? <Row title={`Share improvement analytics: ${usageAnalyticsOptIn ? "On" : "Off"}`} text="Optional. Turning off excludes you from operator reports and deletes past usage-time and signup-time records; your own mission progress stays." onPress={() => void toggleUsageAnalytics()} /> : null}
     {user ? <><Row title="Synced Improvement" text="Quiz baselines, completed missions, and focused minutes" onPress={() => router.push("/account-progress" as any)} /><Row title="Sign Out" text={`Signed in as ${user.email}`} onPress={() => void logout().then(() => router.replace("/account" as never))} /></> : <Row title="Create or Sign In" text="Sync skills and improvement across the beta" onPress={() => router.push("/account" as any)} />}
@@ -146,7 +155,8 @@ export default function SettingsScreen() {
 }
 
 function Row({ title, text, onPress }: { title: string; text: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}><View style={styles.body}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.cardText}>{text}</Text></View><Text style={styles.arrow}>›</Text></Pressable>;
+  const { theme } = useRiseAppearance();
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: 0.7 }]}><View style={styles.body}><Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.cardText, { color: theme.muted }]}>{text}</Text></View><Text style={[styles.arrow, { color: theme.accent }]}>›</Text></Pressable>;
 }
 
 const styles = StyleSheet.create({
@@ -154,4 +164,5 @@ const styles = StyleSheet.create({
   statusCard:{flexDirection:"row",backgroundColor:"rgba(122,245,184,0.08)",borderWidth:1,borderColor:"rgba(122,245,184,0.25)",borderRadius:18,padding:16,marginBottom:24},statusDot:{width:10,height:10,borderRadius:5,backgroundColor:"#7AF5B8",marginTop:5,marginRight:11},statusDotWaiting:{backgroundColor:"#FFCF70"},body:{flex:1},cardTitle:{color:"#F5FFF9",fontSize:14,fontWeight:"900"},cardText:{color:"#9FC3AF",fontSize:12,lineHeight:18,marginTop:4},section:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.3,marginTop:8,marginBottom:10},planCard:{backgroundColor:"#071B16",borderRadius:18,borderWidth:1,borderColor:"#1E3A31",padding:16,marginBottom:10},planLabel:{color:"#6F9883",fontSize:9,fontWeight:"900",letterSpacing:1.1,marginTop:9},planValue:{color:"#E8F8EF",fontSize:13,lineHeight:19,fontWeight:"800",marginTop:4},row:{minHeight:70,flexDirection:"row",alignItems:"center",backgroundColor:"#071B16",borderRadius:17,borderWidth:1,borderColor:"#1E3A31",padding:15,marginBottom:9},arrow:{color:"#7AF5B8",fontSize:24,marginLeft:10},note:{backgroundColor:"#0D2F22",borderRadius:17,padding:16,marginTop:17},noteTitle:{color:"#FFCF70",fontSize:13,fontWeight:"900"},noteText:{color:"#DFFDEE",fontSize:12,lineHeight:19,marginTop:6},
   deleteRow:{minHeight:70,flexDirection:"row",alignItems:"center",backgroundColor:"rgba(120,35,35,0.12)",borderRadius:17,borderWidth:1,borderColor:"#603F3C",padding:15,marginBottom:9},deleteTitle:{color:"#FFB4A8",fontSize:14,fontWeight:"900"},deleteArrow:{color:"#FFB4A8",fontSize:24,marginLeft:10},
   timeRow:{flexDirection:"row",flexWrap:"wrap",gap:8,marginTop:14,marginBottom:8},timeChoice:{paddingHorizontal:12,paddingVertical:10,borderRadius:12,borderWidth:1,borderColor:"#315544"},timeChoiceSelected:{backgroundColor:"#1A6B45",borderColor:"#7AF5B8"},timeText:{color:"#F5FFF9",fontWeight:"800",fontSize:12},reminderLink:{color:"#7AF5B8",fontWeight:"800",fontSize:13,marginTop:7,marginBottom:7},
+  appearanceRow:{flexDirection:"row",gap:10,marginTop:14},appearanceChoice:{flex:1,minHeight:46,borderRadius:14,borderWidth:1,alignItems:"center",justifyContent:"center"},appearanceText:{fontSize:14,fontWeight:"900"},
 });

@@ -15,12 +15,12 @@
     "orientation": "portrait",
     "icon": "./assets/images/rise-icon.png",
     "scheme": "rise",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "appleTeamId": "C428XF4X3T",
       "bundleIdentifier": "com.riseapp13.riseapp",
       "icon": "./assets/images/rise-icon.png",
-      "buildNumber": "17",
+      "buildNumber": "18",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false

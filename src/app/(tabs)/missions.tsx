@@ -9,9 +9,11 @@ import {
 } from "../../services/personalization";
 import { missionRepository, MissionRecord } from "../../services/missionRepository";
 import { AppPageHeader } from "../../components/appPageHeader";
-import { daysUntilMission, getUnlockedDay } from "../../services/dayUnlock";
+import { daysUntilMission, getAvailableMissionDay, getUnlockedDay } from "../../services/dayUnlock";
+import { useRiseAppearance } from "../../services/appearance";
 
 export default function MissionsTabScreen() {
+  const { theme } = useRiseAppearance();
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [records, setRecords] = useState<Record<string, MissionRecord>>({});
 
@@ -30,38 +32,41 @@ export default function MissionsTabScreen() {
     [profile]
   );
   const completedCount = missions.filter((mission) => records[mission.id]?.status === "completed").length;
-  const unlockedDay = getUnlockedDay(profile?.skillStartDate, missions.length || 1);
+  const calendarDay = getUnlockedDay(profile?.skillStartDate, missions.length || 1);
+  const completedDays = missions.filter((mission) => records[mission.id]?.status === "completed").map((mission) => mission.day);
+  const unlockedDay = getAvailableMissionDay(profile?.skillStartDate, missions.length || 1, completedDays);
 
   const openMission = (mission: PersonalizedMission) => {
     router.push({ pathname: "/action", params: { mission: JSON.stringify(mission) } } as any);
   };
 
   if (!profile) {
-    return <View style={styles.loading}><ActivityIndicator color="#7AF5B8" /></View>;
+    return <View style={[styles.loading, { backgroundColor: theme.background }]}><ActivityIndicator color={theme.accent} /></View>;
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <AppPageHeader />
-      <Text style={styles.heading}>Missions 🎯</Text>
-      <Text style={styles.subtitle}>One a day. Do it. Prove it. Grow.</Text>
-      <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/progress" as never)} style={({ pressed }) => [styles.progressLink, pressed && styles.progressLinkPressed]}><View><Text style={styles.progressLabel}>YOUR 7-DAY RUN</Text><Text style={styles.progressValue}>{completedCount}/{missions.length} complete</Text></View><Text style={styles.progressAction}>See progress ›</Text></Pressable>
+      <Text style={[styles.heading, { color: theme.text }]}>Missions 🎯</Text>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>One a day. Do it. Prove it. Grow.</Text>
+      <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/progress" as never)} style={({ pressed }) => [styles.progressLink, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }, pressed && styles.progressLinkPressed]}><View><Text style={[styles.progressLabel, { color: theme.muted }]}>YOUR 7-DAY RUN</Text><Text style={[styles.progressValue, { color: theme.text }]}>{completedCount}/{missions.length} complete</Text></View><Text style={[styles.progressAction, { color: theme.accent }]}>See progress ›</Text></Pressable>
 
       {missions.map((mission) => {
         const locked = mission.day > unlockedDay;
-        const wait = daysUntilMission(mission.day, unlockedDay);
+        const wait = daysUntilMission(mission.day, calendarDay);
+        const waitingForEarlierMission = mission.day > unlockedDay && mission.day <= calendarDay;
         return (
-        <Pressable key={mission.id} disabled={locked} accessibilityState={{ disabled: locked }} style={[styles.card, locked && styles.cardLocked]} onPress={() => openMission(mission)}>
+        <Pressable key={mission.id} disabled={locked} accessibilityState={{ disabled: locked }} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, locked && styles.cardLocked]} onPress={() => openMission(mission)}>
           <View style={styles.topRow}>
             <Text style={styles.day}>DAY {mission.day} {records[mission.id]?.status === "completed" ? "• COMPLETE" : locked ? "• LOCKED" : "• READY"}</Text>
             <Text style={styles.reward}>+{mission.reward} XP</Text>
           </View>
           <Text style={[styles.track, mission.track === "life" && styles.lifeTrack]}>{mission.track.toUpperCase()} • {mission.focusSkill}</Text>
-          <Text style={styles.cardTitle}>{mission.title}</Text>
-          <Text style={styles.cardDescription} numberOfLines={2}>{mission.description}</Text>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>{mission.title}</Text>
+          <Text style={[styles.cardDescription, { color: theme.muted }]} numberOfLines={2}>{mission.description}</Text>
           <View style={styles.row}>
             <Text style={styles.meta}>⏱ {mission.duration}m  ·  +{mission.coinReward} 🪙</Text>
-            <Text style={styles.open}>{locked ? (wait === 1 ? "Tomorrow 🔒" : `${wait} days 🔒`) : "Let’s go →"}</Text>
+            <Text style={styles.open}>{locked ? waitingForEarlierMission ? `Finish Day ${mission.day - 1} 🔒` : (wait === 1 ? "Tomorrow 🔒" : `${wait} days 🔒`) : "Let’s go →"}</Text>
           </View>
         </Pressable>
       )})}

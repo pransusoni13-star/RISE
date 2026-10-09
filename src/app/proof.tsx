@@ -26,9 +26,12 @@ import { MissionFeedback, missionRepository } from "../services/missionRepositor
 import { createSevenDayPlan, loadProfile, PersonalizedMission, updateProfile } from "../services/personalization";
 import { isProofUriReused, ProofAssetDetails, reviewProof, validateProofAsset } from "../services/proofValidation";
 import { recordProgressEvent } from "../services/auth";
+import { getAvailableMissionDay } from "../services/dayUnlock";
+import { useRiseAppearance } from "../services/appearance";
 
 export default function ProofScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useRiseAppearance();
   const params = useLocalSearchParams();
 
   const taskTitle =
@@ -58,6 +61,7 @@ export default function ProofScreen() {
   const [matchesMission, setMatchesMission] = useState(false);
   const [ownsWork, setOwnsWork] = useState(false);
   const [nextMission, setNextMission] = useState<PersonalizedMission | null>(null);
+  const [hasRemainingMissions, setHasRemainingMissions] = useState(false);
 
   const [submitted, setSubmitted] = useState(false);
   const [coins, setCoins] = useState(0);
@@ -69,6 +73,19 @@ export default function ProofScreen() {
   const [usefulFeedback, setUsefulFeedback] = useState<boolean>();
   const [blockerFeedback, setBlockerFeedback] = useState<MissionFeedback["blocker"]>();
   const [feedbackSaving, setFeedbackSaving] = useState(false);
+
+  const refreshNextMission = async (currentMissionId: string) => {
+    const profile = await loadProfile();
+    const plan = createSevenDayPlan(profile);
+    const records = await missionRepository.list();
+    const completedDays = plan.filter((mission) => records.some((record) => record.missionId === mission.id && record.status === "completed")).map((mission) => mission.day);
+    const availableDay = getAvailableMissionDay(profile.skillStartDate, plan.length || 1, completedDays);
+    const index = plan.findIndex((mission) => mission.id === currentMissionId);
+    const candidate = index >= 0 ? plan[index + 1] || null : null;
+    setHasRemainingMissions(Boolean(candidate));
+    setNextMission(candidate && candidate.day <= availableDay ? candidate : null);
+    return profile;
+  };
 
   useEffect(() => {
     let active = true;
@@ -86,11 +103,8 @@ export default function ProofScreen() {
         setProofDescription(record.proof.description || "");
         setMatchesMission(record.proof.review?.checks.some((check) => check.id === "matches_mission" && check.passed) ?? true);
         setOwnsWork(record.proof.review?.checks.some((check) => check.id === "owns_work" && check.passed) ?? true);
-        const profile = await loadProfile();
+        await refreshNextMission(missionId);
         if (!active) return;
-        const plan = createSevenDayPlan(profile);
-        const index = plan.findIndex((mission) => mission.id === missionId);
-        setNextMission(index >= 0 ? plan[index + 1] || null : plan[0] || null);
         setSubmitted(true);
       }
     });
@@ -334,10 +348,7 @@ export default function ProofScreen() {
         minutes: Number.isFinite(missionMinutes) ? missionMinutes : 0,
         metadata: { goal, proofType, completedAt: submittedAt },
       }).catch(() => undefined);
-      const profile = await loadProfile();
-      const plan = createSevenDayPlan(profile);
-      const index = plan.findIndex((mission) => mission.id === missionId);
-      setNextMission(index >= 0 ? plan[index + 1] || null : plan[0] || null);
+      await refreshNextMission(missionId);
       setSubmitted(true);
     } catch (error) {
       console.log(
@@ -372,15 +383,13 @@ export default function ProofScreen() {
       };
       await missionRepository.patch(missionId, { feedback });
       const currentProfile = await loadProfile();
-      const nextProfile = await updateProfile({
+      await updateProfile({
         lastDifficultyFeedback: difficulty,
         lastMissionUseful: useful,
         lastBlocker: blocker,
         feedbackCount: (currentProfile.feedbackCount || 0) + (!difficultyFeedback && difficulty ? 1 : 0),
       });
-      const plan = createSevenDayPlan(nextProfile);
-      const index = plan.findIndex((mission) => mission.id === missionId);
-      setNextMission(index >= 0 ? plan[index + 1] || null : plan[0] || null);
+      await refreshNextMission(missionId);
     } catch {
       Alert.alert("Feedback was not saved", "Your mission is complete. You can continue and try feedback again later.");
     } finally {
@@ -390,7 +399,7 @@ export default function ProofScreen() {
 
   if (submitted) {
     return (
-      <View style={styles.successContainer}>
+      <View style={[styles.successContainer, { backgroundColor: theme.background }]}>
         <ScrollView
           contentContainerStyle={styles.successContent}
           showsVerticalScrollIndicator={false}
@@ -401,16 +410,16 @@ export default function ProofScreen() {
             </Text>
           </View>
 
-          <Text style={styles.successTitle}>
+          <Text style={[styles.successTitle, { color: theme.text }]}>
             You did it.
           </Text>
 
-          <Text style={styles.successSubtitle}>
+          <Text style={[styles.successSubtitle, { color: theme.muted }]}>
             {taskTitle} completed.
           </Text>
 
           {earnedXP > 0 ? (
-            <View style={styles.xpCard}>
+            <View style={[styles.xpCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <Text style={styles.xpEmoji}>
                 ⚡
               </Text>
@@ -426,7 +435,7 @@ export default function ProofScreen() {
               </View>
             </View>
           ) : (
-            <View style={styles.xpCard}>
+            <View style={[styles.xpCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <Text style={styles.xpEmoji}>
                 ✓
               </Text>
@@ -444,7 +453,7 @@ export default function ProofScreen() {
           )}
 
           {coins > 0 && (
-            <View style={styles.coinCard}>
+            <View style={[styles.coinCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <Text style={styles.coinEmoji}>
                 🪙
               </Text>
@@ -462,7 +471,7 @@ export default function ProofScreen() {
           )}
 
           {proofType && (
-            <View style={styles.verifiedCard}>
+            <View style={[styles.verifiedCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
               <Text style={styles.verifiedIcon}>
                 {proofType === "video"
                   ? "🎥"
@@ -481,9 +490,9 @@ export default function ProofScreen() {
             </View>
           )}
 
-          <View style={styles.feedbackCard}>
+          <View style={[styles.feedbackCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={styles.feedbackEyebrow}>OPTIONAL · PERSONALIZE THE NEXT MISSION</Text>
-            <Text style={styles.feedbackTitle}>How did this feel?</Text>
+            <Text style={[styles.feedbackTitle, { color: theme.text }]}>How did this feel?</Text>
             <View style={styles.feedbackRow}>
               {([
                 ["too_easy", "Too easy"],
@@ -525,10 +534,12 @@ export default function ProofScreen() {
             ]}
             onPress={() => nextMission
               ? router.replace({ pathname: "/action", params: { mission: JSON.stringify(nextMission) } } as any)
-              : void loadProfile().then((profile) => router.replace({ pathname: "/quiz", params: { cycleGate: "1", cycleId: missionId, skillId: profile.weeklySkill || skillId, goal: profile.selectedGoals[0] || goal, goals: JSON.stringify(profile.selectedGoals), commitment: profile.commitment || "Every 7 days" } } as any))}
+              : hasRemainingMissions
+                ? router.replace("/(tabs)/today" as any)
+                : void loadProfile().then((profile) => router.replace({ pathname: "/quiz", params: { cycleGate: "1", cycleId: missionId, skillId: profile.weeklySkill || skillId, goal: profile.selectedGoals[0] || goal, goals: JSON.stringify(profile.selectedGoals), commitment: profile.commitment || "Every 7 days" } } as any))}
           >
             <Text style={styles.continueButtonText}>
-              {nextMission ? "Start Next Mission" : "Take Cycle Quiz to Unlock"}
+              {nextMission ? "Start Next Mission" : hasRemainingMissions ? "Done for today — come back tomorrow" : "Take Cycle Quiz to Unlock"}
             </Text>
 
             <Text style={styles.arrow}>
@@ -555,8 +566,8 @@ export default function ProofScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <View style={[styles.header, { paddingTop: insets.top + 12, backgroundColor: theme.background, borderBottomColor: theme.border }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: saving }}
@@ -586,30 +597,30 @@ export default function ProofScreen() {
           🔥
         </Text>
 
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: theme.text }]}>
           Prove your{"\n"}
           <Text style={styles.greenText}>
             progress.
           </Text>
         </Text>
 
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: theme.muted }]}>
           You did the work. Now show RISE.
           Submit a photo or video and earn
           extra RISE Coins.
         </Text>
 
-        <View style={styles.taskCard}>
+        <View style={[styles.taskCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={styles.taskLabel}>
             TODAY’S TASK
           </Text>
 
-          <Text style={styles.taskTitle}>
+          <Text style={[styles.taskTitle, { color: theme.text }]}>
             {taskTitle}
           </Text>
         </View>
 
-        <View style={styles.xpInfoCard}>
+        <View style={[styles.xpInfoCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
           <View style={styles.xpInfoIcon}>
             <Text style={styles.xpInfoEmoji}>
               ⚡
@@ -617,11 +628,11 @@ export default function ProofScreen() {
           </View>
 
           <View style={styles.xpInfoContent}>
-            <Text style={styles.xpInfoTitle}>
+            <Text style={[styles.xpInfoTitle, { color: theme.text }]}>
               Proof = progress
             </Text>
 
-            <Text style={styles.xpInfoText}>
+            <Text style={[styles.xpInfoText, { color: theme.muted }]}>
               Submit proof to earn XP and
               develop your skill.
             </Text>
@@ -636,7 +647,7 @@ export default function ProofScreen() {
           <Pressable
             onPress={attachFromLibrary}
             style={({ pressed }) => [
-              styles.optionCard,
+              styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border },
               proofType === "photo" &&
                 styles.optionSelected,
               pressed && styles.optionPressed,
@@ -649,7 +660,7 @@ export default function ProofScreen() {
               </Text>
             </View>
 
-            <Text style={styles.optionTitle}>
+            <Text style={[styles.optionTitle, { color: theme.text }]}>
               Choose from phone
             </Text>
 
@@ -665,7 +676,7 @@ export default function ProofScreen() {
           <Pressable
             onPress={chooseCameraMode}
             style={({ pressed }) => [
-              styles.optionCard,
+              styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border },
               proofType === "video" &&
                 styles.optionSelected,
               pressed && styles.optionPressed,
@@ -678,7 +689,7 @@ export default function ProofScreen() {
               </Text>
             </View>
 
-            <Text style={styles.optionTitle}>
+            <Text style={[styles.optionTitle, { color: theme.text }]}>
               Use camera
             </Text>
 
@@ -718,10 +729,10 @@ export default function ProofScreen() {
           </View>
         ) : null}
 
-        <View style={styles.reviewCard}>
+        <View style={[styles.reviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={styles.reviewEyebrow}>PROOF REVIEW</Text>
-          <Text style={styles.reviewTitle}>Show how this proves the mission</Text>
-          <Text style={styles.reviewText}>In one specific sentence, describe what is visible and how it connects to “{taskTitle}.”</Text>
+          <Text style={[styles.reviewTitle, { color: theme.text }]}>Show how this proves the mission</Text>
+          <Text style={[styles.reviewText, { color: theme.muted }]}>In one specific sentence, describe what is visible and how it connects to “{taskTitle}.”</Text>
           <TextInput
             value={proofDescription}
             onChangeText={setProofDescription}
@@ -729,7 +740,7 @@ export default function ProofScreen() {
             placeholderTextColor="#668577"
             multiline
             maxLength={500}
-            style={styles.reviewInput}
+            style={[styles.reviewInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
           />
           <ReviewCheck checked={matchesMission} onPress={() => setMatchesMission((value) => !value)} text="The attachment clearly shows the result of this mission." />
           <ReviewCheck checked={ownsWork} onPress={() => setOwnsWork((value) => !value)} text="I created this work or have permission to submit it." />
@@ -739,7 +750,7 @@ export default function ProofScreen() {
 
         <View style={styles.bottomSpace} />
       </ScrollView>
-      <View style={[styles.footer, { marginBottom: insets.bottom + 8 }]}>
+      <View style={[styles.footer, { marginBottom: insets.bottom + 8, backgroundColor: theme.background, borderTopColor: theme.border }]}>
         <Pressable
           onPress={submitProof}
           style={({ pressed }) => [
@@ -773,7 +784,8 @@ export default function ProofScreen() {
 }
 
 function ReviewCheck({ checked, onPress, text }: { checked: boolean; onPress: () => void; text: string }) {
-  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={onPress} style={[styles.attestation, checked && styles.attestationChecked]}><View style={[styles.checkBox, checked && styles.checkBoxChecked]}><Text style={styles.checkBoxText}>{checked ? "✓" : ""}</Text></View><Text style={styles.attestationText}>{text}</Text></Pressable>;
+  const { theme } = useRiseAppearance();
+  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={onPress} style={[styles.attestation, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }, checked && styles.attestationChecked]}><View style={[styles.checkBox, checked && styles.checkBoxChecked]}><Text style={styles.checkBoxText}>{checked ? "✓" : ""}</Text></View><Text style={[styles.attestationText, { color: theme.text }]}>{text}</Text></Pressable>;
 }
 
 const styles = StyleSheet.create({

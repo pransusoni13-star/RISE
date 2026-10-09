@@ -2,10 +2,17 @@ import "@/global.css";
 import { router, Stack } from "expo-router";
 import { useEffect } from "react";
 import { AppState } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { flushCloudSyncQueue, getUsageAnalyticsConsent, getUsageAnalyticsEnabledAt, isUsageAnalyticsEnabled, recordProgressEvent } from "../services/auth";
 import { initializeReminderNavigation } from "../services/reminders";
+import { RiseAppearanceProvider, useRiseAppearance } from "../services/appearance";
 
 export default function RootLayout() {
+  return <RiseAppearanceProvider><ThemedRootLayout /></RiseAppearanceProvider>;
+}
+
+function ThemedRootLayout() {
+  const { theme } = useRiseAppearance();
   useEffect(() => {
     let dispose: (() => void) | undefined;
     let mounted = true;
@@ -37,11 +44,13 @@ export default function RootLayout() {
     });
     return () => { clearInterval(interval); subscription.remove(); };
   }, []);
-  return (
+  return (<>
+    <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
     <Stack
       screenOptions={{
         headerShown: false,
         animation: "default",
+        contentStyle: { backgroundColor: theme.background },
       }}
     >
       <Stack.Screen name="index" />
@@ -98,5 +107,5 @@ export default function RootLayout() {
 
       <Stack.Screen name="progress-screen" />
     </Stack>
-  );
+  </>);
 }

@@ -20,6 +20,7 @@ import { getCycleQuestions } from "../services/cycleQuiz";
 import { createSevenDayPlan, loadProfile, updateProfile } from "../services/personalization";
 import { missionRepository } from "../services/missionRepository";
 import { recordProgressEvent } from "../services/auth";
+import { useRiseAppearance } from "../services/appearance";
 
 type Question = {
   question: string;
@@ -119,6 +120,7 @@ const difficulties = [
 ];
 
 export default function QuizScreen() {
+  const { theme } = useRiseAppearance();
   const params = useLocalSearchParams();
   const cycleGate = params.cycleGate === "1";
   const cycleId = typeof params.cycleId === "string" ? params.cycleId : "current-cycle";
@@ -374,10 +376,10 @@ export default function QuizScreen() {
 
     return (
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.resultContent}
       >
-        <View style={styles.resultCard}>
+        <View style={[styles.resultCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={styles.logo}>RISE</Text>
 
           <Text style={styles.resultEmoji}>
@@ -390,7 +392,7 @@ export default function QuizScreen() {
               : "📚"}
           </Text>
 
-          <Text style={styles.resultTitle}>
+          <Text style={[styles.resultTitle, { color: theme.text }]}>
             {cycleGate && !quizResult.passed
               ? "Review Before Unlocking"
               : quizResult.percentage >= 80
@@ -414,7 +416,7 @@ export default function QuizScreen() {
 
           {/* QUIZ INFO */}
 
-          <View style={styles.resultInfo}>
+          <View style={[styles.resultInfo, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
             <Text style={styles.resultInfoLabel}>
               DIFFICULTY
             </Text>
@@ -450,7 +452,7 @@ export default function QuizScreen() {
 
           {/* ADAPTIVE ENGINE */}
 
-          <View style={styles.nextMoveCard}>
+          <View style={[styles.nextMoveCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
             <Text style={styles.nextMoveLabel}>
               YOUR NEXT MOVE
             </Text>
@@ -559,7 +561,7 @@ export default function QuizScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.content}
     >
       <Text style={styles.logo}>RISE</Text>
@@ -568,17 +570,17 @@ export default function QuizScreen() {
         YOUR SKILL CHECK
       </Text>
 
-      <Text style={styles.title}>
+      <Text style={[styles.title, { color: theme.text }]}>
         See what you learned
       </Text>
 
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>
         Five clear questions, with explanations. Your answers help shape what to practice next.
       </Text>
 
       {/* SKILL */}
 
-      <View style={styles.skillBadge}>
+      <View style={[styles.skillBadge, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text style={styles.skillBadgeLabel}>
           SKILL BEING TESTED
         </Text>
@@ -641,13 +643,13 @@ export default function QuizScreen() {
 
       {/* QUESTION */}
 
-      <View style={styles.questionCard}>
+      <View style={[styles.questionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text style={styles.questionNumber}>
           QUESTION {currentQuestion + 1} /{" "}
           {questions.length}
         </Text>
 
-        <Text style={styles.question}>
+        <Text style={[styles.question, { color: theme.text }]}>
           {question.question}
         </Text>
 
@@ -658,8 +660,8 @@ export default function QuizScreen() {
           const isCorrect =
             index === question.answer;
 
-          let optionStyle: any = styles.option;
-          let textStyle: any = styles.optionText;
+          let optionStyle: any = [styles.option, { backgroundColor: theme.background, borderColor: theme.border }];
+          let textStyle: any = [styles.optionText, { color: theme.text }];
 
           if (selectedAnswer !== null) {
             if (isCorrect) {

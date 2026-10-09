@@ -19,6 +19,7 @@ import { spiritualPractice, spiritualResource, spiritualVideoSearch } from "../s
 import { missionRepository, MissionStatus } from "../services/missionRepository";
 import { missionResultQuality } from "../services/missionProgress";
 import { reflectionQuality } from "../services/proofValidation";
+import { useRiseAppearance } from "../services/appearance";
 
 const fallbackMission: PersonalizedMission = {
   id: "personal-day-1",
@@ -50,6 +51,7 @@ const fallbackMission: PersonalizedMission = {
 
 export default function ActionScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useRiseAppearance();
   const params = useLocalSearchParams();
   const [reflection, setReflection] = useState("");
   const [chosenResult, setChosenResult] = useState("");
@@ -203,7 +205,7 @@ export default function ActionScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={8}>
+    <KeyboardAvoidingView style={[styles.page, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={8}>
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: footerHeight + insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <View style={styles.heroBubbleLarge} />
@@ -223,7 +225,7 @@ export default function ActionScreen() {
           </View>
         </View>
 
-        <View style={styles.mapCard}>
+        <View style={[styles.mapCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.mapTop}><Text style={styles.mapEyebrow}>YOUR MISSION MAP</Text><Text style={styles.mapPercent}>{missionProgress}%</Text></View>
           <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${missionProgress}%` as `${number}%` }]} /></View>
           <View style={styles.mapStops}>
@@ -236,16 +238,16 @@ export default function ActionScreen() {
           <Text style={styles.nextMove}>{readyForProof ? "✨ Mission ready to prove!" : nextMove}</Text>
         </View>
 
-        <View onLayout={(event) => { resultY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, resultReady && styles.stageCardDone]}>
+        <View onLayout={(event) => { resultY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: theme.surface, borderColor: theme.border }, resultReady && styles.stageCardDone]}>
           <View style={styles.stageHeader}>
             <View style={[styles.stageNumber, resultReady && styles.stageNumberDone]}><Text style={styles.stageNumberText}>{resultReady ? "✓" : "1"}</Text></View>
-            <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{resultReady ? "WIN LOCKED" : "FIRST MOVE"}</Text><Text style={styles.stageTitle}>Choose today’s win</Text></View>
+            <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{resultReady ? "WIN LOCKED" : "FIRST MOVE"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Choose today’s win</Text></View>
             <Text style={styles.stageEmoji}>🎯</Text>
           </View>
-          <Text style={styles.stagePrompt}>What will be finished—not just started?</Text>
+          <Text style={[styles.stagePrompt, { color: theme.text }]}>What will be finished—not just started?</Text>
           <TextInput
             accessibilityLabel="My chosen mission result"
-            style={styles.missionInput}
+            style={[styles.missionInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
             placeholder={`Example: Finish one ${mission.focusSkill} result I can show.`}
             placeholderTextColor="#668577"
             value={chosenResult}
@@ -257,35 +259,35 @@ export default function ActionScreen() {
           <Text style={[styles.hint, resultReady && styles.hintReady]}>{resultReady ? "✓ Clear, specific, and saved" : resultReview.message}</Text>
         </View>
 
-        <View onLayout={(event) => { stepsY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, styles.stepsStage, stepsReady && styles.stageCardDone]}>
+        <View onLayout={(event) => { stepsY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: theme.surface, borderColor: theme.border }, styles.stepsStage, stepsReady && styles.stageCardDone]}>
           <View style={styles.stageHeader}>
             <View style={[styles.stageNumber, stepsReady && styles.stageNumberDone]}><Text style={styles.stageNumberText}>{stepsReady ? "✓" : "2"}</Text></View>
-            <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{completedSteps.length}/{mission.steps.length} MOVES</Text><Text style={styles.stageTitle}>Do the mission</Text></View>
+            <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{completedSteps.length}/{mission.steps.length} MOVES</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Do the mission</Text></View>
             <Text style={styles.stageEmoji}>⚡</Text>
           </View>
           <View style={styles.miniProgress}><View style={[styles.miniProgressFill, { width: `${Math.round((completedSteps.length / mission.steps.length) * 100)}%` as `${number}%` }]} /></View>
           {mission.steps.map((step, index) => {
             const done = completedSteps.includes(index);
-            return <Pressable accessibilityRole="checkbox" disabled={saving || status === "completed"} accessibilityHint="Double tap only after you complete this action" accessibilityState={{ checked: done, disabled: saving || status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, done && styles.stepCardDone]} onPress={() => toggleStep(index)}>
+            return <Pressable accessibilityRole="checkbox" disabled={saving || status === "completed"} accessibilityHint="Double tap only after you complete this action" accessibilityState={{ checked: done, disabled: saving || status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }, done && styles.stepCardDone]} onPress={() => toggleStep(index)}>
               <View style={[styles.stepNumber, done && styles.stepNumberDone]}><Text style={[styles.stepNumberText, done && styles.stepNumberTextDone]}>{done ? "✓" : index + 1}</Text></View>
-              <View style={styles.stepBody}><Text style={[styles.stepText, done && styles.stepTextDone]}>{step}</Text><Text style={[styles.stepAction, done && styles.stepActionDone]}>{done ? "DONE" : "TAP WHEN DONE"}</Text></View>
+              <View style={styles.stepBody}><Text style={[styles.stepText, { color: theme.text }, done && styles.stepTextDone]}>{step}</Text><Text style={[styles.stepAction, done && styles.stepActionDone]}>{done ? "DONE" : "TAP WHEN DONE"}</Text></View>
             </Pressable>;
           })}
           <View style={styles.finishLine}><Text style={styles.finishIcon}>🏁</Text><View style={styles.finishBody}><Text style={styles.finishLabel}>THE FINISH LINE</Text><Text style={styles.finishText}>{mission.successCriteria}</Text></View></View>
         </View>
 
-        <View onLayout={(event) => { reflectionY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, !stepsReady && styles.stageCardLocked, reflectionReady && styles.stageCardDone]}>
+        <View onLayout={(event) => { reflectionY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: theme.surface, borderColor: theme.border }, !stepsReady && styles.stageCardLocked, reflectionReady && styles.stageCardDone]}>
           <View style={styles.stageHeader}>
             <View style={[styles.stageNumber, reflectionReady && styles.stageNumberDone]}><Text style={styles.stageNumberText}>{reflectionReady ? "✓" : "3"}</Text></View>
-            <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{stepsReady ? "FINAL MOVE" : "UNLOCKS NEXT"}</Text><Text style={styles.stageTitle}>Lock in the lesson</Text></View>
+            <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{stepsReady ? "FINAL MOVE" : "UNLOCKS NEXT"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Lock in the lesson</Text></View>
             <Text style={styles.stageEmoji}>{stepsReady ? "💡" : "🔒"}</Text>
           </View>
           {stepsReady ? <>
-            <View style={styles.promptRow}><Text style={styles.promptNumber}>1</Text><Text style={styles.promptText}>What did you make or practise?</Text></View>
-            <View style={styles.promptRow}><Text style={styles.promptNumber}>2</Text><Text style={styles.promptText}>What did you learn or improve?</Text></View>
+            <View style={styles.promptRow}><Text style={styles.promptNumber}>1</Text><Text style={[styles.promptText, { color: theme.text }]}>What did you make or practise?</Text></View>
+            <View style={styles.promptRow}><Text style={styles.promptNumber}>2</Text><Text style={[styles.promptText, { color: theme.text }]}>What did you learn or improve?</Text></View>
             <TextInput
               accessibilityLabel="Mission reflection"
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
               placeholder={mission.reflectionPrompt || "Two honest sentences…"}
               placeholderTextColor="#668577"
               multiline
@@ -300,9 +302,9 @@ export default function ActionScreen() {
           </> : <Text style={styles.lockedText}>Finish every move above to unlock your reflection.</Text>}
         </View>
 
-        <Pressable accessibilityRole="button" accessibilityState={{ expanded: showGuidance }} onPress={() => setShowGuidance((value) => !value)} style={({ pressed }) => [styles.helpToggle, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: showGuidance }} onPress={() => setShowGuidance((value) => !value)} style={({ pressed }) => [styles.helpToggle, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && styles.pressed]}>
           <View style={styles.helpIcon}><Text style={styles.helpIconText}>🧰</Text></View>
-          <View style={styles.helpBody}><Text style={styles.helpTitle}>Need a boost?</Text><Text style={styles.helpText}>Coach tips, safety and useful resources</Text></View>
+          <View style={styles.helpBody}><Text style={[styles.helpTitle, { color: theme.text }]}>Need a boost?</Text><Text style={[styles.helpText, { color: theme.muted }]}>Coach tips, safety and useful resources</Text></View>
           <Text style={styles.helpArrow}>{showGuidance ? "−" : "+"}</Text>
         </Pressable>
 
@@ -321,7 +323,7 @@ export default function ActionScreen() {
         </View> : null}
       </ScrollView>
 
-      <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+      <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: theme.background, borderTopColor: theme.border }]}>
         <View style={styles.footerTop}><Text style={styles.footerProgress}>{completedMilestones}/3 READY</Text><Text accessibilityRole="alert" style={styles.footerReason}>{readyForProof ? "Add proof to claim your XP." : nextMove}</Text></View>
         <Pressable
           style={({ pressed }) => [styles.button, pressed && styles.pressed, saving && styles.disabled]}

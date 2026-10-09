@@ -15,8 +15,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { reflectionQuality } from "../services/proofValidation";
 import { missionRepository } from "../services/missionRepository";
-
-type Difficulty = "Easy" | "Medium" | "Hard" | "Insane";
+import { getProjectIdeaLevels, ProjectDifficulty as Difficulty } from "../services/projectIdeas";
+import { useRiseAppearance } from "../services/appearance";
 
 type Project = {
   title: string;
@@ -550,6 +550,7 @@ const projectLibrary: Record<string, Record<Difficulty, Project>> = {
 
 export default function ProjectScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useRiseAppearance();
   const params = useLocalSearchParams();
   const [storedGoals, setStoredGoals] = useState<string[]>([]);
 
@@ -594,23 +595,26 @@ export default function ProjectScreen() {
   }, [params.goals, storedGoals]);
 
   const primaryGoal = String(goals[0] || "coding").toLowerCase();
+  const focusSkill = typeof params.focusSkill === "string" ? params.focusSkill : undefined;
 
   const [difficulty, setDifficulty] = useState<Difficulty>(() =>
     params.difficulty === "Medium" || params.difficulty === "Hard" || params.difficulty === "Insane" ? params.difficulty : "Easy");
+  const [selectedIdea, setSelectedIdea] = useState("");
   const [reflection, setReflection] = useState("");
   const [checkedRequirements, setCheckedRequirements] = useState<number[]>([]);
   const [savingDraft, setSavingDraft] = useState(false);
   const [footerHeight, setFooterHeight] = useState(96);
 
+  const ideaLevel = useMemo(() => getProjectIdeaLevels(primaryGoal, focusSkill)[difficulty], [primaryGoal, focusSkill, difficulty]);
   const project = useMemo(() => {
     const library =
       projectLibrary[primaryGoal] ||
       buildGoalProjectSet(primaryGoal);
 
-    return library[difficulty];
-  }, [primaryGoal, difficulty]);
+    return { ...library[difficulty], title: ideaLevel.title, description: ideaLevel.description };
+  }, [primaryGoal, difficulty, ideaLevel]);
   const reflectionReview = reflectionQuality(reflection);
-  const readyForProof = reflectionReview.passed && checkedRequirements.length === project.requirements.length;
+  const readyForProof = Boolean(selectedIdea) && reflectionReview.passed && checkedRequirements.length === project.requirements.length;
 
   const completeProject = async () => {
     if (!readyForProof || savingDraft) {
@@ -622,9 +626,9 @@ export default function ProjectScreen() {
     // Keep private reflection text out of browser URLs and navigation history.
     await missionRepository.patch(missionId, { reflection, completedSteps: checkedRequirements });
     router.push({ pathname: "/proof", params: {
-      task: project.title, reward: String(project.reward), skillId: project.skillId,
+      task: selectedIdea, reward: String(project.reward), skillId: project.skillId,
       goal: primaryGoal, goals: JSON.stringify(goals), missionId,
-      missionContext: `${project.title}. ${project.requirements.join(". ")}`,
+      missionContext: `${project.title}: ${selectedIdea}. ${project.requirements.join(". ")}`,
     } } as any);
     } catch {
       Alert.alert("Couldn’t save your draft", "Your reflection is still here. Please try again.");
@@ -632,9 +636,9 @@ export default function ProjectScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={[styles.page, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: footerHeight + insets.bottom + 28 }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
@@ -644,16 +648,16 @@ export default function ProjectScreen() {
           <Text style={styles.brand}>RISE PROJECT ENGINE</Text>
         </View>
 
-        <Text style={styles.heading}>
+        <Text style={[styles.heading, { color: theme.text }]}>
           Build something real.
         </Text>
 
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: theme.muted }]}>
           RISE turns what you’re learning into a real-world
           project you can actually show.
         </Text>
 
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
           Choose your difficulty
         </Text>
 
@@ -662,7 +666,7 @@ export default function ProjectScreen() {
             (level) => (
               <Pressable
                 key={level}
-                onPress={() => { setDifficulty(level); setCheckedRequirements([]); setReflection(""); }}
+                onPress={() => { setDifficulty(level); setSelectedIdea(""); setCheckedRequirements([]); setReflection(""); }}
                 style={[
                   styles.difficultyButton,
                   difficulty === level &&
@@ -683,7 +687,25 @@ export default function ProjectScreen() {
           )}
         </View>
 
-        <View style={styles.projectCard}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Choose one specific project</Text>
+        <Text style={[styles.choiceHint, { color: theme.muted }]}>RISE gives you concrete options. Pick the one that feels useful, then follow the checklist below.</Text>
+        <View style={styles.ideaList}>
+          {ideaLevel.examples.map((idea, index) => {
+            const selected = selectedIdea === idea;
+            return <Pressable
+              key={idea}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              onPress={() => { setSelectedIdea(idea); setCheckedRequirements([]); setReflection(""); }}
+              style={[styles.ideaCard, { backgroundColor: theme.surface, borderColor: theme.border }, selected && styles.ideaCardSelected]}
+            >
+              <View style={[styles.ideaNumber, selected && styles.ideaNumberSelected]}><Text style={[styles.ideaNumberText, selected && styles.ideaNumberTextSelected]}>{selected ? "✓" : index + 1}</Text></View>
+              <Text style={[styles.ideaText, { color: theme.text }, selected && styles.ideaTextSelected]}>{idea}</Text>
+            </Pressable>;
+          })}
+        </View>
+
+        <View style={[styles.projectCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.badgeRow}>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
@@ -696,11 +718,11 @@ export default function ProjectScreen() {
             </Text>
           </View>
 
-          <Text style={styles.projectTitle}>
+          <Text style={[styles.projectTitle, { color: theme.text }]}>
             {project.title}
           </Text>
 
-          <Text style={styles.projectDescription}>
+          <Text style={[styles.projectDescription, { color: theme.muted }]}>
             {project.description}
           </Text>
 
@@ -719,7 +741,7 @@ export default function ProjectScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
           Project requirements
         </Text>
 
@@ -733,17 +755,17 @@ export default function ProjectScreen() {
               </Text>
             </View>
 
-            <Text style={styles.requirementText}>
+            <Text style={[styles.requirementText, { color: theme.text }]}>
               {requirement}
             </Text>
           </Pressable>
         ))}
 
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
           What counts as proof?
         </Text>
 
-        <View style={styles.proofCard}>
+        <View style={[styles.proofCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
           {project.proof.map((item) => (
             <Text style={styles.proofItem} key={item}>
               ✓ {item}
@@ -751,7 +773,7 @@ export default function ProjectScreen() {
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
           What did you actually learn?
         </Text>
 
@@ -763,7 +785,7 @@ export default function ProjectScreen() {
           placeholderTextColor="#999999"
           multiline
           maxLength={1200}
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
         />
 
         <Text style={styles.characterCount}>
@@ -771,8 +793,8 @@ export default function ProjectScreen() {
         </Text>
       </ScrollView>
 
-      <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        {!readyForProof ? <Text accessibilityRole="alert" style={styles.footerReason}>{checkedRequirements.length !== project.requirements.length ? `Check each requirement after you complete it (${checkedRequirements.length}/${project.requirements.length}).` : reflectionReview.message}</Text> : null}
+      <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: theme.background, borderTopColor: theme.border }]}>
+        {!readyForProof ? <Text accessibilityRole="alert" style={styles.footerReason}>{!selectedIdea ? "Choose one project idea to begin." : checkedRequirements.length !== project.requirements.length ? `Check each requirement after you complete it (${checkedRequirements.length}/${project.requirements.length}).` : reflectionReview.message}</Text> : null}
         <Pressable
           onPress={completeProject}
           accessibilityRole="button"
@@ -882,6 +904,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(122, 245, 184, 0.18)",
   },
+
+  choiceHint: { color: "#9FC3AF", fontSize: 14, lineHeight: 21, marginTop: -7, marginBottom: 14 },
+  ideaList: { gap: 10, marginBottom: 28 },
+  ideaCard: { minHeight: 72, flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 18, borderWidth: 1, borderColor: "#315544", backgroundColor: "#071B16", padding: 14 },
+  ideaCardSelected: { borderColor: "#7AF5B8", backgroundColor: "#0D2F22" },
+  ideaNumber: { width: 31, height: 31, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#16372C" },
+  ideaNumberSelected: { backgroundColor: "#7AF5B8" },
+  ideaNumberText: { color: "#B4D4C2", fontWeight: "900", fontSize: 12 },
+  ideaNumberTextSelected: { color: "#010807" },
+  ideaText: { flex: 1, color: "#DFFDEE", fontWeight: "800", fontSize: 14, lineHeight: 20 },
+  ideaTextSelected: { color: "#FFFFFF" },
 
   badgeRow: {
     flexDirection: "row",

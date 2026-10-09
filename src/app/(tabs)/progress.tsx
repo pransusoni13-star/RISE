@@ -17,8 +17,10 @@ import {
 import { createSevenDayPlan, loadProfile, RiseProfile } from "../../services/personalization";
 import { missionRepository, MissionRecord } from "../../services/missionRepository";
 import { AppPageHeader } from "../../components/appPageHeader";
+import { useRiseAppearance } from "../../services/appearance";
 
 export default function ProgressTabScreen() {
+  const { theme } = useRiseAppearance();
   const [progress, setProgress] = useState<RISEProgress>(createDefaultProgress());
   const [redeemed, setRedeemed] = useState<string[]>([]);
   const [profile, setProfile] = useState<RiseProfile | null>(null);
@@ -95,35 +97,35 @@ export default function ProgressTabScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
       <AppPageHeader />
-      <Text style={styles.heading}>Your wins 📈</Text>
-      <Text style={styles.subtitle}>Every real step adds up.</Text>
+      <Text style={[styles.heading, { color: theme.text }]}>Your wins 📈</Text>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>Every real step adds up.</Text>
 
-      <View style={styles.summaryCard}>
+      <View style={[styles.summaryCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
         <Text style={styles.summaryLabel}>RIGHT NOW</Text>
-        <Text style={styles.summaryTitle}>{profile?.customGoal || "Personal Growth"}</Text>
-        <Text style={styles.summaryText}>{profile?.weeklySkill || adaptiveSummary.currentSkill?.name || "Foundations"} · {cycleCompleted}/{cycleTotal} missions proved</Text>
+        <Text style={[styles.summaryTitle, { color: theme.text }]}>{profile?.customGoal || "Personal Growth"}</Text>
+        <Text style={[styles.summaryText, { color: theme.muted }]}>{profile?.weeklySkill || adaptiveSummary.currentSkill?.name || "Foundations"} · {cycleCompleted}/{cycleTotal} missions proved</Text>
       </View>
 
       <View style={styles.gridRow}>
-        <View style={styles.smallCard}>
+        <View style={[styles.smallCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={styles.smallLabel}>✨ TOTAL XP</Text>
-          <Text style={styles.smallValue}>{progress.totalXP}</Text>
+          <Text style={[styles.smallValue, { color: theme.text }]}>{progress.totalXP}</Text>
         </View>
-        <View style={styles.smallCard}>
+        <View style={[styles.smallCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={styles.smallLabel}>🔥 STREAK</Text>
-          <Text style={styles.smallValue}>{streakCount} days</Text>
+          <Text style={[styles.smallValue, { color: theme.text }]}>{streakCount} days</Text>
         </View>
       </View>
 
-      <View style={styles.reviewCard}>
+      <View style={[styles.reviewCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
         <View style={styles.reviewHeader}><View><Text style={styles.sectionTitle}>THIS CYCLE</Text><Text style={styles.reviewTitle}>{cyclePercent}% complete</Text></View><Text style={styles.reviewProof}>{photoCount + videoCount} proofs</Text></View>
         <View style={styles.track}><View style={[styles.trackFill, { width: `${cyclePercent}%` }]} /></View>
-        <Text style={styles.reviewInsight}>{reviewInsight}</Text>
+        <Text style={[styles.reviewInsight, { color: theme.muted }]}>{reviewInsight}</Text>
         <View style={styles.skillWrap}>{profile?.focusSkills?.map((skill, index) => <View key={skill} style={styles.skillPill}><Text style={styles.skillText}>{index === 0 ? `Primary · ${skill}` : skill}</Text></View>)}</View>
       </View>
 
@@ -137,11 +139,11 @@ export default function ProgressTabScreen() {
           const unlocked = redeemed.includes(reward.id);
           const canAfford = progress.coins >= reward.cost;
           return (
-            <View key={reward.id} style={styles.rewardCard}>
+            <View key={reward.id} style={[styles.rewardCard, { backgroundColor: theme.surface }]}>
               <Text style={styles.rewardEmoji}>{reward.emoji}</Text>
               <View style={styles.rewardBody}>
-                <Text style={styles.rewardTitle}>{reward.title}</Text>
-                <Text style={styles.rewardDescription} numberOfLines={1}>{reward.description}</Text>
+                <Text style={[styles.rewardTitle, { color: theme.text }]}>{reward.title}</Text>
+                <Text style={[styles.rewardDescription, { color: theme.muted }]} numberOfLines={1}>{reward.description}</Text>
               </View>
               <Pressable
                 onPress={() => redeem(reward)}
@@ -156,7 +158,7 @@ export default function ProgressTabScreen() {
         {COIN_REWARDS.length > 2 ? <Pressable accessibilityRole="button" onPress={() => setShowRewards((value) => !value)} style={styles.moreButton}><Text style={styles.moreButtonText}>{showRewards ? "Show less" : `See all ${COIN_REWARDS.length} rewards`} {showRewards ? "↑" : "↓"}</Text></Pressable> : null}
       </View>
 
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showWins }} onPress={() => setShowWins((value) => !value)} style={styles.winsToggle}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showWins }} onPress={() => setShowWins((value) => !value)} style={[styles.winsToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View><Text style={styles.winsToggleLabel}>🏅 BADGES & MILESTONES</Text><Text style={styles.winsToggleValue}>{(profile?.cycleBadges || []).length + achievements.length} unlocked</Text></View>
         <Text style={styles.winsToggleArrow}>{showWins ? "↑" : "↓"}</Text>
       </Pressable>

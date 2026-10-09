@@ -1,12 +1,14 @@
 import { router } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useRiseAppearance } from "../services/appearance";
 
 export function AppPageHeader({ showTour = false }: { showTour?: boolean }) {
+  const { theme } = useRiseAppearance();
   return (
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel="Go to RISE home" hitSlop={8} onPress={() => router.replace("/(tabs)/today" as never)} style={({ pressed }) => pressed && styles.pressed}>
-        <Text style={styles.logo}>RISE</Text>
+        <Text style={[styles.logo, { color: theme.accent }]}>RISE</Text>
       </Pressable>
       <View style={styles.actions}>
         {showTour ? <HeaderButton label="Guide" route="/tour" /> : null}
@@ -18,15 +20,16 @@ export function AppPageHeader({ showTour = false }: { showTour?: boolean }) {
 }
 
 function HeaderButton({ label, route, symbol, compact = false }: { label: string; route: string; symbol?: string; compact?: boolean }) {
+  const { theme } = useRiseAppearance();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       hitSlop={6}
       onPress={() => router.push(route as never)}
-      style={({ pressed }) => [styles.button, compact && styles.compactButton, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.button, { backgroundColor: theme.surface, borderColor: theme.border }, compact && styles.compactButton, pressed && styles.pressed]}
     >
-      <Text style={styles.buttonText}>{compact ? symbol : label}</Text>
+      <Text style={[styles.buttonText, { color: theme.text }]}>{compact ? symbol : label}</Text>
     </Pressable>
   );
 }

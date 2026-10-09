@@ -1,87 +1,41 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { AppPageHeader } from "../../components/appPageHeader";
-
-const STORAGE_KEY = "RISE_SELECTED_GOALS";
+import { loadProfile, RiseProfile } from "../../services/personalization";
+import { getProjectIdeaLevels, ProjectDifficulty } from "../../services/projectIdeas";
+import { useRiseAppearance } from "../../services/appearance";
 
 export default function ProjectsTabScreen() {
-  const [storedGoals, setStoredGoals] = useState<string[]>([]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadGoals = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
-
-        if (!saved || !isMounted) {
-          return;
-        }
-
-        const parsedGoals = JSON.parse(saved) as string[];
-        setStoredGoals(Array.isArray(parsedGoals) ? parsedGoals.filter((goal) => typeof goal === "string" && goal.trim()) : []);
-      } catch (error) {
-        console.log("Could not load selected goals:", error);
-      }
-    };
-
-    loadGoals();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const { theme } = useRiseAppearance();
+  const [profile, setProfile] = useState<RiseProfile | null>(null);
+  useFocusEffect(useCallback(() => { let active = true; void loadProfile().then((value) => { if (active) setProfile(value); }); return () => { active = false; }; }, []));
+  const storedGoals = profile?.selectedGoals?.length ? profile.selectedGoals : ["personal"];
+  const primaryGoal = storedGoals[0];
+  const focusSkill = profile?.weeklySkill || profile?.focusSkills?.[0];
+  const levels = useMemo(() => getProjectIdeaLevels(primaryGoal, focusSkill), [primaryGoal, focusSkill]);
 
   const projects = useMemo(
-    () => [
-      {
-        emoji: "🌱",
-        title: "Quick win",
-        description: "Finish one useful result today.",
-        difficulty: "Easy",
-        color: "#7AF5B8",
-      },
-      {
-        emoji: "⚡",
-        title: "Real challenge",
-        description: "Combine skills and get one person’s feedback.",
-        difficulty: "Medium",
-        color: "#63B3FF",
-      },
-      {
-        emoji: "🚀",
-        title: "Launch it",
-        description: "Build, test, improve, and share.",
-        difficulty: "Hard",
-        color: "#FFB35C",
-      },
-      {
-        emoji: "🔥",
-        title: "Go all in",
-        description: "Launch, measure real use, and ship a better version.",
-        difficulty: "Insane",
-        color: "#FF718B",
-      },
-    ],
-    []
+    () => (["Easy", "Medium", "Hard", "Insane"] as ProjectDifficulty[]).map((difficulty, index) => ({
+      ...levels[difficulty], difficulty, emoji: ["🌱", "⚡", "🚀", "🔥"][index], color: ["#7AF5B8", "#63B3FF", "#FFB35C", "#FF718B"][index],
+    })),
+    [levels]
   );
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
       <AppPageHeader />
-      <Text style={styles.heading}>Build something 🛠️</Text>
-      <Text style={styles.subtitle}>Pick your challenge. Make it real.</Text>
+      <Text style={[styles.heading, { color: theme.text }]}>Build something 🛠️</Text>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>Choose a specific idea for {focusSkill || primaryGoal.replace(/-/g, " ")}. RISE gives you the result, steps, and proof.</Text>
 
       {projects.map((project) => (
         <Pressable
           key={project.title}
-          style={({ pressed }) => [styles.card, { borderColor: project.color }, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: project.color }, pressed && styles.pressed]}
           onPress={() =>
             router.push({
               pathname: "/project",
@@ -90,13 +44,16 @@ export default function ProjectsTabScreen() {
                 goals: JSON.stringify(
                   storedGoals.length ? storedGoals : ["personal"]
                 ),
+                focusSkill: focusSkill || "",
               },
             } as any)
           }
         >
           <View style={styles.projectTop}><Text style={styles.projectEmoji}>{project.emoji}</Text><Text style={[styles.difficulty, { color: project.color }]}>{project.difficulty.toUpperCase()}</Text></View>
-          <Text style={styles.cardTitle}>{project.title}</Text>
-          <Text style={styles.cardDescription}>{project.description}</Text>
+          <Text style={[styles.cardTitle, { color: theme.text }]}>{project.title}</Text>
+          <Text style={[styles.cardDescription, { color: theme.muted }]}>{project.description}</Text>
+          <Text style={[styles.ideasLabel, { color: theme.muted }]}>PICK ONE IDEA</Text>
+          {project.examples.map((example) => <Text key={example} style={[styles.idea, { color: theme.text }]}>• {example}</Text>)}
           <View style={styles.row}>
             <Text style={styles.meta}>Proof required</Text>
             <Text style={[styles.reward, { color: project.color }]}>Start →</Text>
@@ -157,8 +114,10 @@ const styles = StyleSheet.create({
     color: "#C8EED9",
     fontSize: 13,
     lineHeight: 19,
-    marginBottom: 14,
+    marginBottom: 11,
   },
+  ideasLabel: { color: "#8FB6A2", fontSize: 9, fontWeight: "900", letterSpacing: 1.1, marginBottom: 5 },
+  idea: { color: "#E1F7EA", fontSize: 12, lineHeight: 18, fontWeight: "700" },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",

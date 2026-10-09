@@ -3,11 +3,13 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hasCompletedRequiredTour } from "../../services/tourState";
+import { useRiseAppearance } from "../../services/appearance";
 
 const icon = (emoji: string) => <Text style={{ fontSize: 19, lineHeight: 25 }} accessibilityElementsHidden>{emoji}</Text>;
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const { theme } = useRiseAppearance();
   const [tourReady, setTourReady] = useState(false);
 
   useEffect(() => {
@@ -23,21 +25,21 @@ export default function TabsLayout() {
     return () => { active = false; };
   }, []);
 
-  if (!tourReady) return <View style={styles.loading}><ActivityIndicator color="#7AF5B8" /></View>;
+  if (!tourReady) return <View style={[styles.loading, { backgroundColor: theme.background }]}><ActivityIndicator color={theme.accent} /></View>;
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#071B16",
-          borderTopColor: "#1E3A31",
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
           borderTopWidth: 1,
           height: 64 + Math.max(insets.bottom, 10),
           paddingBottom: Math.max(insets.bottom, 10),
           paddingTop: 8,
         },
-        tabBarActiveTintColor: "#7AF5B8",
-        tabBarInactiveTintColor: "#B4D4C2",
+        tabBarActiveTintColor: theme.accent,
+        tabBarInactiveTintColor: theme.muted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "800",

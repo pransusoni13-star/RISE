@@ -25,23 +25,28 @@ import {
 } from "../../services/personalization";
 import { getReminderState, ReminderState } from "../../services/reminders";
 import { AppPageHeader } from "../../components/appPageHeader";
-import { getUnlockedDay } from "../../services/dayUnlock";
+import { getAvailableMissionDay } from "../../services/dayUnlock";
 import { getCurrentUser, RiseUser } from "../../services/auth";
+import { missionRepository, MissionRecord } from "../../services/missionRepository";
+import { useRiseAppearance } from "../../services/appearance";
 
 export default function TodayTabScreen() {
+  const { theme } = useRiseAppearance();
   const [progress, setProgress] = useState<RISEProgress>(createDefaultProgress());
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [reminder, setReminder] = useState<ReminderState | null>(null);
   const [user, setUser] = useState<RiseUser | null>(null);
+  const [records, setRecords] = useState<Record<string, MissionRecord>>({});
 
   useFocusEffect(useCallback(() => {
     let active = true;
-    void Promise.all([progressRepository.load(), loadProfile(), getReminderState(), getCurrentUser().catch(() => null)]).then(([storedProgress, storedProfile, reminderState, storedUser]) => {
+    void Promise.all([progressRepository.load(), loadProfile(), getReminderState(), getCurrentUser().catch(() => null), missionRepository.list()]).then(([storedProgress, storedProfile, reminderState, storedUser, storedRecords]) => {
       if (!active) return;
       setProgress(storedProgress);
       setProfile(storedProfile);
       setReminder(reminderState);
       setUser(storedUser);
+      setRecords(Object.fromEntries(storedRecords.map((record) => [record.missionId, record])));
     });
     return () => { active = false; };
   }, []));
@@ -61,9 +66,10 @@ export default function TodayTabScreen() {
   const todayMission = useMemo(() => {
     if (!profile) return null;
     const plan = createSevenDayPlan(profile);
-    return plan[getUnlockedDay(profile.skillStartDate, plan.length) - 1] || plan[0];
-  }, [profile]);
-  const todayComplete = Boolean(todayMission && progress.events.some((event) => event.title.includes(todayMission.title)));
+    const completedDays = plan.filter((mission) => records[mission.id]?.status === "completed").map((mission) => mission.day);
+    return plan[getAvailableMissionDay(profile.skillStartDate, plan.length, completedDays) - 1] || plan[0];
+  }, [profile, records]);
+  const todayComplete = Boolean(todayMission && records[todayMission.id]?.status === "completed");
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 21 ? "Good evening" : "Good night";
   const firstName = user?.display_name.trim().split(/\s+/)[0];
@@ -71,49 +77,53 @@ export default function TodayTabScreen() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
       <AppPageHeader showTour />
-      <Text style={styles.greeting}>{greeting}{firstName ? `, ${firstName}` : ""} 👋</Text>
-      <View style={styles.goalChip}><Text style={styles.goalChipIcon}>🎯</Text><Text style={styles.goalText} numberOfLines={1}>{profile?.customGoal || currentSkill?.goal || "Personal Growth"}</Text></View>
+      <Text style={[styles.greeting, { color: theme.text }]}>{greeting}{firstName ? `, ${firstName}` : ""} 👋</Text>
+      <View style={[styles.goalChip, { backgroundColor: theme.surfaceStrong }]}><Text style={styles.goalChipIcon}>🎯</Text><Text style={[styles.goalText, { color: theme.text }]} numberOfLines={1}>{profile?.customGoal || currentSkill?.goal || "Personal Growth"}</Text></View>
 
-      <View style={styles.levelStrip}>
-        <View><Text style={styles.statValue}>{progress.level}</Text><Text style={styles.statLabel}>LEVEL</Text></View>
+      <View style={[styles.levelStrip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View><Text style={[styles.statValue, { color: theme.text }]}>{progress.level}</Text><Text style={[styles.statLabel, { color: theme.muted }]}>LEVEL</Text></View>
         <View style={styles.statDivider} />
-        <View><Text style={styles.statValue}>{progress.totalXP}</Text><Text style={styles.statLabel}>XP</Text></View>
+        <View><Text style={[styles.statValue, { color: theme.text }]}>{progress.totalXP}</Text><Text style={[styles.statLabel, { color: theme.muted }]}>XP</Text></View>
         <View style={styles.levelTrack}><View style={[styles.progressFill, { width: `${levelProgress * 100}%` }]} /></View>
-        <Text style={styles.levelLeft}>{Math.max(nextLevelXP - currentLevelXP, 0)} to go</Text>
+        <Text style={[styles.levelLeft, { color: theme.muted }]}>{Math.max(nextLevelXP - currentLevelXP, 0)} to go</Text>
       </View>
 
-      <View style={styles.primaryCard}>
+      <View style={[styles.primaryCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
         <View style={styles.missionTop}><Text style={styles.missionEmoji}>⚡</Text><Text style={styles.cardEyebrow}>TODAY&apos;S RISE {todayMission ? `• ${todayMission.track.toUpperCase()}` : ""}</Text></View>
-        <Text style={styles.primaryTitle}>{todayMission?.title || adaptiveSummary.recommendation.title}</Text>
-        <Text style={styles.primaryDescription}>{shortMission}</Text>
+        <Text style={[styles.primaryTitle, { color: theme.text }]}>{todayMission?.title || adaptiveSummary.recommendation.title}</Text>
+        <Text style={[styles.primaryDescription, { color: theme.muted }]}>{shortMission}</Text>
         <View style={styles.primaryMetaRow}>
           <Text style={styles.metaPill}>⏱ {todayMission?.duration || 30} min</Text>
           <Text style={styles.metaPill}>✨ +{todayMission?.reward || 30} XP</Text>
           <Text style={styles.metaPill}>🎓 {todayMission?.focusSkill || todayMission?.skills[0] || currentSkill?.name || "Foundations"}</Text>
         </View>
         <Pressable
-          style={[styles.primaryButton, todayComplete && styles.primaryButtonComplete]}
+          style={[styles.primaryButton, { backgroundColor: theme.accent }, todayComplete && styles.primaryButtonComplete]}
           disabled={todayComplete}
           onPress={() => router.push({ pathname: "/action", params: todayMission ? { mission: JSON.stringify(todayMission) } : {} } as any)}
         >
-          <Text style={styles.primaryButtonText}>{todayComplete ? "✓ Done today — see you tomorrow" : "Start mission →"}</Text>
+          <Text style={[styles.primaryButtonText, { color: theme.accentInk }]}>{todayComplete ? "✓ Done today — see you tomorrow" : "Start mission →"}</Text>
         </Pressable>
       </View>
 
       <Text style={styles.quickLabel}>QUICK START</Text>
       <View style={styles.quickRow}>
-        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/learn" as any)}><Text style={styles.quickEmoji}>📖</Text><Text style={styles.quickTitle}>Learn</Text><Text style={styles.quickText}>One useful idea</Text></Pressable>
-        <Pressable style={styles.quickCard} onPress={() => router.push("/(tabs)/progress" as any)}><Text style={styles.quickEmoji}>📈</Text><Text style={styles.quickTitle}>Progress</Text><Text style={styles.quickText}>See your wins</Text></Pressable>
+        <Pressable style={[styles.quickCard, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => router.push("/(tabs)/learn" as any)}><Text style={styles.quickEmoji}>📖</Text><Text style={[styles.quickTitle, { color: theme.text }]}>Learn</Text><Text style={[styles.quickText, { color: theme.muted }]}>One useful idea</Text></Pressable>
+        <Pressable style={[styles.quickCard, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => router.push("/(tabs)/progress" as any)}><Text style={styles.quickEmoji}>📈</Text><Text style={[styles.quickTitle, { color: theme.text }]}>Progress</Text><Text style={[styles.quickText, { color: theme.muted }]}>See your wins</Text></Pressable>
       </View>
 
-      <Pressable style={styles.reminderRow} accessibilityRole="button" onPress={() => router.push("/settings" as never)}>
+      <Pressable accessibilityRole="button" style={[styles.quizCard, { backgroundColor: theme.blueSurface, borderColor: theme.blueBorder }]} onPress={() => router.push({ pathname: "/quiz", params: { skillId: todayMission?.skillId || currentSkill?.id || "foundations", goal: todayMission?.goal || profile?.selectedGoals[0] || "personal", goals: JSON.stringify(profile?.selectedGoals || ["personal"]) } } as any)}>
+        <View><Text style={styles.quizEyebrow}>5-QUESTION PRACTICE QUIZ</Text><Text style={[styles.quizTitle, { color: theme.text }]}>Test what you learned 🧠</Text><Text style={[styles.quizText, { color: theme.muted }]}>Available anytime. Get explanations and a clear next step.</Text></View><Text style={styles.quizArrow}>→</Text>
+      </Pressable>
+
+      <Pressable style={[styles.reminderRow, { backgroundColor: theme.surface }]} accessibilityRole="button" onPress={() => router.push("/settings" as never)}>
         <Text style={styles.reminderIcon}>{reminder?.enabled ? "🔔" : "🔕"}</Text>
-        <Text style={styles.reminderText}>{reminder?.enabled ? `Reminder set for ${reminder.time}` : "Turn on a daily reminder"}</Text>
+        <Text style={[styles.reminderText, { color: theme.muted }]}>{reminder?.enabled ? `Reminder set for ${reminder.time}` : "Turn on a daily reminder"}</Text>
         <Text style={styles.reminderAction}>›</Text>
       </Pressable>
 
@@ -211,6 +221,11 @@ const styles = StyleSheet.create({
   quickEmoji: { fontSize: 20 },
   quickTitle: { color: "#F5FFF9", fontSize: 15, fontWeight: "900", marginTop: 8 },
   quickText: { color: "#8FB6A2", fontSize: 11, marginTop: 3 },
+  quizCard: { minHeight: 86, flexDirection: "row", alignItems: "center", backgroundColor: "#102A3B", borderRadius: 18, borderWidth: 1, borderColor: "#356B86", padding: 16, marginBottom: 13 },
+  quizEyebrow: { color: "#8FD7FF", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
+  quizTitle: { color: "#F5FFF9", fontSize: 16, fontWeight: "900", marginTop: 5 },
+  quizText: { color: "#B9D9E8", fontSize: 11, lineHeight: 16, marginTop: 4, maxWidth: 275 },
+  quizArrow: { color: "#8FD7FF", fontSize: 23, fontWeight: "900", marginLeft: "auto" },
   reminderRow: { minHeight: 54, flexDirection: "row", alignItems: "center", backgroundColor: "#071B16", borderRadius: 16, paddingHorizontal: 15, marginBottom: 12 },
   reminderIcon: { fontSize: 17, marginRight: 10 },
   reminderText: { flex: 1, color: "#C8EED9", fontSize: 12, fontWeight: "800" },

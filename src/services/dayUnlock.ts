@@ -14,3 +14,34 @@ export function getUnlockedDay(skillStartDate: string | undefined, cycleLength: 
 export function daysUntilMission(missionDay: number, unlockedDay: number): number {
   return Math.max(0, missionDay - unlockedDay);
 }
+
+/**
+ * A mission is available only when both gates are satisfied:
+ * 1. its local calendar day has arrived; and
+ * 2. every earlier mission in the cycle is complete.
+ *
+ * Keeping this in one helper prevents alternate entry points (Today, Learn,
+ * Missions, and the proof success screen) from disagreeing about what is open.
+ */
+export function getAvailableMissionDay(
+  skillStartDate: string | undefined,
+  cycleLength: number,
+  completedDays: number[],
+  now = new Date(),
+): number {
+  const calendarDay = getUnlockedDay(skillStartDate, cycleLength, now);
+  const completed = new Set(completedDays.filter((day) => Number.isInteger(day) && day >= 1 && day <= cycleLength));
+  let sequentialDay = 1;
+  while (sequentialDay < cycleLength && completed.has(sequentialDay)) sequentialDay += 1;
+  return Math.min(calendarDay, sequentialDay);
+}
+
+export function isMissionAvailable(
+  missionDay: number,
+  skillStartDate: string | undefined,
+  cycleLength: number,
+  completedDays: number[],
+  now = new Date(),
+): boolean {
+  return missionDay <= getAvailableMissionDay(skillStartDate, cycleLength, completedDays, now);
+}
