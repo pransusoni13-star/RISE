@@ -13,13 +13,13 @@ export function AppPageHeader({ showTour = false }: { showTour?: boolean }) {
       <View style={styles.actions}>
         {showTour ? <HeaderButton label="Guide" route="/tour" /> : null}
         <HeaderButton label="Plan" route="/goals" />
-        <HeaderButton label="Settings" symbol="⚙" route="/settings" compact />
+        <HeaderButton label="Settings" route="/settings" />
       </View>
     </View>
   );
 }
 
-function HeaderButton({ label, route, symbol, compact = false }: { label: string; route: string; symbol?: string; compact?: boolean }) {
+function HeaderButton({ label, route }: { label: string; route: string }) {
   const { theme } = useRiseAppearance();
   return (
     <Pressable
@@ -27,19 +27,18 @@ function HeaderButton({ label, route, symbol, compact = false }: { label: string
       accessibilityLabel={label}
       hitSlop={6}
       onPress={() => router.push(route as never)}
-      style={({ pressed }) => [styles.button, { backgroundColor: theme.surface, borderColor: theme.border }, compact && styles.compactButton, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
     >
-      <Text style={[styles.buttonText, { color: theme.text }]}>{compact ? symbol : label}</Text>
+      <Text style={[styles.buttonText, { color: theme.muted }]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 24 },
-  logo: { color: "#7AF5B8", fontSize: 18, fontWeight: "900", letterSpacing: 5 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 30 },
+  logo: { color: "#7AF5B8", fontSize: 17, fontWeight: "900", letterSpacing: 4 },
   actions: { flex: 1, flexDirection: "row", justifyContent: "flex-end", gap: 7 },
-  button: { minHeight: 40, borderRadius: 20, borderWidth: 1, borderColor: "#315544", paddingHorizontal: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#071B16" },
-  compactButton: { width: 40, paddingHorizontal: 0 },
-  buttonText: { color: "#DFFDEE", fontSize: 11, fontWeight: "900" },
+  button: { minHeight: 40, paddingHorizontal: 7, alignItems: "center", justifyContent: "center" },
+  buttonText: { color: "#DFFDEE", fontSize: 11, fontWeight: "800" },
   pressed: { opacity: 0.72 },
 });

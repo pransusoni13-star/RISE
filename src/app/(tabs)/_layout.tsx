@@ -1,11 +1,9 @@
 import { Tabs, router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hasCompletedRequiredTour } from "../../services/tourState";
 import { useRiseAppearance } from "../../services/appearance";
-
-const icon = (emoji: string) => <Text style={{ fontSize: 19, lineHeight: 25 }} accessibilityElementsHidden>{emoji}</Text>;
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
@@ -34,14 +32,14 @@ export default function TabsLayout() {
           backgroundColor: theme.surface,
           borderTopColor: theme.border,
           borderTopWidth: 1,
-          height: 64 + Math.max(insets.bottom, 10),
+          height: 54 + Math.max(insets.bottom, 10),
           paddingBottom: Math.max(insets.bottom, 10),
-          paddingTop: 8,
+          paddingTop: 10,
         },
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: theme.muted,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: "800",
         },
       }}
@@ -51,7 +49,7 @@ export default function TabsLayout() {
         options={{
           title: "Today",
           tabBarLabel: "Today",
-          tabBarIcon: () => icon("☀️"),
+          tabBarIcon: ({ focused }) => <View style={[styles.tabMarker, { backgroundColor: focused ? theme.accent : theme.muted }]} />,
         }}
       />
 
@@ -60,25 +58,21 @@ export default function TabsLayout() {
         options={{
           title: "Learn",
           tabBarLabel: "Learn",
-          tabBarIcon: () => icon("📖"),
+          tabBarIcon: ({ focused }) => <View style={[styles.tabMarker, { backgroundColor: focused ? theme.accent : theme.muted }]} />,
         }}
       />
 
       <Tabs.Screen
         name="missions"
         options={{
-          title: "Missions",
-          tabBarLabel: "Missions",
-          tabBarIcon: () => icon("🎯"),
+          href: null,
         }}
       />
 
       <Tabs.Screen
         name="projects"
         options={{
-          title: "Projects",
-          tabBarLabel: "Projects",
-          tabBarIcon: () => icon("🛠️"),
+          href: null,
         }}
       />
 
@@ -87,11 +81,14 @@ export default function TabsLayout() {
         options={{
           title: "Progress",
           tabBarLabel: "Progress",
-          tabBarIcon: () => icon("📈"),
+          tabBarIcon: ({ focused }) => <View style={[styles.tabMarker, { backgroundColor: focused ? theme.accent : theme.muted }]} />,
         }}
       />
     </Tabs>
   );
 }
 
-const styles = StyleSheet.create({ loading: { flex: 1, backgroundColor: "#010807", alignItems: "center", justifyContent: "center" } });
+const styles = StyleSheet.create({
+  loading: { flex: 1, backgroundColor: "#010807", alignItems: "center", justifyContent: "center" },
+  tabMarker: { width: 18, height: 3, borderRadius: 2 },
+});

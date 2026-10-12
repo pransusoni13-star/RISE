@@ -208,41 +208,26 @@ export default function ActionScreen() {
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={8}>
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: footerHeight + insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <View style={styles.heroBubbleLarge} />
-          <View style={styles.heroBubbleSmall} />
           <View style={styles.topRow}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>Back</Text></Pressable>
             <Text style={styles.day}>DAY {mission.day}</Text>
-            <Text style={styles.heroEmoji}>{mission.track === "life" ? "🌱" : "🚀"}</Text>
           </View>
-          <Text style={styles.trackChip}>{mission.track.toUpperCase()} • {mission.focusSkill}</Text>
+          <Text style={styles.trackLabel}>{mission.track.toUpperCase()} · {mission.focusSkill}</Text>
           <Text style={styles.title}>{mission.title}</Text>
           <Text style={styles.description} numberOfLines={3}>{mission.description}</Text>
-          <View style={styles.heroMeta}>
-            <Text style={styles.heroPill}>⏱ {mission.duration} min</Text>
-            <Text style={styles.heroPill}>⚡ {mission.difficulty}</Text>
-            <Text style={[styles.heroPill, styles.heroReward]}>+{mission.reward} XP</Text>
-          </View>
+          <Text style={styles.heroMeta}>{mission.duration} MIN · {mission.difficulty.toUpperCase()} · +{mission.reward} XP</Text>
         </View>
 
         <View style={[styles.mapCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.mapTop}><Text style={styles.mapEyebrow}>YOUR MISSION MAP</Text><Text style={styles.mapPercent}>{missionProgress}%</Text></View>
+          <View style={styles.mapTop}><Text style={styles.mapEyebrow}>MISSION PROGRESS</Text><Text style={styles.mapPercent}>{completedMilestones} / 3</Text></View>
           <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${missionProgress}%` as `${number}%` }]} /></View>
-          <View style={styles.mapStops}>
-            <MapStop icon="🎯" label="Choose" done={resultReady} active={!resultReady} />
-            <View style={[styles.mapLine, resultReady && styles.mapLineDone]} />
-            <MapStop icon="⚡" label="Do" done={stepsReady} active={resultReady && !stepsReady} />
-            <View style={[styles.mapLine, stepsReady && styles.mapLineDone]} />
-            <MapStop icon="💡" label="Reflect" done={reflectionReady} active={stepsReady && !reflectionReady} />
-          </View>
-          <Text style={styles.nextMove}>{readyForProof ? "✨ Mission ready to prove!" : nextMove}</Text>
+          <Text style={styles.nextMove}>{readyForProof ? "Mission ready for proof." : nextMove}</Text>
         </View>
 
         <View onLayout={(event) => { resultY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: theme.surface, borderColor: theme.border }, resultReady && styles.stageCardDone]}>
           <View style={styles.stageHeader}>
             <View style={[styles.stageNumber, resultReady && styles.stageNumberDone]}><Text style={styles.stageNumberText}>{resultReady ? "✓" : "1"}</Text></View>
             <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{resultReady ? "WIN LOCKED" : "FIRST MOVE"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Choose today’s win</Text></View>
-            <Text style={styles.stageEmoji}>🎯</Text>
           </View>
           <Text style={[styles.stagePrompt, { color: theme.text }]}>What will be finished—not just started?</Text>
           <TextInput
@@ -263,7 +248,6 @@ export default function ActionScreen() {
           <View style={styles.stageHeader}>
             <View style={[styles.stageNumber, stepsReady && styles.stageNumberDone]}><Text style={styles.stageNumberText}>{stepsReady ? "✓" : "2"}</Text></View>
             <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{completedSteps.length}/{mission.steps.length} MOVES</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Do the mission</Text></View>
-            <Text style={styles.stageEmoji}>⚡</Text>
           </View>
           <View style={styles.miniProgress}><View style={[styles.miniProgressFill, { width: `${Math.round((completedSteps.length / mission.steps.length) * 100)}%` as `${number}%` }]} /></View>
           {mission.steps.map((step, index) => {
@@ -273,14 +257,13 @@ export default function ActionScreen() {
               <View style={styles.stepBody}><Text style={[styles.stepText, { color: theme.text }, done && styles.stepTextDone]}>{step}</Text><Text style={[styles.stepAction, done && styles.stepActionDone]}>{done ? "DONE" : "TAP WHEN DONE"}</Text></View>
             </Pressable>;
           })}
-          <View style={styles.finishLine}><Text style={styles.finishIcon}>🏁</Text><View style={styles.finishBody}><Text style={styles.finishLabel}>THE FINISH LINE</Text><Text style={styles.finishText}>{mission.successCriteria}</Text></View></View>
+          <View style={styles.finishLine}><View style={styles.finishBody}><Text style={styles.finishLabel}>THE FINISH LINE</Text><Text style={styles.finishText}>{mission.successCriteria}</Text></View></View>
         </View>
 
         <View onLayout={(event) => { reflectionY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: theme.surface, borderColor: theme.border }, !stepsReady && styles.stageCardLocked, reflectionReady && styles.stageCardDone]}>
           <View style={styles.stageHeader}>
             <View style={[styles.stageNumber, reflectionReady && styles.stageNumberDone]}><Text style={styles.stageNumberText}>{reflectionReady ? "✓" : "3"}</Text></View>
             <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{stepsReady ? "FINAL MOVE" : "UNLOCKS NEXT"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Lock in the lesson</Text></View>
-            <Text style={styles.stageEmoji}>{stepsReady ? "💡" : "🔒"}</Text>
           </View>
           {stepsReady ? <>
             <View style={styles.promptRow}><Text style={styles.promptNumber}>1</Text><Text style={[styles.promptText, { color: theme.text }]}>What did you make or practise?</Text></View>
@@ -303,7 +286,6 @@ export default function ActionScreen() {
         </View>
 
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: showGuidance }} onPress={() => setShowGuidance((value) => !value)} style={({ pressed }) => [styles.helpToggle, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && styles.pressed]}>
-          <View style={styles.helpIcon}><Text style={styles.helpIconText}>🧰</Text></View>
           <View style={styles.helpBody}><Text style={[styles.helpTitle, { color: theme.text }]}>Need a boost?</Text><Text style={[styles.helpText, { color: theme.muted }]}>Coach tips, safety and useful resources</Text></View>
           <Text style={styles.helpArrow}>{showGuidance ? "−" : "+"}</Text>
         </Pressable>
@@ -339,30 +321,26 @@ export default function ActionScreen() {
   );
 }
 
-function MapStop({ icon, label, done, active }: { icon: string; label: string; done: boolean; active: boolean }) {
-  return <View style={styles.mapStop}><View style={[styles.mapDot, done && styles.mapDotDone, active && styles.mapDotActive]}><Text style={styles.mapDotText}>{done ? "✓" : icon}</Text></View><Text style={[styles.mapStopLabel, (done || active) && styles.mapStopLabelActive]}>{label}</Text></View>;
-}
-
 function ResourceButton({ icon, title, detail, onPress, disabled = false, arrow = "↗" }: { icon: string; title: string; detail: string; onPress: () => void; disabled?: boolean; arrow?: string }) {
-  return <Pressable accessibilityRole="link" disabled={disabled} style={({ pressed }) => [styles.toolCard, disabled && styles.disabled, pressed && styles.pressed]} onPress={onPress}><View style={styles.toolIcon}><Text>{icon}</Text></View><View style={styles.toolBody}><Text style={styles.toolTitle}>{title}</Text><Text style={styles.toolText} numberOfLines={2}>{detail}</Text></View><Text style={styles.toolArrow}>{arrow}</Text></Pressable>;
+  void icon;
+  return <Pressable accessibilityRole="link" disabled={disabled} style={({ pressed }) => [styles.toolCard, disabled && styles.disabled, pressed && styles.pressed]} onPress={onPress}><View style={styles.toolBody}><Text style={styles.toolTitle}>{title}</Text><Text style={styles.toolText} numberOfLines={2}>{detail}</Text></View><Text style={styles.toolArrow}>{arrow}</Text></Pressable>;
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: "#010807" },
   content: { paddingHorizontal: 18, paddingBottom: 130 },
-  hero: { position: "relative", overflow: "hidden", backgroundColor: "#123D2D", borderRadius: 28, borderWidth: 1, borderColor: "#3D765A", padding: 20, marginBottom: 14 },
+  hero: { position: "relative", overflow: "hidden", backgroundColor: "#0D120F", borderRadius: 24, borderWidth: 1, borderColor: "#263129", padding: 20, marginBottom: 14 },
   heroBubbleLarge: { position: "absolute", width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(122,245,184,0.10)", right: -54, top: -54 },
   heroBubbleSmall: { position: "absolute", width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,207,112,0.10)", right: 58, bottom: -28 },
   topRow: { flexDirection: "row", alignItems: "center", marginBottom: 18 },
-  back: { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(1,8,7,0.38)", alignItems: "center", justifyContent: "center", marginRight: 10 },
-  backText: { color: "#DFFDEE", fontSize: 28, marginTop: -4 },
-  day: { flex: 1, color: "#7AF5B8", fontSize: 11, fontWeight: "900", letterSpacing: 1.5 },
+  back: { minWidth: 42, minHeight: 38, justifyContent: "center", marginRight: 14 },
+  backText: { color: "#A1ADA6", fontSize: 12, fontWeight: "800" },
+  day: { flex: 1, color: "#56E28A", fontSize: 11, fontWeight: "900", letterSpacing: 1.5, textAlign: "right" },
   heroEmoji: { fontSize: 31 },
-  trackChip: { alignSelf: "flex-start", color: "#071B16", backgroundColor: "#7AF5B8", borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, fontSize: 9, fontWeight: "900", overflow: "hidden" },
-  title: { color: "#FFFFFF", fontSize: 31, lineHeight: 36, fontWeight: "900", marginTop: 13, maxWidth: "92%" },
-  description: { color: "#C8EED9", fontSize: 14, lineHeight: 21, marginTop: 9 },
-  heroMeta: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 17 },
-  heroPill: { color: "#DFFDEE", backgroundColor: "rgba(1,8,7,0.34)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7, fontSize: 10, fontWeight: "800", overflow: "hidden" },
+  trackLabel: { color: "#56E28A", fontSize: 9, fontWeight: "900", letterSpacing: 1.3 },
+  title: { color: "#F8FBF9", fontSize: 31, lineHeight: 36, fontWeight: "800", marginTop: 13, maxWidth: "92%" },
+  description: { color: "#A1ADA6", fontSize: 14, lineHeight: 21, marginTop: 9 },
+  heroMeta: { color: "#7F8D84", fontSize: 10, fontWeight: "800", letterSpacing: .8, marginTop: 18 },
   heroReward: { color: "#071B16", backgroundColor: "#FFCF70" },
   mapCard: { backgroundColor: "#071B16", borderRadius: 22, borderWidth: 1, borderColor: "#29483B", padding: 17, marginBottom: 14 },
   mapTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
