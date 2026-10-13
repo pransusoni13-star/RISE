@@ -207,72 +207,72 @@ export default function ActionScreen() {
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={8}>
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: footerHeight + insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
           <View style={styles.topRow}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>Back</Text></Pressable>
-            <Text style={styles.day}>DAY {mission.day}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={[styles.backText, { color: theme.muted }]}>Back</Text></Pressable>
+            <Text style={[styles.day, { color: theme.accent }]}>DAY {mission.day}</Text>
           </View>
-          <Text style={styles.trackLabel}>{mission.track.toUpperCase()} · {mission.focusSkill}</Text>
-          <Text style={styles.title}>{mission.title}</Text>
-          <Text style={styles.description} numberOfLines={3}>{mission.description}</Text>
-          <Text style={styles.heroMeta}>{mission.duration} MIN · {mission.difficulty.toUpperCase()} · +{mission.reward} XP</Text>
+          <Text style={[styles.trackLabel, { color: theme.accent }]}>{mission.track.toUpperCase()} · {mission.focusSkill}</Text>
+          <Text style={[styles.title, { color: theme.text }]}>{mission.title}</Text>
+          <Text style={[styles.description, { color: theme.muted }]} numberOfLines={3}>{mission.description}</Text>
+          <Text style={[styles.heroMeta, { color: theme.muted }]}>{mission.duration} MIN · {mission.difficulty.toUpperCase()} · +{mission.reward} XP</Text>
         </View>
 
         <View style={[styles.mapCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.mapTop}><Text style={styles.mapEyebrow}>MISSION PROGRESS</Text><Text style={styles.mapPercent}>{completedMilestones} / 3</Text></View>
-          <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${missionProgress}%` as `${number}%` }]} /></View>
-          <Text style={styles.nextMove}>{readyForProof ? "Mission ready for proof." : nextMove}</Text>
+          <View style={styles.mapTop}><Text style={[styles.mapEyebrow, { color: theme.muted }]}>MISSION PROGRESS</Text><Text style={[styles.mapPercent, { color: theme.accent }]}>{completedMilestones} / 3</Text></View>
+          <View style={[styles.progressTrack, { backgroundColor: theme.surfaceStrong }]}><View style={[styles.progressFill, { backgroundColor: theme.accent, width: `${missionProgress}%` as `${number}%` }]} /></View>
+          <Text style={[styles.nextMove, { color: theme.text }]}>{readyForProof ? "Mission ready for proof." : nextMove}</Text>
         </View>
 
-        <View onLayout={(event) => { resultY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: theme.surface, borderColor: theme.border }, resultReady && styles.stageCardDone]}>
+        <View onLayout={(event) => { resultY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: resultReady ? theme.surfaceStrong : theme.surface, borderColor: resultReady ? theme.accent : theme.border }]}> 
           <View style={styles.stageHeader}>
-            <View style={[styles.stageNumber, resultReady && styles.stageNumberDone]}><Text style={styles.stageNumberText}>{resultReady ? "✓" : "1"}</Text></View>
-            <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{resultReady ? "WIN LOCKED" : "FIRST MOVE"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Choose today’s win</Text></View>
+            <View style={[styles.stageNumber, { backgroundColor: resultReady ? theme.accent : theme.surfaceStrong }]}><Text style={[styles.stageNumberText, { color: resultReady ? theme.accentInk : theme.text }]}>{resultReady ? "✓" : "1"}</Text></View>
+            <View style={styles.stageHeading}><Text style={[styles.stageEyebrow, { color: theme.accent }]}>{resultReady ? "WIN LOCKED" : "FIRST MOVE"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Choose today’s win</Text></View>
           </View>
           <Text style={[styles.stagePrompt, { color: theme.text }]}>What will be finished—not just started?</Text>
           <TextInput
             accessibilityLabel="My chosen mission result"
             style={[styles.missionInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
             placeholder={`Example: Finish one ${mission.focusSkill} result I can show.`}
-            placeholderTextColor="#668577"
+            placeholderTextColor={theme.muted}
             value={chosenResult}
             onChangeText={setChosenResult}
             maxLength={240}
             returnKeyType="done"
             onSubmitEditing={() => Keyboard.dismiss()}
           />
-          <Text style={[styles.hint, resultReady && styles.hintReady]}>{resultReady ? "✓ Clear, specific, and saved" : resultReview.message}</Text>
+          <Text style={[styles.hint, { color: resultReady ? theme.accent : theme.muted }, resultReady && styles.hintReady]}>{resultReady ? "✓ Clear, specific, and saved" : resultReview.message}</Text>
         </View>
 
-        <View onLayout={(event) => { stepsY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: theme.surface, borderColor: theme.border }, styles.stepsStage, stepsReady && styles.stageCardDone]}>
+        <View onLayout={(event) => { stepsY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: stepsReady ? theme.surfaceStrong : theme.surface, borderColor: stepsReady ? theme.accent : theme.border }, styles.stepsStage]}> 
           <View style={styles.stageHeader}>
-            <View style={[styles.stageNumber, stepsReady && styles.stageNumberDone]}><Text style={styles.stageNumberText}>{stepsReady ? "✓" : "2"}</Text></View>
-            <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{completedSteps.length}/{mission.steps.length} MOVES</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Do the mission</Text></View>
+            <View style={[styles.stageNumber, { backgroundColor: stepsReady ? theme.accent : theme.surfaceStrong }]}><Text style={[styles.stageNumberText, { color: stepsReady ? theme.accentInk : theme.text }]}>{stepsReady ? "✓" : "2"}</Text></View>
+            <View style={styles.stageHeading}><Text style={[styles.stageEyebrow, { color: theme.accent }]}>{completedSteps.length}/{mission.steps.length} MOVES</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Do the mission</Text></View>
           </View>
-          <View style={styles.miniProgress}><View style={[styles.miniProgressFill, { width: `${Math.round((completedSteps.length / mission.steps.length) * 100)}%` as `${number}%` }]} /></View>
+          <View style={[styles.miniProgress, { backgroundColor: theme.surfaceStrong }]}><View style={[styles.miniProgressFill, { backgroundColor: theme.accent, width: `${Math.round((completedSteps.length / mission.steps.length) * 100)}%` as `${number}%` }]} /></View>
           {mission.steps.map((step, index) => {
             const done = completedSteps.includes(index);
-            return <Pressable accessibilityRole="checkbox" disabled={saving || status === "completed"} accessibilityHint="Double tap only after you complete this action" accessibilityState={{ checked: done, disabled: saving || status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }, done && styles.stepCardDone]} onPress={() => toggleStep(index)}>
-              <View style={[styles.stepNumber, done && styles.stepNumberDone]}><Text style={[styles.stepNumberText, done && styles.stepNumberTextDone]}>{done ? "✓" : index + 1}</Text></View>
-              <View style={styles.stepBody}><Text style={[styles.stepText, { color: theme.text }, done && styles.stepTextDone]}>{step}</Text><Text style={[styles.stepAction, done && styles.stepActionDone]}>{done ? "DONE" : "TAP WHEN DONE"}</Text></View>
+            return <Pressable accessibilityRole="checkbox" disabled={saving || status === "completed"} accessibilityHint="Double tap only after you complete this action" accessibilityState={{ checked: done, disabled: saving || status === "completed" }} key={`${index}-${step}`} style={[styles.stepCard, { backgroundColor: theme.surfaceStrong, borderColor: done ? theme.accent : theme.border }]} onPress={() => toggleStep(index)}>
+              <View style={[styles.stepNumber, { borderColor: done ? theme.accent : theme.border, backgroundColor: done ? theme.accent : "transparent" }]}><Text style={[styles.stepNumberText, { color: done ? theme.accentInk : theme.accent }]}>{done ? "✓" : index + 1}</Text></View>
+              <View style={styles.stepBody}><Text style={[styles.stepText, { color: done ? theme.muted : theme.text }]}>{step}</Text><Text style={[styles.stepAction, { color: theme.accent }]}>{done ? "DONE" : "TAP WHEN DONE"}</Text></View>
             </Pressable>;
           })}
-          <View style={styles.finishLine}><View style={styles.finishBody}><Text style={styles.finishLabel}>THE FINISH LINE</Text><Text style={styles.finishText}>{mission.successCriteria}</Text></View></View>
+          <View style={[styles.finishLine, { backgroundColor: theme.surfaceStrong }]}><View style={styles.finishBody}><Text style={[styles.finishLabel, { color: theme.accent }]}>THE FINISH LINE</Text><Text style={[styles.finishText, { color: theme.text }]}>{mission.successCriteria}</Text></View></View>
         </View>
 
-        <View onLayout={(event) => { reflectionY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: theme.surface, borderColor: theme.border }, !stepsReady && styles.stageCardLocked, reflectionReady && styles.stageCardDone]}>
+        <View onLayout={(event) => { reflectionY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: reflectionReady ? theme.surfaceStrong : theme.surface, borderColor: reflectionReady ? theme.accent : theme.border }, !stepsReady && styles.stageCardLocked]}> 
           <View style={styles.stageHeader}>
-            <View style={[styles.stageNumber, reflectionReady && styles.stageNumberDone]}><Text style={styles.stageNumberText}>{reflectionReady ? "✓" : "3"}</Text></View>
-            <View style={styles.stageHeading}><Text style={styles.stageEyebrow}>{stepsReady ? "FINAL MOVE" : "UNLOCKS NEXT"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Lock in the lesson</Text></View>
+            <View style={[styles.stageNumber, { backgroundColor: reflectionReady ? theme.accent : theme.surfaceStrong }]}><Text style={[styles.stageNumberText, { color: reflectionReady ? theme.accentInk : theme.text }]}>{reflectionReady ? "✓" : "3"}</Text></View>
+            <View style={styles.stageHeading}><Text style={[styles.stageEyebrow, { color: theme.accent }]}>{stepsReady ? "FINAL MOVE" : "UNLOCKS NEXT"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Lock in the lesson</Text></View>
           </View>
           {stepsReady ? <>
-            <View style={styles.promptRow}><Text style={styles.promptNumber}>1</Text><Text style={[styles.promptText, { color: theme.text }]}>What did you make or practise?</Text></View>
-            <View style={styles.promptRow}><Text style={styles.promptNumber}>2</Text><Text style={[styles.promptText, { color: theme.text }]}>What did you learn or improve?</Text></View>
+            <View style={styles.promptRow}><Text style={[styles.promptNumber, { backgroundColor: theme.surfaceStrong, color: theme.accent }]}>1</Text><Text style={[styles.promptText, { color: theme.text }]}>What did you make or practise?</Text></View>
+            <View style={styles.promptRow}><Text style={[styles.promptNumber, { backgroundColor: theme.surfaceStrong, color: theme.accent }]}>2</Text><Text style={[styles.promptText, { color: theme.text }]}>What did you learn or improve?</Text></View>
             <TextInput
               accessibilityLabel="Mission reflection"
               style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
               placeholder={mission.reflectionPrompt || "Two honest sentences…"}
-              placeholderTextColor="#668577"
+              placeholderTextColor={theme.muted}
               multiline
               maxLength={1200}
               blurOnSubmit
@@ -281,162 +281,136 @@ export default function ActionScreen() {
               value={reflection}
               onChangeText={setReflection}
             />
-            <Text style={[styles.hint, reflectionReady && styles.hintReady]}>{reflectionReady ? `✓ Reflection ready · ${reflectionReview.sentenceCount} sentences` : reflectionReview.message}</Text>
-          </> : <Text style={styles.lockedText}>Finish every move above to unlock your reflection.</Text>}
+            <Text style={[styles.hint, { color: reflectionReady ? theme.accent : theme.muted }, reflectionReady && styles.hintReady]}>{reflectionReady ? `✓ Reflection ready · ${reflectionReview.sentenceCount} sentences` : reflectionReview.message}</Text>
+          </> : <Text style={[styles.lockedText, { color: theme.muted }]}>Finish every move above to unlock your reflection.</Text>}
         </View>
 
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: showGuidance }} onPress={() => setShowGuidance((value) => !value)} style={({ pressed }) => [styles.helpToggle, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && styles.pressed]}>
           <View style={styles.helpBody}><Text style={[styles.helpTitle, { color: theme.text }]}>Need a boost?</Text><Text style={[styles.helpText, { color: theme.muted }]}>Coach tips, safety and useful resources</Text></View>
-          <Text style={styles.helpArrow}>{showGuidance ? "−" : "+"}</Text>
+          <Text style={[styles.helpArrow, { color: theme.accent }]}>{showGuidance ? "−" : "+"}</Text>
         </Pressable>
 
         {showGuidance ? <View style={styles.helpDrawer}>
-          <View style={styles.whyCard}><Text style={styles.whyLabel}>WHY THIS MISSION</Text><Text style={styles.whyText}>{mission.why}</Text></View>
-          <View style={styles.onePercentCard}><Text style={styles.onePercentLabel}>YOUR 1% TODAY</Text><Text style={styles.onePercentText}>{mission.onePercent}</Text></View>
-          <View style={styles.coachCard}><Text style={styles.coachLabel}>COACH TIP</Text><Text style={styles.coachText}>{mission.coachTip || "Finish a small version first, then improve one visible detail."}</Text><Text style={styles.stuckLabel}>STUCK?</Text><Text style={styles.coachText}>{mission.ifStuck || "Shrink it to one five-minute attempt."}</Text></View>
-          <View style={styles.safetyCard}><Text style={styles.safetyLabel}>🛡️ KEEP IT SAFE</Text><Text style={styles.safetyText}>{mission.safetyNote || "Protect private information and simplify anything that feels unsafe."}</Text></View>
-          {mission.resourceNote ? <View style={styles.resourceNote}><Text style={styles.resourceNoteTitle}>SOURCE STANDARD</Text><Text style={styles.resourceNoteText}>{mission.resourceNote}</Text></View> : null}
-          {mission.sourceNote ? <View style={styles.sourceCard}><Text style={styles.sourceTitle}>A STEP FOR YOUR PATH</Text><Text style={styles.sourceText}>{spiritualPractice(mission.day, faithProfile?.trustedSources)}</Text><Text style={styles.sourceText}>{faithSource?.text || "RISE will not guess a tradition for you. "}{mission.sourceNote}</Text></View> : null}
-          <ResourceButton icon="▶️" title={isSpiritual ? `Search ${faithSource ? faithProfile?.spiritualTradition : "topic"} videos` : mission.resourceLabel} detail="Optional learning resource" disabled={isSpiritual && !faithProfile} onPress={() => openLink(isSpiritual ? spiritualVideoSearch(faithProfile?.spiritualTradition, mission.title) : mission.resourceUrl)} />
-          {mission.mapQuery && !isSpiritual ? <ResourceButton icon="📍" title="Find useful places near you" detail={mission.mapQuery} onPress={() => openLink(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mission.mapQuery || "")}`)} /> : null}
-          {faithSource ? <ResourceButton icon="📖" title={faithSource.label} detail="Optional reading library" onPress={() => openLink(faithSource.url)} /> : null}
-          {mission.guideUrl && !isSpiritual ? <ResourceButton icon="🔎" title={mission.guideLabel || "Publisher guide"} detail="Matched guide from a named source" onPress={() => openLink(mission.guideUrl!)} /> : null}
-          <ResourceButton icon="🛟" title="Safety, privacy or proof help" detail="Get unstuck without losing progress" arrow="›" onPress={() => router.push("/help" as any)} />
+          <View style={[styles.whyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}><Text style={[styles.whyLabel, { color: theme.accent }]}>WHY THIS MISSION</Text><Text style={[styles.whyText, { color: theme.text }]}>{mission.why}</Text></View>
+          <View style={[styles.onePercentCard, { backgroundColor: theme.surface }]}><Text style={[styles.onePercentLabel, { color: theme.accent }]}>YOUR 1% TODAY</Text><Text style={[styles.onePercentText, { color: theme.text }]}>{mission.onePercent}</Text></View>
+          <View style={[styles.coachCard, { backgroundColor: theme.surface, borderColor: theme.border }]}><Text style={[styles.coachLabel, { color: theme.accent }]}>COACH TIP</Text><Text style={[styles.coachText, { color: theme.text }]}>{mission.coachTip || "Finish a small version first, then improve one visible detail."}</Text><Text style={[styles.stuckLabel, { color: theme.accent }]}>STUCK?</Text><Text style={[styles.coachText, { color: theme.text }]}>{mission.ifStuck || "Shrink it to one five-minute attempt."}</Text></View>
+          <View style={[styles.safetyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}><Text style={[styles.safetyLabel, { color: theme.accent }]}>KEEP IT SAFE</Text><Text style={[styles.safetyText, { color: theme.muted }]}>{mission.safetyNote || "Protect private information and simplify anything that feels unsafe."}</Text></View>
+          {mission.resourceNote ? <View style={[styles.resourceNote, { backgroundColor: theme.surface, borderColor: theme.border }]}><Text style={[styles.resourceNoteTitle, { color: theme.accent }]}>SOURCE STANDARD</Text><Text style={[styles.resourceNoteText, { color: theme.muted }]}>{mission.resourceNote}</Text></View> : null}
+          {mission.sourceNote ? <View style={[styles.sourceCard, { backgroundColor: theme.surface, borderColor: theme.border }]}><Text style={[styles.sourceTitle, { color: theme.accent }]}>A STEP FOR YOUR PATH</Text><Text style={[styles.sourceText, { color: theme.muted }]}>{spiritualPractice(mission.day, faithProfile?.trustedSources)}</Text><Text style={[styles.sourceText, { color: theme.muted }]}>{faithSource?.text || "RISE will not guess a tradition for you. "}{mission.sourceNote}</Text></View> : null}
+          <ResourceButton title={isSpiritual ? `Search ${faithSource ? faithProfile?.spiritualTradition : "topic"} videos` : mission.resourceLabel} detail="Optional learning resource" disabled={isSpiritual && !faithProfile} onPress={() => openLink(isSpiritual ? spiritualVideoSearch(faithProfile?.spiritualTradition, mission.title) : mission.resourceUrl)} />
+          {mission.mapQuery && !isSpiritual ? <ResourceButton title="Find useful places near you" detail={mission.mapQuery} onPress={() => openLink(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mission.mapQuery || "")}`)} /> : null}
+          {faithSource ? <ResourceButton title={faithSource.label} detail="Optional reading library" onPress={() => openLink(faithSource.url)} /> : null}
+          {mission.guideUrl && !isSpiritual ? <ResourceButton title={mission.guideLabel || "Publisher guide"} detail="Matched guide from a named source" onPress={() => openLink(mission.guideUrl!)} /> : null}
+          <ResourceButton title="Safety, privacy or proof help" detail="Get unstuck without losing progress" arrow="›" onPress={() => router.push("/help" as any)} />
         </View> : null}
       </ScrollView>
 
       <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: theme.background, borderTopColor: theme.border }]}>
-        <View style={styles.footerTop}><Text style={styles.footerProgress}>{completedMilestones}/3 READY</Text><Text accessibilityRole="alert" style={styles.footerReason}>{readyForProof ? "Add proof to claim your XP." : nextMove}</Text></View>
+        <View style={styles.footerTop}><Text style={[styles.footerProgress, { color: theme.accent }]}>{completedMilestones}/3 READY</Text><Text accessibilityRole="alert" style={[styles.footerReason, { color: theme.muted }]}>{readyForProof ? "Add proof to claim your XP." : nextMove}</Text></View>
         <Pressable
-          style={({ pressed }) => [styles.button, pressed && styles.pressed, saving && styles.disabled]}
+          style={({ pressed }) => [styles.button, { backgroundColor: theme.accent, borderColor: theme.accent }, pressed && styles.pressed, saving && styles.disabled]}
           onPress={handlePrimaryAction}
           accessibilityRole="button"
           accessibilityState={{ disabled: saving }}
           disabled={saving}
         >
-          <Text style={styles.buttonText}>{saving ? "Saving…" : readyForProof ? status === "completed" ? "Review my proof →" : "Add proof + finish →" : !resultReady ? "Choose my win ↓" : !stepsReady ? "Keep moving ↓" : "Write reflection ↓"}</Text>
+          <Text style={[styles.buttonText, { color: theme.accentInk }]}>{saving ? "Saving…" : readyForProof ? status === "completed" ? "Review my proof →" : "Add proof + finish →" : !resultReady ? "Choose my win ↓" : !stepsReady ? "Keep moving ↓" : "Write reflection ↓"}</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-function ResourceButton({ icon, title, detail, onPress, disabled = false, arrow = "↗" }: { icon: string; title: string; detail: string; onPress: () => void; disabled?: boolean; arrow?: string }) {
-  void icon;
-  return <Pressable accessibilityRole="link" disabled={disabled} style={({ pressed }) => [styles.toolCard, disabled && styles.disabled, pressed && styles.pressed]} onPress={onPress}><View style={styles.toolBody}><Text style={styles.toolTitle}>{title}</Text><Text style={styles.toolText} numberOfLines={2}>{detail}</Text></View><Text style={styles.toolArrow}>{arrow}</Text></Pressable>;
+function ResourceButton({ title, detail, onPress, disabled = false, arrow = "↗" }: { title: string; detail: string; onPress: () => void; disabled?: boolean; arrow?: string }) {
+  const { theme } = useRiseAppearance();
+  return <Pressable accessibilityRole="link" disabled={disabled} style={({ pressed }) => [styles.toolCard, { backgroundColor: theme.surface, borderColor: theme.border }, disabled && styles.disabled, pressed && styles.pressed]} onPress={onPress}><View style={styles.toolBody}><Text style={[styles.toolTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.toolText, { color: theme.muted }]} numberOfLines={2}>{detail}</Text></View><Text style={[styles.toolArrow, { color: theme.accent }]}>{arrow}</Text></Pressable>;
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#010807" },
+  page: { flex: 1 },
   content: { paddingHorizontal: 18, paddingBottom: 130 },
-  hero: { position: "relative", overflow: "hidden", backgroundColor: "#0D120F", borderRadius: 24, borderWidth: 1, borderColor: "#263129", padding: 20, marginBottom: 14 },
-  heroBubbleLarge: { position: "absolute", width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(122,245,184,0.10)", right: -54, top: -54 },
-  heroBubbleSmall: { position: "absolute", width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,207,112,0.10)", right: 58, bottom: -28 },
+  hero: { borderRadius: 20, borderWidth: 1, padding: 20, marginBottom: 14 },
   topRow: { flexDirection: "row", alignItems: "center", marginBottom: 18 },
   back: { minWidth: 42, minHeight: 38, justifyContent: "center", marginRight: 14 },
-  backText: { color: "#A1ADA6", fontSize: 12, fontWeight: "800" },
-  day: { flex: 1, color: "#56E28A", fontSize: 11, fontWeight: "900", letterSpacing: 1.5, textAlign: "right" },
-  heroEmoji: { fontSize: 31 },
-  trackLabel: { color: "#56E28A", fontSize: 9, fontWeight: "900", letterSpacing: 1.3 },
-  title: { color: "#F8FBF9", fontSize: 31, lineHeight: 36, fontWeight: "800", marginTop: 13, maxWidth: "92%" },
-  description: { color: "#A1ADA6", fontSize: 14, lineHeight: 21, marginTop: 9 },
-  heroMeta: { color: "#7F8D84", fontSize: 10, fontWeight: "800", letterSpacing: .8, marginTop: 18 },
-  heroReward: { color: "#071B16", backgroundColor: "#FFCF70" },
-  mapCard: { backgroundColor: "#071B16", borderRadius: 22, borderWidth: 1, borderColor: "#29483B", padding: 17, marginBottom: 14 },
+  backText: { fontSize: 12, fontWeight: "800" },
+  day: { flex: 1, fontSize: 11, fontWeight: "900", letterSpacing: 1.5, textAlign: "right" },
+  trackLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 1.3 },
+  title: { fontSize: 31, lineHeight: 36, fontWeight: "800", letterSpacing: -0.5, marginTop: 13, maxWidth: "92%" },
+  description: { fontSize: 14, lineHeight: 21, marginTop: 9 },
+  heroMeta: { fontSize: 10, fontWeight: "800", letterSpacing: .8, marginTop: 18 },
+  mapCard: { borderRadius: 20, borderWidth: 1, padding: 17, marginBottom: 14 },
   mapTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  mapEyebrow: { color: "#9AB9A8", fontSize: 9, fontWeight: "900", letterSpacing: 1.3 },
-  mapPercent: { color: "#7AF5B8", fontSize: 13, fontWeight: "900" },
-  progressTrack: { height: 6, borderRadius: 3, backgroundColor: "#163127", overflow: "hidden", marginTop: 10 },
-  progressFill: { height: "100%", borderRadius: 3, backgroundColor: "#7AF5B8" },
-  mapStops: { flexDirection: "row", alignItems: "flex-start", marginTop: 15 },
-  mapStop: { width: 54, alignItems: "center" },
-  mapDot: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: "#315544", backgroundColor: "#10271F", alignItems: "center", justifyContent: "center" },
-  mapDotDone: { backgroundColor: "#7AF5B8", borderColor: "#7AF5B8" },
-  mapDotActive: { borderWidth: 2, borderColor: "#FFCF70", backgroundColor: "#352C17" },
-  mapDotText: { fontSize: 15, color: "#071B16", fontWeight: "900" },
-  mapStopLabel: { color: "#6E9581", fontSize: 9, fontWeight: "800", marginTop: 5 },
-  mapStopLabelActive: { color: "#DFFDEE" },
-  mapLine: { flex: 1, height: 2, backgroundColor: "#1E3A31", marginTop: 18, marginHorizontal: -2 },
-  mapLineDone: { backgroundColor: "#7AF5B8" },
-  nextMove: { color: "#DFFDEE", fontSize: 12, lineHeight: 17, fontWeight: "700", textAlign: "center", marginTop: 13 },
-  stageCard: { backgroundColor: "#071B16", borderRadius: 22, borderWidth: 1, borderColor: "#29483B", padding: 17, marginBottom: 14 },
-  stageCardDone: { borderColor: "#4FA77E", backgroundColor: "#09271D" },
+  mapEyebrow: { fontSize: 9, fontWeight: "900", letterSpacing: 1.3 },
+  mapPercent: { fontSize: 13, fontWeight: "900" },
+  progressTrack: { height: 6, borderRadius: 3, overflow: "hidden", marginTop: 10 },
+  progressFill: { height: "100%", borderRadius: 3 },
+  nextMove: { fontSize: 12, lineHeight: 17, fontWeight: "700", textAlign: "center", marginTop: 13 },
+  stageCard: { borderRadius: 20, borderWidth: 1, padding: 17, marginBottom: 14 },
   stageCardLocked: { opacity: 0.62 },
   stepsStage: { paddingBottom: 13 },
   stageHeader: { flexDirection: "row", alignItems: "center", marginBottom: 13 },
-  stageNumber: { width: 38, height: 38, borderRadius: 13, backgroundColor: "#15392C", alignItems: "center", justifyContent: "center", marginRight: 11 },
-  stageNumberDone: { backgroundColor: "#7AF5B8" },
-  stageNumberText: { color: "#F5FFF9", fontSize: 15, fontWeight: "900" },
+  stageNumber: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", marginRight: 11 },
+  stageNumberText: { fontSize: 15, fontWeight: "900" },
   stageHeading: { flex: 1 },
-  stageEyebrow: { color: "#7AF5B8", fontSize: 8, fontWeight: "900", letterSpacing: 1.2 },
-  stageTitle: { color: "#F5FFF9", fontSize: 19, fontWeight: "900", marginTop: 3 },
-  stageEmoji: { fontSize: 25 },
-  stagePrompt: { color: "#C8EED9", fontSize: 13, lineHeight: 19, marginBottom: 10 },
-  missionInput: { minHeight: 55, borderRadius: 15, borderWidth: 1.5, borderColor: "#4A7E65", backgroundColor: "#020D0A", color: "#F5FFF9", paddingHorizontal: 14, paddingVertical: 12, fontSize: 14 },
-  hint: { color: "#8FB6A2", fontSize: 11, lineHeight: 16, marginTop: 8 },
-  hintReady: { color: "#7AF5B8", fontWeight: "800" },
-  miniProgress: { height: 5, borderRadius: 3, backgroundColor: "#163127", overflow: "hidden", marginBottom: 13 },
-  miniProgressFill: { height: "100%", backgroundColor: "#FFCF70", borderRadius: 3 },
-  stepCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#0B211A", borderRadius: 17, padding: 13, marginBottom: 9, borderWidth: 1, borderColor: "#1E3A31" },
-  stepCardDone: { borderColor: "#4FA77E", backgroundColor: "#0D2F22" },
-  stepNumber: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: "#4A7E65", alignItems: "center", justifyContent: "center", marginRight: 11 },
-  stepNumberDone: { backgroundColor: "#7AF5B8", borderColor: "#7AF5B8" },
-  stepNumberText: { color: "#7AF5B8", fontWeight: "900" },
-  stepNumberTextDone: { color: "#071B16" },
+  stageEyebrow: { fontSize: 8, fontWeight: "900", letterSpacing: 1.2 },
+  stageTitle: { fontSize: 19, fontWeight: "900", marginTop: 3 },
+  stagePrompt: { fontSize: 13, lineHeight: 19, marginBottom: 10 },
+  missionInput: { minHeight: 55, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14 },
+  hint: { fontSize: 11, lineHeight: 16, marginTop: 8 },
+  hintReady: { fontWeight: "800" },
+  miniProgress: { height: 5, borderRadius: 3, overflow: "hidden", marginBottom: 13 },
+  miniProgressFill: { height: "100%", borderRadius: 3 },
+  stepCard: { flexDirection: "row", alignItems: "center", borderRadius: 14, padding: 13, marginBottom: 9, borderWidth: 1 },
+  stepNumber: { width: 34, height: 34, borderRadius: 11, borderWidth: 1, alignItems: "center", justifyContent: "center", marginRight: 11 },
+  stepNumberText: { fontWeight: "900" },
   stepBody: { flex: 1 },
-  stepText: { color: "#E8F8EF", fontSize: 13, lineHeight: 19, fontWeight: "700" },
-  stepTextDone: { color: "#A7CBB7" },
-  stepAction: { color: "#FFCF70", fontSize: 8, fontWeight: "900", letterSpacing: 1, marginTop: 5 },
-  stepActionDone: { color: "#7AF5B8" },
-  finishLine: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,207,112,0.07)", borderRadius: 15, padding: 12, marginTop: 3 },
-  finishIcon: { fontSize: 21, marginRight: 10 },
+  stepText: { fontSize: 13, lineHeight: 19, fontWeight: "700" },
+  stepAction: { fontSize: 8, fontWeight: "900", letterSpacing: 1, marginTop: 5 },
+  finishLine: { flexDirection: "row", alignItems: "center", borderRadius: 14, padding: 12, marginTop: 3 },
   finishBody: { flex: 1 },
-  finishLabel: { color: "#FFCF70", fontSize: 8, fontWeight: "900", letterSpacing: 1.1 },
-  finishText: { color: "#E9DFC3", fontSize: 11, lineHeight: 17, marginTop: 3 },
+  finishLabel: { fontSize: 8, fontWeight: "900", letterSpacing: 1.1 },
+  finishText: { fontSize: 11, lineHeight: 17, marginTop: 3 },
   promptRow: { flexDirection: "row", alignItems: "center", marginBottom: 7 },
-  promptNumber: { width: 22, height: 22, borderRadius: 11, textAlign: "center", textAlignVertical: "center", backgroundColor: "#15392C", color: "#7AF5B8", fontSize: 10, fontWeight: "900", marginRight: 8, overflow: "hidden" },
-  promptText: { flex: 1, color: "#DFFDEE", fontSize: 12, fontWeight: "700" },
-  input: { minHeight: 112, borderRadius: 16, borderWidth: 1.5, borderColor: "#4A7E65", backgroundColor: "#020D0A", color: "#F5FFF9", padding: 14, textAlignVertical: "top", fontSize: 14, lineHeight: 21, marginTop: 7 },
-  lockedText: { color: "#8FB6A2", fontSize: 12, lineHeight: 18 },
-  helpToggle: { flexDirection: "row", alignItems: "center", backgroundColor: "#0B211A", borderRadius: 20, borderWidth: 1, borderColor: "#29483B", padding: 13, marginBottom: 14 },
-  helpIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: "#15392C", alignItems: "center", justifyContent: "center", marginRight: 11 },
-  helpIconText: { fontSize: 20 },
+  promptNumber: { width: 22, height: 22, borderRadius: 7, textAlign: "center", textAlignVertical: "center", fontSize: 10, fontWeight: "900", marginRight: 8, overflow: "hidden" },
+  promptText: { flex: 1, fontSize: 12, fontWeight: "700" },
+  input: { minHeight: 112, borderRadius: 14, borderWidth: 1, padding: 14, textAlignVertical: "top", fontSize: 14, lineHeight: 21, marginTop: 7 },
+  lockedText: { fontSize: 12, lineHeight: 18 },
+  helpToggle: { flexDirection: "row", alignItems: "center", borderRadius: 16, borderWidth: 1, padding: 13, marginBottom: 14 },
   helpBody: { flex: 1 },
-  helpTitle: { color: "#F5FFF9", fontSize: 14, fontWeight: "900" },
-  helpText: { color: "#8FB6A2", fontSize: 10, marginTop: 3 },
-  helpArrow: { color: "#7AF5B8", fontSize: 24, fontWeight: "500" },
+  helpTitle: { fontSize: 14, fontWeight: "900" },
+  helpText: { fontSize: 10, marginTop: 3 },
+  helpArrow: { fontSize: 24, fontWeight: "500" },
   helpDrawer: { marginBottom: 2 },
   pressed: { opacity: 0.76, transform: [{ scale: 0.99 }] },
-  whyCard: { backgroundColor: "rgba(122,245,184,0.08)", borderWidth: 1, borderColor: "rgba(122,245,184,0.22)", borderRadius: 17, padding: 15, marginBottom: 9 },
-  whyLabel: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
-  whyText: { color: "#DFFDEE", fontSize: 13, lineHeight: 20, marginTop: 6 },
-  onePercentCard: { backgroundColor: "#102A22", borderRadius: 17, padding: 15, marginBottom: 9 },
-  onePercentLabel: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
-  onePercentText: { color: "#F5FFF9", fontSize: 13, lineHeight: 20, marginTop: 6, fontWeight: "700" },
-  coachCard: { backgroundColor: "#071B16", borderRadius: 17, borderWidth: 1, borderColor: "#29483B", padding: 15, marginBottom: 9 },
-  coachLabel: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
-  stuckLabel: { color: "#FFCF70", fontSize: 9, fontWeight: "900", letterSpacing: 1.2, marginTop: 13 },
-  coachText: { color: "#DFFDEE", fontSize: 13, lineHeight: 20, marginTop: 6 },
-  safetyCard: { backgroundColor: "rgba(255,207,112,0.07)", borderRadius: 17, borderWidth: 1, borderColor: "rgba(255,207,112,0.25)", padding: 15, marginBottom: 9 },
-  safetyLabel: { color: "#FFCF70", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
-  safetyText: { color: "#F4E8C8", fontSize: 12, lineHeight: 19, marginTop: 6 },
-  sourceCard: { backgroundColor: "rgba(255,207,112,0.06)", borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,207,112,0.2)", padding: 14, marginBottom: 10 },
-  sourceTitle: { color: "#FFCF70", fontSize: 9, fontWeight: "900", letterSpacing: 1.1 },
-  resourceNote: { backgroundColor: "rgba(122,245,184,0.06)", borderRadius: 16, borderWidth: 1, borderColor: "rgba(122,245,184,0.2)", padding: 14, marginBottom: 10 },
-  resourceNoteTitle: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 1.1, marginBottom: 5 },
-  resourceNoteText: { color: "#C8EED9", fontSize: 12, lineHeight: 18 },
-  sourceText: { color: "#E9DFC3", fontSize: 11, lineHeight: 18, marginTop: 6 },
-  toolCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#071B16", borderRadius: 16, padding: 14, marginBottom: 9, borderWidth: 1, borderColor: "#1E3A31" },
-  toolIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: "#11382B", alignItems: "center", justifyContent: "center", marginRight: 11 },
+  whyCard: { borderWidth: 1, borderRadius: 16, padding: 15, marginBottom: 9 },
+  whyLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
+  whyText: { fontSize: 13, lineHeight: 20, marginTop: 6 },
+  onePercentCard: { borderRadius: 16, padding: 15, marginBottom: 9 },
+  onePercentLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
+  onePercentText: { fontSize: 13, lineHeight: 20, marginTop: 6, fontWeight: "700" },
+  coachCard: { borderRadius: 16, borderWidth: 1, padding: 15, marginBottom: 9 },
+  coachLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
+  stuckLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 1.2, marginTop: 13 },
+  coachText: { fontSize: 13, lineHeight: 20, marginTop: 6 },
+  safetyCard: { borderRadius: 16, borderWidth: 1, padding: 15, marginBottom: 9 },
+  safetyLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
+  safetyText: { fontSize: 12, lineHeight: 19, marginTop: 6 },
+  sourceCard: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
+  sourceTitle: { fontSize: 9, fontWeight: "900", letterSpacing: 1.1 },
+  resourceNote: { borderRadius: 16, borderWidth: 1, padding: 14, marginBottom: 10 },
+  resourceNoteTitle: { fontSize: 9, fontWeight: "900", letterSpacing: 1.1, marginBottom: 5 },
+  resourceNoteText: { fontSize: 12, lineHeight: 18 },
+  sourceText: { fontSize: 11, lineHeight: 18, marginTop: 6 },
+  toolCard: { flexDirection: "row", alignItems: "center", borderRadius: 14, padding: 14, marginBottom: 9, borderWidth: 1 },
   toolBody: { flex: 1 },
-  toolTitle: { color: "#F5FFF9", fontSize: 13, fontWeight: "900" },
-  toolText: { color: "#8FB6A2", fontSize: 11, marginTop: 4 },
-  toolArrow: { color: "#7AF5B8", fontSize: 18 },
-  footer: { paddingHorizontal: 18, paddingTop: 10, flexShrink: 0, backgroundColor: "#020B09", borderTopWidth: 1, borderTopColor: "#1E3A31" },
+  toolTitle: { fontSize: 13, fontWeight: "900" },
+  toolText: { fontSize: 11, marginTop: 4 },
+  toolArrow: { fontSize: 18 },
+  footer: { paddingHorizontal: 18, paddingTop: 10, flexShrink: 0, borderTopWidth: 1 },
   footerTop: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 8 },
-  footerProgress: { color: "#7AF5B8", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
-  footerReason: { flex: 1, color: "#A7CBB7", fontSize: 10, lineHeight: 15 },
-  button: { height: 55, borderRadius: 18, borderWidth: 1, borderColor: "#B5FFD7", backgroundColor: "#7AF5B8", alignItems: "center", justifyContent: "center", elevation: 3 },
+  footerProgress: { fontSize: 9, fontWeight: "900", letterSpacing: 1 },
+  footerReason: { flex: 1, fontSize: 10, lineHeight: 15 },
+  button: { height: 54, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   disabled: { opacity: 0.35 },
-  buttonText: { color: "#010807", fontSize: 15, fontWeight: "900" },
+  buttonText: { fontSize: 15, fontWeight: "900" },
 });

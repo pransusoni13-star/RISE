@@ -102,45 +102,44 @@ export default function ProgressTabScreen() {
       showsVerticalScrollIndicator={false}
     >
       <AppPageHeader />
-      <Text style={[styles.heading, { color: theme.text }]}>Your wins 📈</Text>
+      <Text style={[styles.heading, { color: theme.text }]}>Your progress</Text>
       <Text style={[styles.subtitle, { color: theme.muted }]}>Every real step adds up.</Text>
 
       <View style={[styles.summaryCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
-        <Text style={styles.summaryLabel}>RIGHT NOW</Text>
+        <Text style={[styles.summaryLabel, { color: theme.accent }]}>RIGHT NOW</Text>
         <Text style={[styles.summaryTitle, { color: theme.text }]}>{profile?.customGoal || "Personal Growth"}</Text>
         <Text style={[styles.summaryText, { color: theme.muted }]}>{profile?.weeklySkill || adaptiveSummary.currentSkill?.name || "Foundations"} · {cycleCompleted}/{cycleTotal} missions proved</Text>
       </View>
 
       <View style={styles.gridRow}>
         <View style={[styles.smallCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={styles.smallLabel}>✨ TOTAL XP</Text>
+          <Text style={[styles.smallLabel, { color: theme.muted }]}>TOTAL XP</Text>
           <Text style={[styles.smallValue, { color: theme.text }]}>{progress.totalXP}</Text>
         </View>
         <View style={[styles.smallCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={styles.smallLabel}>🔥 STREAK</Text>
+          <Text style={[styles.smallLabel, { color: theme.muted }]}>STREAK</Text>
           <Text style={[styles.smallValue, { color: theme.text }]}>{streakCount} days</Text>
         </View>
       </View>
 
       <View style={[styles.reviewCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
-        <View style={styles.reviewHeader}><View><Text style={styles.sectionTitle}>THIS CYCLE</Text><Text style={styles.reviewTitle}>{cyclePercent}% complete</Text></View><Text style={styles.reviewProof}>{photoCount + videoCount} proofs</Text></View>
-        <View style={styles.track}><View style={[styles.trackFill, { width: `${cyclePercent}%` }]} /></View>
+        <View style={styles.reviewHeader}><View><Text style={[styles.sectionTitle, { color: theme.accent }]}>THIS CYCLE</Text><Text style={[styles.reviewTitle, { color: theme.text }]}>{cyclePercent}% complete</Text></View><Text style={[styles.reviewProof, { color: theme.muted }]}>{photoCount + videoCount} proofs</Text></View>
+        <View style={[styles.track, { backgroundColor: theme.surface }]}><View style={[styles.trackFill, { backgroundColor: theme.accent, width: `${cyclePercent}%` }]} /></View>
         <Text style={[styles.reviewInsight, { color: theme.muted }]}>{reviewInsight}</Text>
-        <View style={styles.skillWrap}>{profile?.focusSkills?.map((skill, index) => <View key={skill} style={styles.skillPill}><Text style={styles.skillText}>{index === 0 ? `Primary · ${skill}` : skill}</Text></View>)}</View>
+        <View style={styles.skillWrap}>{profile?.focusSkills?.map((skill, index) => <View key={skill} style={[styles.skillPill, { backgroundColor: theme.surface }]}><Text style={[styles.skillText, { color: theme.text }]}>{index === 0 ? `Primary · ${skill}` : skill}</Text></View>)}</View>
       </View>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
         <View style={styles.rewardHeader}>
-          <Text style={styles.sectionTitle}>REWARDS</Text>
-          <Text style={styles.coinBalance}>{progress.coins} 🪙</Text>
+          <Text style={[styles.sectionTitle, { color: theme.accent }]}>REWARDS</Text>
+          <Text style={[styles.coinBalance, { color: theme.text }]}>{progress.coins} coins</Text>
         </View>
-        <Text style={styles.rewardIntro}>Real work earns coins. Your balance is lifetime progress, so changing your plan will not erase it.</Text>
+        <Text style={[styles.rewardIntro, { color: theme.muted }]}>Real work earns coins. Changing your plan will not erase them.</Text>
         {(showRewards ? COIN_REWARDS : COIN_REWARDS.slice(0, 2)).map((reward) => {
           const unlocked = redeemed.includes(reward.id);
           const canAfford = progress.coins >= reward.cost;
           return (
-            <View key={reward.id} style={[styles.rewardCard, { backgroundColor: theme.surface }]}>
-              <Text style={styles.rewardEmoji}>{reward.emoji}</Text>
+            <View key={reward.id} style={[styles.rewardCard, { backgroundColor: theme.surfaceStrong }]}> 
               <View style={styles.rewardBody}>
                 <Text style={[styles.rewardTitle, { color: theme.text }]}>{reward.title}</Text>
                 <Text style={[styles.rewardDescription, { color: theme.muted }]} numberOfLines={1}>{reward.description}</Text>
@@ -148,60 +147,58 @@ export default function ProgressTabScreen() {
               <Pressable
                 onPress={() => redeem(reward)}
                 disabled={unlocked}
-                style={[styles.redeemButton, (!canAfford || unlocked) && styles.redeemDisabled]}
+                style={[styles.redeemButton, { backgroundColor: theme.accent }, (!canAfford || unlocked) && styles.redeemDisabled]}
               >
-                <Text style={styles.redeemText}>{unlocked ? "Owned" : `${reward.cost} 🪙`}</Text>
+                <Text style={[styles.redeemText, { color: theme.accentInk }]}>{unlocked ? "Owned" : `${reward.cost} coins`}</Text>
               </Pressable>
             </View>
           );
         })}
-        {COIN_REWARDS.length > 2 ? <Pressable accessibilityRole="button" onPress={() => setShowRewards((value) => !value)} style={styles.moreButton}><Text style={styles.moreButtonText}>{showRewards ? "Show less" : `See all ${COIN_REWARDS.length} rewards`} {showRewards ? "↑" : "↓"}</Text></Pressable> : null}
+        {COIN_REWARDS.length > 2 ? <Pressable accessibilityRole="button" onPress={() => setShowRewards((value) => !value)} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={[styles.moreButtonText, { color: theme.text }]}>{showRewards ? "Show less" : `See all ${COIN_REWARDS.length} rewards`} {showRewards ? "↑" : "↓"}</Text></Pressable> : null}
       </View>
 
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showWins }} onPress={() => setShowWins((value) => !value)} style={[styles.winsToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <View><Text style={styles.winsToggleLabel}>🏅 BADGES & MILESTONES</Text><Text style={styles.winsToggleValue}>{(profile?.cycleBadges || []).length + achievements.length} unlocked</Text></View>
-        <Text style={styles.winsToggleArrow}>{showWins ? "↑" : "↓"}</Text>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showWins }} onPress={() => setShowWins((value) => !value)} style={[styles.winsToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
+        <View><Text style={[styles.winsToggleLabel, { color: theme.accent }]}>BADGES & MILESTONES</Text><Text style={[styles.winsToggleValue, { color: theme.text }]}>{(profile?.cycleBadges || []).length + achievements.length} unlocked</Text></View>
+        <Text style={[styles.winsToggleArrow, { color: theme.accent }]}>{showWins ? "↑" : "↓"}</Text>
       </Pressable>
 
       {showWins ? <>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>BADGES</Text>
-        {(profile?.cycleBadges || []).length ? profile!.cycleBadges!.map((badge) => <View key={badge} style={styles.listItem}><Text style={styles.listEmoji}>🏅</Text><View style={styles.listTextWrap}><Text style={styles.listTitle}>{badge}</Text><Text style={styles.listSubtitle}>Cycle quiz passed.</Text></View></View>) : <Text style={styles.emptyState}>Pass a cycle quiz to earn your first badge.</Text>}
+      <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
+        <Text style={[styles.sectionTitle, { color: theme.accent }]}>BADGES</Text>
+        {(profile?.cycleBadges || []).length ? profile!.cycleBadges!.map((badge) => <View key={badge} style={[styles.listItem, { backgroundColor: theme.surfaceStrong }]}><View style={styles.listTextWrap}><Text style={[styles.listTitle, { color: theme.text }]}>{badge}</Text><Text style={[styles.listSubtitle, { color: theme.muted }]}>Cycle quiz passed.</Text></View></View>) : <Text style={[styles.emptyState, { color: theme.muted }]}>Pass a cycle quiz to earn your first badge.</Text>}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>ACHIEVEMENTS</Text>
+      <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
+        <Text style={[styles.sectionTitle, { color: theme.accent }]}>ACHIEVEMENTS</Text>
         {achievements.length > 0 ? (
           achievements.map((achievement) => (
-            <View key={achievement.title} style={styles.listItem}>
-              <Text style={styles.listEmoji}>•</Text>
+            <View key={achievement.title} style={[styles.listItem, { backgroundColor: theme.surfaceStrong }]}> 
               <View style={styles.listTextWrap}>
-                <Text style={styles.listTitle}>{achievement.title}</Text>
-                <Text style={styles.listSubtitle}>{achievement.description}</Text>
+                <Text style={[styles.listTitle, { color: theme.text }]}>{achievement.title}</Text>
+                <Text style={[styles.listSubtitle, { color: theme.muted }]}>{achievement.description}</Text>
               </View>
             </View>
           ))
         ) : (
-          <Text style={styles.emptyState}>Your first achievement is close.</Text>
+          <Text style={[styles.emptyState, { color: theme.muted }]}>Your first achievement is close.</Text>
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>MILESTONES</Text>
+      <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
+        <Text style={[styles.sectionTitle, { color: theme.accent }]}>MILESTONES</Text>
         {milestones.length > 0 ? (
           milestones.map((milestone) => (
-            <View key={milestone.title} style={styles.listItem}>
-              <Text style={styles.listEmoji}>•</Text>
+            <View key={milestone.title} style={[styles.listItem, { backgroundColor: theme.surfaceStrong }]}> 
               <View style={styles.listTextWrap}>
-                <Text style={styles.listTitle}>{milestone.title}</Text>
-                <Text style={styles.listSubtitle}>Target: {milestone.requirement}</Text>
+                <Text style={[styles.listTitle, { color: theme.text }]}>{milestone.title}</Text>
+                <Text style={[styles.listSubtitle, { color: theme.muted }]}>Target: {milestone.requirement}</Text>
               </View>
             </View>
           ))
         ) : (
-          <Text style={styles.emptyState}>More milestones unlock as you grow.</Text>
+          <Text style={[styles.emptyState, { color: theme.muted }]}>More milestones unlock as you grow.</Text>
         )}
-        <Text style={styles.benchmarkNote}>Your growth matters most. Optional private comparisons in Settings are not independent proof of skill.</Text>
+        <Text style={[styles.benchmarkNote, { color: theme.muted }]}>Your growth matters most. Optional private comparisons in Settings are not independent proof of skill.</Text>
       </View>
       </> : null}
     </ScrollView>
@@ -211,59 +208,41 @@ export default function ProgressTabScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#010807",
   },
   content: {
     padding: 24,
     paddingTop: 68,
     paddingBottom: 120,
   },
-  logo: {
-    fontSize: 18,
-    fontWeight: "900",
-    letterSpacing: 5,
-    color: "#7AF5B8",
-    marginBottom: 0,
-  },
-  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  benchmarkNote: { color: "#789886", fontSize: 10, lineHeight: 16, marginTop: 10 },
-  settingsButton: { minHeight: 42, borderRadius: 21, borderWidth: 1, borderColor: "#29483B", paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
-  settingsText: { color: "#BDEFD3", fontSize: 11, fontWeight: "900" },
+  benchmarkNote: { fontSize: 10, lineHeight: 16, marginTop: 10 },
   heading: {
     fontSize: 34,
     fontWeight: "900",
-    color: "#F5FFF9",
     marginBottom: 8,
   },
   subtitle: {
-    color: "#C8EED9",
     fontSize: 15,
     lineHeight: 22,
     marginBottom: 24,
   },
   summaryCard: {
-    backgroundColor: "#0D2F22",
-    borderRadius: 22,
+    borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: "#1E3A31",
     marginBottom: 18,
   },
   summaryLabel: {
-    color: "#7AF5B8",
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1.5,
     marginBottom: 8,
   },
   summaryTitle: {
-    color: "#F5FFF9",
     fontSize: 24,
     fontWeight: "900",
     marginBottom: 8,
   },
   summaryText: {
-    color: "#C8EED9",
     fontSize: 14,
     lineHeight: 20,
   },
@@ -274,34 +253,27 @@ const styles = StyleSheet.create({
   },
   smallCard: {
     flex: 1,
-    backgroundColor: "#071B16",
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#1E3A31",
   },
   smallLabel: {
-    color: "#B4D4C2",
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 1.4,
     marginBottom: 8,
   },
   smallValue: {
-    color: "#F5FFF9",
     fontSize: 22,
     fontWeight: "900",
   },
   section: {
-    backgroundColor: "#071B16",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#1E3A31",
     padding: 18,
     marginBottom: 18,
   },
   sectionTitle: {
-    color: "#7AF5B8",
     fontSize: 12,
     fontWeight: "900",
     letterSpacing: 1.5,
@@ -310,59 +282,50 @@ const styles = StyleSheet.create({
   listItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0F1E1A",
     borderRadius: 14,
     padding: 12,
     marginBottom: 10,
-  },
-  listEmoji: {
-    fontSize: 22,
-    marginRight: 12,
   },
   listTextWrap: {
     flex: 1,
   },
   listTitle: {
-    color: "#F5FFF9",
     fontSize: 15,
     fontWeight: "800",
     marginBottom: 2,
   },
   listSubtitle: {
-    color: "#C8EED9",
     fontSize: 12,
     lineHeight: 17,
   },
   emptyState: {
-    color: "#B4D4C2",
     fontSize: 14,
     lineHeight: 20,
   },
-  reviewCard: { backgroundColor: "#0D2F22", borderRadius: 20, padding: 18, borderWidth: 1, borderColor: "#295441", marginBottom: 18 },
+  reviewCard: { borderRadius: 20, padding: 18, borderWidth: 1, marginBottom: 18 },
   reviewHeader: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
-  reviewTitle: { color: "#F5FFF9", fontSize: 23, fontWeight: "900" },
-  reviewProof: { color: "#8FB6A2", fontSize: 10, fontWeight: "800", textAlign: "right" },
-  track: { height: 8, borderRadius: 4, overflow: "hidden", backgroundColor: "#071B16", marginTop: 15 },
-  trackFill: { height: 8, borderRadius: 4, backgroundColor: "#7AF5B8" },
-  reviewInsight: { color: "#DFFDEE", fontSize: 13, lineHeight: 20, marginTop: 13 },
+  reviewTitle: { fontSize: 23, fontWeight: "900" },
+  reviewProof: { fontSize: 10, fontWeight: "800", textAlign: "right" },
+  track: { height: 8, borderRadius: 4, overflow: "hidden", marginTop: 15 },
+  trackFill: { height: 8, borderRadius: 4 },
+  reviewInsight: { fontSize: 13, lineHeight: 20, marginTop: 13 },
   skillWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 13 },
-  skillPill: { borderRadius: 999, backgroundColor: "#11382B", paddingHorizontal: 10, paddingVertical: 7 },
-  skillText: { color: "#BDEFD3", fontSize: 10, fontWeight: "800" },
+  skillPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7 },
+  skillText: { fontSize: 10, fontWeight: "800" },
   rewardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  coinBalance: { color: "#F5FFF9", fontSize: 14, fontWeight: "900", marginBottom: 12 },
-  rewardIntro: { color: "#8FB6A2", fontSize: 12, marginBottom: 12 },
-  rewardCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#0F1E1A", borderRadius: 14, padding: 12, marginBottom: 10 },
-  rewardEmoji: { fontSize: 24, marginRight: 10 },
+  coinBalance: { fontSize: 14, fontWeight: "900", marginBottom: 12 },
+  rewardIntro: { fontSize: 12, marginBottom: 12 },
+  rewardCard: { flexDirection: "row", alignItems: "center", borderRadius: 14, padding: 12, marginBottom: 10 },
   rewardBody: { flex: 1, paddingRight: 8 },
-  rewardTitle: { color: "#F5FFF9", fontSize: 14, fontWeight: "900" },
-  rewardDescription: { color: "#A7CBB7", fontSize: 11, lineHeight: 16, marginTop: 3 },
-  redeemButton: { minWidth: 68, borderRadius: 12, backgroundColor: "#7AF5B8", paddingHorizontal: 10, paddingVertical: 9, alignItems: "center" },
+  rewardTitle: { fontSize: 14, fontWeight: "900" },
+  rewardDescription: { fontSize: 11, lineHeight: 16, marginTop: 3 },
+  redeemButton: { minWidth: 68, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9, alignItems: "center" },
   redeemDisabled: { opacity: 0.45 },
-  redeemText: { color: "#010807", fontSize: 11, fontWeight: "900" },
-  moreButton: { minHeight: 42, borderRadius: 13, borderWidth: 1, borderColor: "#315544", alignItems: "center", justifyContent: "center", marginTop: 3 },
-  moreButtonText: { color: "#BDEFD3", fontSize: 11, fontWeight: "900" },
-  winsToggle: { minHeight: 72, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#071B16", borderWidth: 1, borderColor: "#1E3A31", borderRadius: 18, paddingHorizontal: 17, marginBottom: 18 },
-  winsToggleLabel: { color: "#7AF5B8", fontSize: 10, fontWeight: "900", letterSpacing: 1.1 },
-  winsToggleValue: { color: "#F5FFF9", fontSize: 14, fontWeight: "900", marginTop: 5 },
-  winsToggleArrow: { color: "#7AF5B8", fontSize: 18, fontWeight: "900" },
+  redeemText: { fontSize: 11, fontWeight: "900" },
+  moreButton: { minHeight: 42, borderRadius: 13, borderWidth: 1, alignItems: "center", justifyContent: "center", marginTop: 3 },
+  moreButtonText: { fontSize: 11, fontWeight: "900" },
+  winsToggle: { minHeight: 72, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderRadius: 18, paddingHorizontal: 17, marginBottom: 18 },
+  winsToggleLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 1.1 },
+  winsToggleValue: { fontSize: 14, fontWeight: "900", marginTop: 5 },
+  winsToggleArrow: { fontSize: 18, fontWeight: "900" },
 });

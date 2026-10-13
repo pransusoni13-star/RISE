@@ -36,9 +36,9 @@ function HeaderButton({ label, route }: { label: string; route: string }) {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 30 },
-  logo: { color: "#7AF5B8", fontSize: 17, fontWeight: "900", letterSpacing: 4 },
+  logo: { fontSize: 17, fontWeight: "900", letterSpacing: 4 },
   actions: { flex: 1, flexDirection: "row", justifyContent: "flex-end", gap: 7 },
   button: { minHeight: 40, paddingHorizontal: 7, alignItems: "center", justifyContent: "center" },
-  buttonText: { color: "#DFFDEE", fontSize: 11, fontWeight: "800" },
+  buttonText: { fontSize: 11, fontWeight: "800" },
   pressed: { opacity: 0.72 },
 });

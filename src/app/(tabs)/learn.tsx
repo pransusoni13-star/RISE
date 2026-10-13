@@ -4,6 +4,7 @@ import { router, useFocusEffect } from "expo-router";
 import { createSevenDayPlan, loadProfile, PersonalizedMission, RiseProfile } from "../../services/personalization";
 import { spiritualResource, spiritualVideoSearch } from "../../services/spiritualResources";
 import { AppPageHeader } from "../../components/appPageHeader";
+import { RiseButton, RiseCard, RiseEyebrow } from "../../components/rise-ui";
 import { getAvailableMissionDay } from "../../services/dayUnlock";
 import { missionRepository, MissionRecord } from "../../services/missionRepository";
 import { useRiseAppearance } from "../../services/appearance";
@@ -44,15 +45,15 @@ export default function LearnTabScreen() {
 
   return <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <AppPageHeader />
-    <Text style={styles.eyebrow}>TODAY&apos;S SKILL</Text>
+    <RiseEyebrow>TODAY&apos;S SKILL</RiseEyebrow>
     <Text style={[styles.heading, { color: theme.text }]}>{mission.focusSkill}</Text>
     <Text style={[styles.subtitle, { color: theme.muted }]}>Learn one thing. Use it right away.</Text>
 
-    <View style={[styles.focusCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
-      <Text style={styles.focusLabel}>YOUR TARGET</Text>
+    <RiseCard style={styles.focusCard}>
+      <RiseEyebrow>YOUR TARGET</RiseEyebrow>
       <Text style={[styles.focusTitle, { color: theme.text }]}>{mission.title}</Text>
       <Text style={[styles.focusText, { color: theme.muted }]} numberOfLines={2}>{mission.why}</Text>
-    </View>
+    </RiseCard>
 
     <View style={[styles.sequence, { borderColor: theme.border }]}>
       <LearningStep number="1" title="Understand the idea" />
@@ -60,21 +61,17 @@ export default function LearnTabScreen() {
       <LearningStep number="3" title="Use it in today’s mission" last />
     </View>
 
-    <Text style={styles.section}>{isSpiritual ? "START WITH YOUR SOURCES" : "TRUSTED STARTING POINTS"}</Text>
+    <RiseEyebrow>{isSpiritual ? "START WITH YOUR SOURCES" : "TRUSTED STARTING POINTS"}</RiseEyebrow>
     {isSpiritual ? <>
-      <View style={styles.faithContext}><Text style={styles.faithTitle}>{faithSource ? `Your ${profile.spiritualTradition} path` : "Your spiritual path"}</Text><Text style={styles.faithText} numberOfLines={2}>{profile.trustedSources?.trim() ? `Start with ${profile.trustedSources.trim()}. ` : "Choose a source meaningful to you. "}{faithSource?.text || "RISE will not choose a belief for you."}</Text></View>
-      {faithSource ? <Pressable accessibilityRole="link" onPress={() => void openLearningResource(faithSource.url)} style={({ pressed }) => [styles.guideCard, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: .8 }]}><View style={styles.guideBody}><Text style={[styles.guideTitle, { color: theme.text }]}>{faithSource.label}</Text><Text style={[styles.guideReason, { color: theme.muted }]}>Open reading library</Text></View><Text style={styles.guideArrow}>Open</Text></Pressable> : null}
-    </> : guides.length ? guides.map((guide) => <Pressable key={guide.url} accessibilityRole="link" onPress={() => void openLearningResource(guide.url)} style={({ pressed }) => [styles.guideCard, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: .8 }]}><View style={styles.guideBody}><Text style={[styles.guideTitle, { color: theme.text }]}>{guide.label}</Text><Text style={[styles.guideReason, { color: theme.muted }]} numberOfLines={1}>{guide.reason}</Text></View><Text style={styles.guideArrow}>Open</Text></Pressable>) : <Text style={[styles.sourceCaution, { color: theme.muted }]}>Start with a primary book or qualified teacher you trust.</Text>}
-    <Pressable accessibilityRole="link" style={({ pressed }) => [styles.resourceButton, pressed && { opacity: .8 }]} onPress={() => void openLearningResource(isSpiritual ? spiritualVideoSearch(profile.spiritualTradition, mission.title) : mission.resourceUrl)}>
-      <Text style={styles.resourceButtonText}>{isSpiritual ? "Find a helpful video ↗" : "Watch & learn ↗"}</Text>
+      <RiseCard style={styles.faithContext}><Text style={[styles.faithTitle, { color: theme.text }]}>{faithSource ? `Your ${profile.spiritualTradition} path` : "Your spiritual path"}</Text><Text style={[styles.faithText, { color: theme.muted }]} numberOfLines={2}>{profile.trustedSources?.trim() ? `Start with ${profile.trustedSources.trim()}. ` : "Choose a source meaningful to you. "}{faithSource?.text || "RISE will not choose a belief for you."}</Text></RiseCard>
+      {faithSource ? <Pressable accessibilityRole="link" onPress={() => void openLearningResource(faithSource.url)} style={({ pressed }) => [styles.guideCard, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: .8 }]}><View style={styles.guideBody}><Text style={[styles.guideTitle, { color: theme.text }]}>{faithSource.label}</Text><Text style={[styles.guideReason, { color: theme.muted }]}>Open reading library</Text></View><Text style={[styles.guideArrow, { color: theme.accent }]}>Open</Text></Pressable> : null}
+    </> : guides.length ? guides.map((guide) => <Pressable key={guide.url} accessibilityRole="link" onPress={() => void openLearningResource(guide.url)} style={({ pressed }) => [styles.guideCard, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: .8 }]}><View style={styles.guideBody}><Text style={[styles.guideTitle, { color: theme.text }]}>{guide.label}</Text><Text style={[styles.guideReason, { color: theme.muted }]} numberOfLines={1}>{guide.reason}</Text></View><Text style={[styles.guideArrow, { color: theme.accent }]}>Open</Text></Pressable>) : <Text style={[styles.sourceCaution, { color: theme.muted }]}>Start with a primary book or qualified teacher you trust.</Text>}
+    <View style={styles.actionGap}><RiseButton variant="secondary" label={isSpiritual ? "Find a helpful video" : "Watch and learn"} onPress={() => void openLearningResource(isSpiritual ? spiritualVideoSearch(profile.spiritualTradition, mission.title) : mission.resourceUrl)} /></View>
+    <Text style={[styles.sourceCaution, { color: theme.muted }]}>External results are not RISE endorsements. Check the source.</Text>
+    <Pressable accessibilityRole="button" style={({ pressed }) => [styles.quizButton, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: .8 }]} onPress={() => router.push({ pathname: "/quiz", params: { skillId: mission.skillId, goal: mission.goal, goals: JSON.stringify(profile.selectedGoals) } } as any)}>
+      <View><RiseEyebrow>PRACTICE QUIZ</RiseEyebrow><Text style={[styles.quizTitle, { color: theme.text }]}>Check my understanding</Text><Text style={[styles.quizHelp, { color: theme.muted }]}>5 questions with explanations · available now</Text></View><Text style={[styles.quizArrow, { color: theme.accent }]}>→</Text>
     </Pressable>
-    <Text style={styles.sourceCaution}>External results are not RISE endorsements. Check the source.</Text>
-    <Pressable accessibilityRole="button" style={({ pressed }) => [styles.quizButton, { backgroundColor: theme.blueSurface, borderColor: theme.blueBorder }, pressed && { opacity: .8 }]} onPress={() => router.push({ pathname: "/quiz", params: { skillId: mission.skillId, goal: mission.goal, goals: JSON.stringify(profile.selectedGoals) } } as any)}>
-      <View><Text style={styles.quizLabel}>PRACTICE QUIZ</Text><Text style={[styles.quizTitle, { color: theme.text }]}>Check my understanding</Text><Text style={[styles.quizHelp, { color: theme.muted }]}>5 questions · explanations included · available now</Text></View><Text style={styles.quizArrow}>→</Text>
-    </Pressable>
-    <Pressable accessibilityRole="button" style={({ pressed }) => [styles.missionButton, pressed && { opacity: .8 }]} onPress={() => router.push({ pathname: "/action", params: { mission: JSON.stringify(mission) } } as any)}>
-      <Text style={styles.missionButtonText}>I’m ready — start mission →</Text>
-    </Pressable>
+    <View style={styles.actionGap}><RiseButton label="Start today’s mission" onPress={() => router.push({ pathname: "/action", params: { mission: JSON.stringify(mission) } } as any)} /></View>
   </ScrollView>;
 }
 
@@ -93,12 +90,12 @@ function LearningStep({ number, title, last = false }: { number: string; title: 
 }
 
 const styles = StyleSheet.create({
-  loading:{flex:1,backgroundColor:"#010807",alignItems:"center",justifyContent:"center"},page:{flex:1,backgroundColor:"#010807"},content:{padding:24,paddingTop:60,paddingBottom:120},logo:{fontSize:18,fontWeight:"900",letterSpacing:5,color:"#7AF5B8",marginBottom:24},
-  eyebrow:{color:"#7AF5B8",fontSize:10,fontWeight:"900",letterSpacing:1.4},heading:{fontSize:36,fontWeight:"900",color:"#F5FFF9",marginTop:7},subtitle:{color:"#C8EED9",fontSize:15,lineHeight:22,marginTop:8,marginBottom:22},
-  focusCard:{backgroundColor:"rgba(122,245,184,0.08)",borderRadius:21,borderWidth:1,borderColor:"rgba(122,245,184,0.22)",padding:17,marginBottom:21},focusLabel:{color:"#7AF5B8",fontSize:9,fontWeight:"900",letterSpacing:1.2},focusTitle:{color:"#F5FFF9",fontSize:19,fontWeight:"900",marginTop:7},focusText:{color:"#C8EED9",fontSize:13,lineHeight:19,marginTop:6},section:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.3,marginBottom:11},
+  loading:{flex:1,alignItems:"center",justifyContent:"center"},page:{flex:1},content:{padding:22,paddingTop:58,paddingBottom:120},
+  heading:{fontSize:34,lineHeight:40,fontWeight:"800",letterSpacing:-.7,marginTop:7},subtitle:{fontSize:15,lineHeight:22,marginTop:8,marginBottom:24},
+  focusCard:{padding:18,marginBottom:22},focusTitle:{fontSize:19,fontWeight:"800",marginTop:8},focusText:{fontSize:13,lineHeight:19,marginTop:6},
   sequence:{borderTopWidth:1,borderBottomWidth:1,marginBottom:24},learningStep:{minHeight:52,flexDirection:"row",alignItems:"center",gap:12},stepNumber:{width:26,height:26,borderRadius:13,alignItems:"center",justifyContent:"center"},stepNumberText:{fontSize:11,fontWeight:"900"},stepTitle:{fontSize:13,fontWeight:"800"},
-  resourceButton:{height:54,borderRadius:27,borderWidth:1.5,borderColor:"#7AF5B8",alignItems:"center",justifyContent:"center",marginTop:12},resourceButtonText:{color:"#7AF5B8",fontSize:13,fontWeight:"900"},missionButton:{height:56,borderRadius:28,backgroundColor:"#7AF5B8",alignItems:"center",justifyContent:"center",marginTop:10},missionButtonText:{color:"#010807",fontSize:14,fontWeight:"900"},
-  quizButton:{minHeight:82,flexDirection:"row",alignItems:"center",backgroundColor:"#102A3B",borderRadius:18,borderWidth:1,borderColor:"#356B86",padding:15,marginTop:5,marginBottom:3},quizLabel:{color:"#8FD7FF",fontSize:9,fontWeight:"900",letterSpacing:1.2},quizTitle:{color:"#F5FFF9",fontSize:15,fontWeight:"900",marginTop:4},quizHelp:{color:"#B9D9E8",fontSize:11,marginTop:3},quizArrow:{color:"#8FD7FF",fontSize:22,fontWeight:"900",marginLeft:"auto"},
-  guideCard:{minHeight:70,flexDirection:"row",alignItems:"center",backgroundColor:"#071B16",borderRadius:15,borderWidth:1,borderColor:"#315544",padding:13,marginBottom:9},guideBody:{flex:1},guideTitle:{color:"#F5FFF9",fontSize:13,fontWeight:"800"},guideReason:{color:"#A7CBB7",fontSize:11,lineHeight:17,marginTop:3},guideArrow:{color:"#7AF5B8",fontSize:11,fontWeight:"900",marginLeft:8},sourceCaution:{color:"#8FB6A2",fontSize:11,lineHeight:17,marginTop:8,marginBottom:10},
-  faithContext:{backgroundColor:"#172318",borderRadius:15,borderWidth:1,borderColor:"#655338",padding:15,marginBottom:12},faithTitle:{color:"#FFCF70",fontSize:13,fontWeight:"900"},faithText:{color:"#E6DDC8",fontSize:12,lineHeight:19,marginTop:6},
+  actionGap:{marginTop:12},
+  quizButton:{minHeight:82,flexDirection:"row",alignItems:"center",borderRadius:18,borderWidth:1,padding:15,marginTop:6,marginBottom:2},quizTitle:{fontSize:15,fontWeight:"800",marginTop:5},quizHelp:{fontSize:11,marginTop:3},quizArrow:{fontSize:22,fontWeight:"900",marginLeft:"auto"},
+  guideCard:{minHeight:70,flexDirection:"row",alignItems:"center",borderRadius:14,borderWidth:1,padding:13,marginTop:11,marginBottom:9},guideBody:{flex:1},guideTitle:{fontSize:13,fontWeight:"800"},guideReason:{fontSize:11,lineHeight:17,marginTop:3},guideArrow:{fontSize:11,fontWeight:"900",marginLeft:8},sourceCaution:{fontSize:11,lineHeight:17,marginTop:8,marginBottom:10},
+  faithContext:{padding:15,marginTop:11,marginBottom:12},faithTitle:{fontSize:13,fontWeight:"900"},faithText:{fontSize:12,lineHeight:19,marginTop:6},
 });
