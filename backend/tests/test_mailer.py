@@ -204,3 +204,57 @@ def test_feedback_uses_dedicated_resend_https_sender_when_smtp_is_selected(monke
     assert payload["from"] == "RISE Feedback <onboarding@resend.dev>"
     assert payload["to"] == ["rise.app13@gmail.com"]
     assert payload["subject"] == "[RISE beta feedback] Bug · 2/5"
+
+
+def test_feedback_falls_back_to_smtp_when_dedicated_resend_sender_fails(monkeypatch) -> None:
+    sent: dict[str, object] = {}
+    request = httpx.Request("POST", "https://api.resend.com/emails")
+    response = httpx.Response(503, request=request, json={"message": "provider unavailable"})
+
+    class FakeSMTP:
+        def __init__(self, host: str, port: int, timeout: int):
+            sent.update(host=host, port=port, timeout=timeout)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> None:
+            return None
+
+        def starttls(self) -> None:
+            sent["tls"] = True
+
+        def login(self, username: str, password: str) -> None:
+            sent.update(username=username, password=password)
+
+        def send_message(self, message) -> None:
+            sent["message"] = message
+
+    monkeypatch.setattr("app.mailer.httpx.post", lambda *_args, **_kwargs: response)
+    monkeypatch.setattr("app.mailer.smtplib.SMTP", FakeSMTP)
+    settings = Settings(
+        email_provider="smtp",
+        resend_api_key="re_test_key",
+        resend_from_email="RISE Feedback <onboarding@resend.dev>",
+        email_from="RISE <rise.app13@gmail.com>",
+        public_app_url="https://rise.example",
+        smtp_host="smtp.gmail.com",
+        smtp_username="rise.app13@gmail.com",
+        smtp_password="app-password",
+    )
+
+    send_product_feedback_notification(
+        settings,
+        "rise.app13@gmail.com",
+        feedback_id="feedback-fallback",
+        member_email="member@example.com",
+        category="idea",
+        rating=4,
+        message="Please make the daily mission clearer.",
+        app_version="1.0.0 (19)",
+        submitted_at="2026-10-13T20:00:00Z",
+    )
+
+    assert sent["host"] == "smtp.gmail.com"
+    assert sent["username"] == "rise.app13@gmail.com"
+    assert sent["message"]["To"] == "rise.app13@gmail.com"

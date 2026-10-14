@@ -42,16 +42,8 @@ def _send_resend(settings: Settings, recipient: str, sender: str, subject: str, 
     response.raise_for_status()
 
 
-def _send(settings: Settings, recipient: str, subject: str, text_body: str, html_body: str | None = None) -> None:
-    provider = settings.resolved_email_provider
-    if provider == "resend":
-        # Keep the sender in one environment-backed place. A dedicated Resend
-        # sender takes precedence so account mail works over HTTPS on hosts that
-        # block outbound SMTP ports (including Render's free service).
-        sender = settings.resend_from_email or settings.email_from
-        _send_resend(settings, recipient, sender, subject, text_body, html_body)
-        return
-    if provider != "smtp" or not all((settings.smtp_host, settings.smtp_username, settings.smtp_password, settings.public_app_url)):
+def _send_smtp(settings: Settings, recipient: str, subject: str, text_body: str, html_body: str | None = None) -> None:
+    if not all((settings.smtp_host, settings.smtp_username, settings.smtp_password, settings.public_app_url)):
         if settings.env.lower() == "production":
             raise RuntimeError("Email delivery is not configured")
         return
@@ -67,6 +59,22 @@ def _send(settings: Settings, recipient: str, subject: str, text_body: str, html
             client.starttls()
         client.login(settings.smtp_username, settings.smtp_password)
         client.send_message(message)
+
+
+def _send(settings: Settings, recipient: str, subject: str, text_body: str, html_body: str | None = None) -> None:
+    provider = settings.resolved_email_provider
+    if provider == "resend":
+        # Keep the sender in one environment-backed place. A dedicated Resend
+        # sender takes precedence so account mail works over HTTPS on hosts that
+        # block outbound SMTP ports (including Render's free service).
+        sender = settings.resend_from_email or settings.email_from
+        _send_resend(settings, recipient, sender, subject, text_body, html_body)
+        return
+    if provider != "smtp":
+        if settings.env.lower() == "production":
+            raise RuntimeError("Email delivery is not configured")
+        return
+    _send_smtp(settings, recipient, subject, text_body, html_body)
 
 
 def send_password_reset(settings: Settings, recipient: str, token: str) -> None:
@@ -122,6 +130,16 @@ def send_product_feedback_notification(
     # configured, use its HTTPS API for private feedback while leaving account
     # email on the explicitly selected provider.
     if settings.resend_api_key and settings.resend_from_email:
-        _send_resend(settings, recipient, settings.resend_from_email, subject, body, html)
-        return
+        try:
+            _send_resend(settings, recipient, settings.resend_from_email, subject, body, html)
+            return
+        except (httpx.HTTPError, RuntimeError):
+            if settings.resolved_email_provider != "smtp":
+                raise
+            logger.warning(
+                "Feedback Resend delivery failed; trying the configured SMTP provider",
+                extra={"feedback_id": feedback_id},
+            )
+            _send_smtp(settings, recipient, subject, body, html)
+            return
     _send(settings, recipient, subject, body, html)
