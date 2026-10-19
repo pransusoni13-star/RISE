@@ -12,6 +12,8 @@ __pycache__/
 
 # Expo
 .expo/
+.expo-design-audit/
+.expo-export*/
 dist/
 dist-check/
 dist-next/
