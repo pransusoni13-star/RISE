@@ -471,6 +471,9 @@ export default function LearningScreen() {
           type: step.type,
           reward: String(step.reward),
           skillId: step.skillId,
+          goal: primaryGoal,
+          focusSkill: step.title,
+          missionTitle: step.title,
         },
       } as any);
       return;

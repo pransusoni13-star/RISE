@@ -1,43 +1,25 @@
 import React, { useMemo, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  ScrollView,
-  Alert,
-} from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
-import {
-  RISEProgress,
-  addXP,
-  addSkillXP,
-  getNextRecommendation,
-} from "../services/progressEngine";
+import { AppPageHeader } from "../components/appPageHeader";
+import { CycleQuestion, getCycleQuestions, getQuizRank, QuizLearningContext } from "../services/cycleQuiz";
+import { RISEProgress, addSkillXP, addXP, getNextRecommendation } from "../services/progressEngine";
 import { progressRepository } from "../services/progressRepository";
-import { getCycleQuestions } from "../services/cycleQuiz";
 import { createSevenDayPlan, loadProfile, updateProfile } from "../services/personalization";
 import { missionRepository } from "../services/missionRepository";
 import { recordProgressEvent } from "../services/auth";
 import { useRiseAppearance } from "../services/appearance";
 
-type Question = {
-  question: string;
-  options: string[];
-  answer: number;
-  explanation: string;
-};
-
 type QuizResult = {
   score: number;
   percentage: number;
   earnedXP: number;
-  difficulty: string;
   skillId: string;
   goal: string;
   passed: boolean;
   badge?: string;
+  answers: number[];
 };
 
 type Recommendation = {
@@ -49,255 +31,134 @@ type Recommendation = {
   type?: "learning" | "quiz" | "mission" | "project" | "review";
 };
 
-const codingQuestions: Question[] = [
-  {
-    question: "What is a variable?",
-    options: [
-      "A stored value that can change",
-      "A type of computer",
-      "A website",
-      "An error",
-    ],
-    answer: 0,
-    explanation:
-      "A variable stores a value that your program can use and change.",
-  },
-  {
-    question: "What does a function do?",
-    options: [
-      "Deletes a program",
-      "Groups reusable instructions",
-      "Turns off the computer",
-      "Only stores images",
-    ],
-    answer: 1,
-    explanation:
-      "Functions group instructions that can be reused.",
-  },
-  {
-    question: "What is an API?",
-    options: [
-      "A programming language",
-      "A type of keyboard",
-      "A way for software systems to communicate",
-      "A database only",
-    ],
-    answer: 2,
-    explanation:
-      "An API allows different software systems to communicate with each other.",
-  },
-  {
-    question: "What is debugging?",
-    options: [
-      "Finding and fixing problems in code",
-      "Designing a logo",
-      "Deleting all code",
-      "Installing a computer",
-    ],
-    answer: 0,
-    explanation:
-      "Debugging means finding and fixing errors or unexpected behavior.",
-  },
-  {
-    question: "What does an algorithm provide?",
-    options: [
-      "A random answer",
-      "A step-by-step way to solve a problem",
-      "Only a visual design",
-      "A computer battery",
-    ],
-    answer: 1,
-    explanation:
-      "An algorithm is a defined sequence of steps for solving a problem.",
-  },
-];
+const PRACTICE_REWARD = 25;
 
-const difficulties = [
-  {
-    name: "Practice",
-    reward: 25,
-  },
-];
+const routeString = (value: string | string[] | undefined, fallback = "") =>
+  typeof value === "string" && value.trim() ? value.trim() : fallback;
+
+const parseSteps = (value: string | string[] | undefined): string[] => {
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((step): step is string => typeof step === "string").slice(0, 6)
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const displayName = (value: string) => value.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 export default function QuizScreen() {
   const { theme } = useRiseAppearance();
   const params = useLocalSearchParams();
   const cycleGate = params.cycleGate === "1";
-  const cycleId = typeof params.cycleId === "string" ? params.cycleId : "current-cycle";
+  const cycleId = routeString(params.cycleId, "current-cycle");
+  const skillId = routeString(params.skillId, "foundations");
+  const primaryGoal = routeString(params.goal, "personal");
+  const selectedGoals = routeString(params.goals, JSON.stringify([primaryGoal]));
+  const time = routeString(params.time);
+  const accountability = routeString(params.accountability);
+  const commitment = routeString(params.commitment);
 
-  /*
-   * Skill being tested.
-   *
-   * Example:
-   * /quiz?skillId=foundations
-   */
-  const skillId =
-    typeof params.skillId === "string" && params.skillId.length > 0
-      ? params.skillId
-      : "foundations";
+  const learningContext = useMemo<QuizLearningContext>(() => ({
+    focusSkill: routeString(params.focusSkill, displayName(skillId)),
+    missionTitle: routeString(params.missionTitle, routeString(params.task)),
+    missionSteps: parseSteps(params.missionSteps),
+    successCriteria: routeString(params.successCriteria),
+    reflectionPrompt: routeString(params.reflectionPrompt),
+  }), [params.focusSkill, params.missionSteps, params.missionTitle, params.reflectionPrompt, params.successCriteria, params.task, skillId]);
 
-  /*
-   * Goal connected to this quiz.
-   *
-   * This is important because RISE now keeps
-   * skill progress separated by goal.
-   */
-  const primaryGoal =
-    typeof params.goal === "string" && params.goal.length > 0
-      ? params.goal
-      : "personal";
+  const questions = useMemo<CycleQuestion[]>(
+    () => getCycleQuestions(primaryGoal, `${primaryGoal} ${selectedGoals}`, learningContext),
+    [learningContext, primaryGoal, selectedGoals],
+  );
 
-  /*
-   * Preserve all selected goals when navigating
-   * to another RISE screen.
-   */
-  const selectedGoals =
-    typeof params.goals === "string" && params.goals.length > 0
-      ? params.goals
-      : JSON.stringify([primaryGoal]);
-  const questions = useMemo<Question[]>(() => cycleGate
-    ? getCycleQuestions(primaryGoal, `${primaryGoal} ${selectedGoals}`)
-    : /coding|software|developer|programming|react-native/.test(primaryGoal.toLowerCase())
-      ? codingQuestions : getCycleQuestions(primaryGoal), [cycleGate, primaryGoal, selectedGoals]);
-
-  const time =
-    typeof params.time === "string" ? params.time : "";
-
-  const accountability =
-    typeof params.accountability === "string"
-      ? params.accountability
-      : "";
-
-  const commitment =
-    typeof params.commitment === "string"
-      ? params.commitment
-      : "";
-
-  const [difficulty, setDifficulty] = useState("Practice");
   const submitting = useRef(false);
   const attemptId = useRef(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(
-    null
-  );
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<number[]>([]);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [saving, setSaving] = useState(false);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
-  const [recommendation, setRecommendation] =
-    useState<Recommendation | null>(null);
+  const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
 
-  const selectedDifficulty =
-    difficulties.find((item) => item.name === difficulty) ??
-    difficulties[0];
+  const questionItem = questions[currentQuestion];
+  const requiredCorrect = Math.ceil(questions.length * 0.8);
 
   const handleAnswer = (index: number) => {
-    if (selectedAnswer !== null || saving) {
-      return;
-    }
-
+    if (selectedAnswer !== null || saving) return;
     setSelectedAnswer(index);
-
+    setAnswers((current) => {
+      const next = [...current];
+      next[currentQuestion] = index;
+      return next;
+    });
   };
 
   const finishQuiz = async () => {
-    if (submitting.current || selectedAnswer === null) {
-      return;
-    }
+    if (submitting.current || selectedAnswer === null) return;
     submitting.current = true;
     if (!attemptId.current) attemptId.current = Date.now();
     setSaving(true);
 
-    /*
-     * React state may not yet contain the answer
-     * to the final question.
-     *
-     * Therefore calculate the final score manually.
-     */
-    const finalScore =
-      score +
-      (selectedAnswer === questions[currentQuestion].answer ? 1 : 0);
-
-    const percentage = Math.round(
-      (finalScore / questions.length) * 100
-    );
-
+    const finalAnswers = [...answers];
+    finalAnswers[currentQuestion] = selectedAnswer;
+    const finalScore = score + (selectedAnswer === questionItem.answer ? 1 : 0);
+    const percentage = Math.round((finalScore / questions.length) * 100);
     const passed = !cycleGate || percentage >= 80;
-    const earnedXP = cycleGate
-      ? (passed ? 100 : 0)
-      : Math.round(selectedDifficulty.reward * (percentage / 100));
-
-    const earnedCoins =
-      earnedXP > 0
-        ? Math.max(5, Math.round(earnedXP / 5))
-        : 0;
+    const earnedXP = cycleGate ? (passed ? 100 : 0) : Math.round(PRACTICE_REWARD * (percentage / 100));
+    const earnedCoins = earnedXP > 0 ? Math.max(5, Math.round(earnedXP / 5)) : 0;
+    const masteryRank = getQuizRank(percentage);
 
     try {
       if (cycleGate) {
         const profile = await loadProfile();
         const plan = createSevenDayPlan(profile);
         const records = await missionRepository.list();
-        if (!plan.length || cycleId !== plan[plan.length - 1].id || !plan.every(mission => records.some(record => record.missionId === mission.id && record.status === "completed"))) {
-          Alert.alert("Finish your cycle first", "Complete each mission and its proof review before unlocking your next skills.");
+        const complete = plan.length > 0
+          && cycleId === plan[plan.length - 1].id
+          && plan.every((mission) => records.some((record) => record.missionId === mission.id && record.status === "completed"));
+        if (!complete) {
+          Alert.alert("Finish your cycle first", "Complete each mission and its proof review before taking the final rank trial.");
           return;
         }
       }
-      let progress: RISEProgress =
-        await progressRepository.load();
 
-      /*
-       * --------------------------------------------------
-       * 1. SAVE QUIZ XP
-       * --------------------------------------------------
-       */
-      const cycleSource = cycleGate ? `cycle-quiz:${cycleId}` : `practice-quiz:${primaryGoal}:${skillId}`;
-      const alreadyRewarded = progress.events.some((event) => event.type === "quiz" && event.metadata?.source === cycleSource && event.amount > 0);
+      let progress: RISEProgress = await progressRepository.load();
+      const source = cycleGate ? `cycle-quiz:${cycleId}` : `practice-quiz:${primaryGoal}:${skillId}`;
+      const alreadyRewarded = progress.events.some((event) => event.type === "quiz" && event.metadata?.source === source && event.amount > 0);
+
       if (!alreadyRewarded && (!cycleGate || passed)) {
-        progress = addXP(progress, earnedXP, "quiz", cycleGate ? `Cycle passed — ${percentage}%` : `${difficulty} Quiz — ${percentage}%`, cycleGate ? 50 : earnedCoins, {
-          skillId, goal: primaryGoal, score: percentage, difficulty: cycleGate ? "Cycle review" : difficulty, source: cycleSource, passed,
+        progress = addXP(progress, earnedXP, "quiz", cycleGate ? `Rank trial passed — ${percentage}%` : `Mastery check — ${percentage}%`, cycleGate ? 50 : earnedCoins, {
+          skillId,
+          goal: primaryGoal,
+          score: percentage,
+          difficulty: "Rank Trial",
+          source,
+          passed,
+          rank: masteryRank.name,
         });
         progress = addSkillXP(progress, skillId, earnedXP, primaryGoal);
       } else {
-        progress = addXP(progress, 0, "quiz", `Review — ${percentage}%`, 0, {
-          skillId, goal: primaryGoal, score: percentage, difficulty, source: cycleSource, passed,
+        progress = addXP(progress, 0, "quiz", `Mastery review — ${percentage}%`, 0, {
+          skillId,
+          goal: primaryGoal,
+          score: percentage,
+          difficulty: "Rank Trial",
+          source,
+          passed,
+          rank: masteryRank.name,
         });
       }
 
-      /*
-       * --------------------------------------------------
-       * 2. SAVE XP TO THE SPECIFIC SKILL + GOAL
-       * --------------------------------------------------
-       *
-       * This is important.
-       *
-       * Coding → Foundations
-       *
-       * is different from:
-       *
-       * Business → Foundations
-       */
-      const earnedBadge = cycleGate && passed ? `${skillId.replace(/-/g, " ")} Cycle Builder` : undefined;
+      const earnedBadge = cycleGate && passed ? `${displayName(skillId)} ${masteryRank.name}` : undefined;
       const badge = alreadyRewarded ? undefined : earnedBadge;
+      const nextRecommendation = getNextRecommendation(progress, primaryGoal) as Recommendation;
 
-      /*
-       * --------------------------------------------------
-       * 3. RUN THE ADAPTIVE ENGINE
-       * --------------------------------------------------
-       *
-       * RISE now looks at the updated progress and decides
-       * what the user should do next.
-       */
-      const nextRecommendation =
-        getNextRecommendation(
-          progress,
-          primaryGoal
-        ) as Recommendation;
-
-      /*
-       * --------------------------------------------------
-       * 4. SAVE EVERYTHING
-       * --------------------------------------------------
-       */
       await progressRepository.save(progress);
       if (earnedBadge) {
         const profile = await loadProfile();
@@ -308,38 +169,24 @@ export default function QuizScreen() {
         eventType: "quiz_completed",
         skillSlug: skillId.trim().toLowerCase().replace(/\s+/g, "-"),
         value: percentage,
-        metadata: { goal: primaryGoal, passed, cycleGate, difficulty },
+        metadata: { goal: primaryGoal, passed, cycleGate, difficulty: "Rank Trial", rank: masteryRank.name },
       }).catch(() => undefined);
 
-      /*
-       * --------------------------------------------------
-       * 5. STORE THE EXACT QUIZ RESULT
-       * --------------------------------------------------
-       */
       setQuizResult({
         score: finalScore,
         percentage,
         earnedXP: alreadyRewarded ? 0 : earnedXP,
-        difficulty,
         skillId,
         goal: primaryGoal,
         passed,
         badge,
+        answers: finalAnswers,
       });
-
-      /*
-       * Store the adaptive recommendation for
-       * the result screen.
-       */
       setRecommendation(nextRecommendation);
-
       setFinished(true);
     } catch (error) {
-      Alert.alert("Couldn’t save your quiz", "Your answers are still here. Please try saving again.");
-      console.log(
-        "Failed to save quiz progress:",
-        error
-      );
+      Alert.alert("Couldn’t save your trial", "Your answers are still here. Please try saving again.");
+      console.warn("Quiz progress save failed", error);
     } finally {
       submitting.current = false;
       setSaving(false);
@@ -347,754 +194,210 @@ export default function QuizScreen() {
   };
 
   const nextQuestion = () => {
-    if (selectedAnswer === null || saving) {
+    if (selectedAnswer === null || saving) return;
+    if (currentQuestion === questions.length - 1) {
+      void finishQuiz();
       return;
     }
-
-    if (currentQuestion < questions.length - 1) {
-      if (selectedAnswer === questions[currentQuestion].answer) {
-        setScore((previous) => previous + 1);
-      }
-      setCurrentQuestion((previous) => previous + 1);
-      setSelectedAnswer(null);
-    } else {
-      finishQuiz();
-    }
+    if (selectedAnswer === questionItem.answer) setScore((current) => current + 1);
+    setCurrentQuestion((current) => current + 1);
+    setSelectedAnswer(null);
   };
 
-  /*
-   * --------------------------------------------------
-   * RESULT SCREEN
-   * --------------------------------------------------
-   */
-  if (finished && quizResult) {
-    const nextSkill =
-      recommendation?.skillId ?? quizResult.skillId;
+  const resetTrial = () => {
+    attemptId.current = Date.now();
+    setCurrentQuestion(0);
+    setSelectedAnswer(null);
+    setAnswers([]);
+    setScore(0);
+    setFinished(false);
+    setQuizResult(null);
+  };
 
-    const nextDifficulty =
-      recommendation?.difficulty ?? quizResult.difficulty;
+  if (finished && quizResult) {
+    const rank = getQuizRank(quizResult.percentage);
+    const missed = questions.map((item, index) => ({ item, answer: quizResult.answers[index] })).filter(({ item, answer }) => answer !== item.answer);
+    const nextSkill = recommendation?.skillId ?? quizResult.skillId;
+    const nextDifficulty = recommendation?.difficulty ?? "Practice";
 
     return (
-      <ScrollView
-        style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={styles.resultContent}
-      >
-        <View style={[styles.resultCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={styles.logo}>RISE</Text>
+      <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
+        <AppPageHeader />
+        <Text style={[styles.eyebrow, { color: theme.accent }]}>RANK TRIAL COMPLETE</Text>
+        <Text style={[styles.resultTitle, { color: theme.text }]}>{rank.name}</Text>
+        <Text style={[styles.resultSubtitle, { color: theme.muted }]}>{quizResult.score} of {questions.length} mastered · {quizResult.percentage}%</Text>
 
-          <Text style={styles.resultEmoji}>
-            {cycleGate && !quizResult.passed
-              ? "🔒"
-              : quizResult.percentage >= 80
-              ? "🔥"
-              : quizResult.percentage >= 60
-              ? "⚡"
-              : "📚"}
-          </Text>
-
-          <Text style={[styles.resultTitle, { color: theme.text }]}>
-            {cycleGate && !quizResult.passed
-              ? "Review Before Unlocking"
-              : quizResult.percentage >= 80
-              ? "Skill Progressed"
-              : quizResult.percentage >= 60
-              ? "Keep Building"
-              : "Time to Strengthen"}
-          </Text>
-
-          <Text style={styles.score}>
-            {quizResult.percentage}%
-          </Text>
-
-          <Text style={styles.resultText}>{quizResult.passed ? "You earned" : "Score 80% to unlock the next skill"}</Text>
-
-          <Text style={styles.xpReward}>
-            {quizResult.passed ? `+${quizResult.earnedXP} XP` : "Not unlocked yet"}
-          </Text>
-
-          {quizResult.badge ? <View style={styles.nextMoveCard}><Text style={styles.resultEmoji}>🏅</Text><Text style={styles.nextMoveLabel}>NEW BADGE</Text><Text style={styles.nextMoveTitle}>{quizResult.badge}</Text><Text style={styles.nextMoveDescription}>You passed the cycle review and earned 50 RISE Coins.</Text></View> : null}
-
-          {/* QUIZ INFO */}
-
-          <View style={[styles.resultInfo, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
-            <Text style={styles.resultInfoLabel}>
-              DIFFICULTY
-            </Text>
-
-            <Text style={styles.resultInfoValue}>
-              {quizResult.difficulty}
-            </Text>
-
-            <Text style={styles.resultInfoLabel}>
-              SKILL
-            </Text>
-
-            <Text style={styles.resultInfoValue}>
-              {quizResult.skillId}
-            </Text>
-
-            <Text style={styles.resultInfoLabel}>
-              GOAL
-            </Text>
-
-            <Text style={styles.resultInfoValue}>
-              {quizResult.goal}
-            </Text>
-
-            <Text style={styles.resultInfoLabel}>
-              SCORE
-            </Text>
-
-            <Text style={styles.resultInfoValue}>
-              {quizResult.score} / {questions.length}
-            </Text>
+        <View style={[styles.rankCard, { backgroundColor: theme.surface, borderColor: quizResult.passed ? theme.accent : theme.border }]}>
+          <View style={[styles.rankMark, { borderColor: theme.accent }]}><Text style={[styles.rankMarkText, { color: theme.accent }]}>{rank.name.slice(0, 1)}</Text></View>
+          <View style={styles.rankBody}>
+            <Text style={[styles.rankLabel, { color: theme.accent }]}>{quizResult.passed ? "TRIAL CLEARED" : "TRAIN, THEN RETURN"}</Text>
+            <Text style={[styles.rankName, { color: theme.text }]}>{rank.name} rank</Text>
+            <Text style={[styles.rankHelp, { color: theme.muted }]}>{rank.nextName ? `${Math.max(0, (rank.nextMinimum || 100) - quizResult.percentage)} points to ${rank.nextName}` : "Every answer mastered"}</Text>
           </View>
-
-          {/* ADAPTIVE ENGINE */}
-
-          <View style={[styles.nextMoveCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
-            <Text style={styles.nextMoveLabel}>
-              YOUR NEXT MOVE
-            </Text>
-
-            <Text style={styles.nextMoveTitle}>
-              {recommendation?.title ??
-                "Continue your RISE path"}
-            </Text>
-
-            <Text style={styles.nextMoveDescription}>
-              {recommendation?.description ??
-                "RISE will use your performance to determine your next step."}
-            </Text>
-
-            <View style={styles.adaptiveStats}>
-              <View style={styles.adaptiveStat}>
-                <Text style={styles.adaptiveStatLabel}>
-                  NEXT SKILL
-                </Text>
-
-                <Text style={styles.adaptiveStatValue}>
-                  {nextSkill}
-                </Text>
-              </View>
-
-              <View style={styles.adaptiveStat}>
-                <Text style={styles.adaptiveStatLabel}>
-                  DIFFICULTY
-                </Text>
-
-                <Text style={styles.adaptiveStatValue}>
-                  {nextDifficulty}
-                </Text>
-              </View>
-            </View>
-
-            {recommendation?.why ? (
-              <View style={styles.whyBox}>
-                <Text style={styles.whyLabel}>
-                  WHY THIS?
-                </Text>
-
-                <Text style={styles.whyText}>
-                  {recommendation.why}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          <Text style={styles.resultText}>
-            Your quiz result has been added to your
-            RISE progress. Your future path can now
-            adapt to how you performed.
-          </Text>
-
-          {/* NEXT MISSION */}
-
-          <Pressable
-            style={styles.button}
-            onPress={async () => {
-              if (cycleGate && !quizResult.passed) {
-                attemptId.current = Date.now(); setCurrentQuestion(0); setSelectedAnswer(null); setScore(0); setFinished(false); setQuizResult(null); return;
-              }
-              if (cycleGate) {
-                const profile = await loadProfile();
-                const goals = profile.selectedGoals.length ? profile.selectedGoals : [primaryGoal, "personal"];
-                router.replace({ pathname: "/focus", params: { goal: goals[0], secondaryGoal: goals[1] || "personal", goals: JSON.stringify(goals), customGoal: profile.customGoal } } as any);
-                return;
-              }
-              router.push({ pathname: "/action", params: { skillId: nextSkill, goal: primaryGoal, goals: selectedGoals, time, accountability, commitment, difficulty: nextDifficulty } } as any);
-            }}
-          >
-            <Text style={styles.buttonText}>
-              {cycleGate && !quizResult.passed ? "Review & Try Again" : cycleGate ? "Choose My Next Skills" : recommendation?.type === "review"
-                ? "Start My Review"
-                : "Start My Next Mission"}
-            </Text>
-          </Pressable>
-
-          {/* PROGRESS */}
-
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={() =>
-              router.push(
-                {
-                  pathname: "/progress-screen",
-                  params: {
-                    goal: primaryGoal,
-                    goals: selectedGoals,
-                  },
-                } as any
-              )
-            }
-          >
-            <Text style={styles.secondaryButtonText}>
-              View My Progress
-            </Text>
-          </Pressable>
         </View>
+
+        <View style={[styles.rankTrack, { backgroundColor: theme.surfaceStrong }]}><View style={[styles.rankFill, { backgroundColor: theme.accent, width: `${quizResult.percentage}%` as `${number}%` }]} /></View>
+        <Text style={[styles.rewardText, { color: theme.text }]}>{quizResult.passed ? quizResult.earnedXP > 0 ? `+${quizResult.earnedXP} XP earned` : "Mastery saved · reward already claimed" : `${requiredCorrect} correct answers are needed to unlock the next cycle`}</Text>
+
+        {quizResult.badge ? <View style={[styles.badgeCard, { backgroundColor: theme.surfaceStrong }]}><Text style={[styles.eyebrow, { color: theme.accent }]}>NEW RISE BADGE</Text><Text style={[styles.badgeTitle, { color: theme.text }]}>{quizResult.badge}</Text></View> : null}
+
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{missed.length ? "Turn misses into mastery" : "Clean run"}</Text>
+        <Text style={[styles.sectionHelp, { color: theme.muted }]}>{missed.length ? "Review the exact idea behind every missed answer." : "You explained and applied every idea in this trial."}</Text>
+        {missed.map(({ item, answer }, index) => (
+          <View key={item.question} style={[styles.reviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.reviewNumber, { color: theme.accent }]}>REVIEW {index + 1}</Text>
+            <Text style={[styles.reviewQuestion, { color: theme.text }]}>{item.question}</Text>
+            <Text style={[styles.reviewAnswer, { color: theme.muted }]}>Your answer: {typeof answer === "number" ? item.options[answer] : "No answer"}</Text>
+            <Text style={[styles.reviewCorrect, { color: theme.text }]}>Best answer: {item.options[item.answer]}</Text>
+            <Text style={[styles.reviewWhy, { color: theme.muted }]}>{item.explanation}</Text>
+          </View>
+        ))}
+
+        <View style={[styles.nextCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.eyebrow, { color: theme.accent }]}>NEXT TRAINING MOVE</Text>
+          <Text style={[styles.nextTitle, { color: theme.text }]}>{recommendation?.title ?? "Apply what you learned"}</Text>
+          <Text style={[styles.nextText, { color: theme.muted }]}>{recommendation?.description ?? "Use the review above in one focused attempt."}</Text>
+        </View>
+
+        <Pressable accessibilityRole="button" style={({ pressed }) => [styles.primaryButton, { backgroundColor: theme.accent }, pressed && styles.pressed]} onPress={async () => {
+          if (cycleGate && !quizResult.passed) return resetTrial();
+          if (cycleGate) {
+            const profile = await loadProfile();
+            const goals = profile.selectedGoals.length ? profile.selectedGoals : [primaryGoal, "personal"];
+            router.replace({ pathname: "/focus", params: { goal: goals[0], secondaryGoal: goals[1] || "personal", goals: JSON.stringify(goals), customGoal: profile.customGoal } } as any);
+            return;
+          }
+          router.push({ pathname: "/action", params: { skillId: nextSkill, goal: primaryGoal, goals: selectedGoals, time, accountability, commitment, difficulty: nextDifficulty } } as any);
+        }}><Text style={[styles.primaryButtonText, { color: theme.accentInk }]}>{cycleGate && !quizResult.passed ? "Train again" : cycleGate ? "Choose my next skills" : "Use this in my next mission"}</Text></Pressable>
+
+        {!cycleGate && missed.length ? <Pressable accessibilityRole="button" style={({ pressed }) => [styles.secondaryButton, { borderColor: theme.border }, pressed && styles.pressed]} onPress={resetTrial}><Text style={[styles.secondaryButtonText, { color: theme.text }]}>Retry the rank trial</Text></Pressable> : null}
+        <Pressable accessibilityRole="button" style={({ pressed }) => [styles.textButton, pressed && styles.pressed]} onPress={() => router.push({ pathname: "/progress-screen", params: { goal: primaryGoal, goals: selectedGoals } } as any)}><Text style={[styles.textButtonText, { color: theme.accent }]}>View my progress</Text></Pressable>
       </ScrollView>
     );
   }
 
-  const question = questions[currentQuestion];
+  const isCorrect = selectedAnswer === questionItem.answer;
+  const liveScore = score + (selectedAnswer !== null && isCorrect ? 1 : 0);
+  const progress = ((currentQuestion + (selectedAnswer !== null ? 1 : 0)) / questions.length) * 100;
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      contentContainerStyle={styles.content}
-    >
-      <Text style={styles.logo}>RISE</Text>
+    <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <AppPageHeader />
+      <Text style={[styles.eyebrow, { color: theme.accent }]}>{cycleGate ? "FINAL RANK TRIAL" : "MASTERY CHECK"}</Text>
+      <Text style={[styles.title, { color: theme.text }]}>Earn your next rank.</Text>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>Answer from the work you learned. Every answer includes the reason, so a miss still makes you stronger.</Text>
 
-      <Text style={styles.engine}>
-        YOUR SKILL CHECK
-      </Text>
-
-      <Text style={[styles.title, { color: theme.text }]}>
-        See what you learned
-      </Text>
-
-      <Text style={[styles.subtitle, { color: theme.muted }]}>
-        Five clear questions, with explanations. Your answers help shape what to practice next.
-      </Text>
-
-      {/* SKILL */}
-
-      <View style={[styles.skillBadge, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={styles.skillBadgeLabel}>
-          SKILL BEING TESTED
-        </Text>
-
-        <Text style={styles.skillBadgeText}>
-          {skillId}
-        </Text>
-
-        <Text style={styles.goalText}>
-          Goal: {primaryGoal}
-        </Text>
+      <View style={styles.statusRow}>
+        <View style={[styles.skillPill, { backgroundColor: theme.surfaceStrong }]}><Text style={[styles.skillPillText, { color: theme.text }]} numberOfLines={1}>{displayName(learningContext.focusSkill || skillId)}</Text></View>
+        <Text style={[styles.scoreNow, { color: theme.muted }]}>{liveScore} mastered</Text>
       </View>
+      <View style={[styles.progressTrack, { backgroundColor: theme.surfaceStrong }]}><View style={[styles.progressFill, { backgroundColor: theme.accent, width: `${progress}%` as `${number}%` }]} /></View>
+      <View style={styles.progressLabels}><Text style={[styles.progressText, { color: theme.muted }]}>MOVE {currentQuestion + 1} OF {questions.length}</Text><Text style={[styles.progressText, { color: theme.muted }]}>{cycleGate ? `${requiredCorrect}/${questions.length} TO CLEAR` : "LEARN · APPLY · PROVE"}</Text></View>
 
-      {/* DIFFICULTY */}
+      <View style={[styles.questionCard, { backgroundColor: theme.surface, borderColor: selectedAnswer === null ? theme.border : isCorrect ? theme.accent : theme.border }]}>
+        <Text style={[styles.focusLabel, { color: theme.accent }]}>{questionItem.focus.toUpperCase()}</Text>
+        <Text style={[styles.question, { color: theme.text }]}>{questionItem.question}</Text>
+        <View style={styles.options}>
+          {questionItem.options.map((option, index) => {
+            const selected = selectedAnswer === index;
+            const correct = index === questionItem.answer;
+            const revealed = selectedAnswer !== null;
+            return (
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selected, disabled: revealed || saving }}
+                key={`${index}-${option}`}
+                onPress={() => handleAnswer(index)}
+                disabled={revealed || saving}
+                style={({ pressed }) => [
+                  styles.option,
+                  { backgroundColor: theme.background, borderColor: theme.border },
+                  revealed && correct && { backgroundColor: theme.surfaceStrong, borderColor: theme.accent },
+                  revealed && selected && !correct && styles.wrongOption,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={[styles.optionKey, { borderColor: revealed && correct ? theme.accent : theme.border }]}><Text style={[styles.optionKeyText, { color: revealed && correct ? theme.accent : theme.muted }]}>{String.fromCharCode(65 + index)}</Text></View>
+                <Text style={[styles.optionText, { color: revealed && correct ? theme.text : theme.muted }, selected && { color: theme.text }]}>{option}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-      {!cycleGate ? <><Text style={styles.sectionTitle}>
-        Practice review · rewards once per skill
-      </Text>
-
-      <View style={styles.difficultyRow}>
-        {difficulties.map((item) => (
-          <Pressable
-            key={item.name}
-            onPress={() => {
-              if (saving) return;
-
-              setDifficulty(item.name);
-              setCurrentQuestion(0);
-              setSelectedAnswer(null);
-              setScore(0);
-            }}
-            style={[
-              styles.difficultyButton,
-              difficulty === item.name &&
-                styles.selectedDifficulty,
-            ]}
-          >
-            <Text
-              style={[
-                styles.difficultyText,
-                difficulty === item.name &&
-                  styles.selectedDifficultyText,
-              ]}
-            >
-              {item.name}
-            </Text>
-
-            <Text
-              style={[
-                styles.rewardText,
-                difficulty === item.name &&
-                  styles.selectedDifficultyText,
-              ]}
-            >
-              +{item.reward}
-            </Text>
-          </Pressable>
-        ))}
-      </View></> : <View style={styles.skillBadge}><Text style={styles.skillBadgeLabel}>PASS TO UNLOCK</Text><Text style={styles.skillBadgeText}>80% required · 5 questions</Text><Text style={styles.goalText}>Missed questions include explanations and can be retried.</Text></View>}
-
-      {/* QUESTION */}
-
-      <View style={[styles.questionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={styles.questionNumber}>
-          QUESTION {currentQuestion + 1} /{" "}
-          {questions.length}
-        </Text>
-
-        <Text style={[styles.question, { color: theme.text }]}>
-          {question.question}
-        </Text>
-
-        {question.options.map((option, index) => {
-          const isSelected =
-            selectedAnswer === index;
-
-          const isCorrect =
-            index === question.answer;
-
-          let optionStyle: any = [styles.option, { backgroundColor: theme.background, borderColor: theme.border }];
-          let textStyle: any = [styles.optionText, { color: theme.text }];
-
-          if (selectedAnswer !== null) {
-            if (isCorrect) {
-              optionStyle = styles.correctOption;
-              textStyle = styles.correctText;
-            } else if (isSelected) {
-              optionStyle = styles.wrongOption;
-              textStyle = styles.wrongText;
-            }
-          }
-
-          return (
-            <Pressable
-              key={option}
-              onPress={() => handleAnswer(index)}
-              style={optionStyle}
-              disabled={saving}
-            >
-              <Text style={textStyle}>
-                {option}
-              </Text>
-            </Pressable>
-          );
-        })}
-
-        {selectedAnswer !== null && (
-          <View style={styles.explanation}>
-            <Text style={styles.explanationTitle}>
-              {selectedAnswer === question.answer
-                ? "Correct!"
-                : "Not quite."}
-            </Text>
-
-            <Text style={styles.explanationText}>
-              {question.explanation}
-            </Text>
+        {selectedAnswer !== null ? (
+          <View accessibilityRole="alert" style={[styles.coachNote, { backgroundColor: theme.surfaceStrong, borderColor: isCorrect ? theme.accent : theme.border }]}>
+            <Text style={[styles.coachLabel, { color: isCorrect ? theme.accent : theme.text }]}>{isCorrect ? "MASTERED" : "TRAINING NOTE"}</Text>
+            {!isCorrect ? <Text style={[styles.correctLine, { color: theme.text }]}>Best answer: {questionItem.options[questionItem.answer]}</Text> : null}
+            <Text style={[styles.coachText, { color: theme.muted }]}>{questionItem.explanation}</Text>
           </View>
-        )}
+        ) : null}
       </View>
 
-      {selectedAnswer !== null && (
-        <Pressable
-          style={styles.button}
-          onPress={nextQuestion}
-          disabled={saving}
-        >
-          <Text style={styles.buttonText}>
-            {saving
-              ? "Saving..."
-              : currentQuestion === questions.length - 1
-              ? "Finish Quiz"
-              : "Next Question"}
-          </Text>
-        </Pressable>
-      )}
+      {selectedAnswer !== null ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: saving }} disabled={saving} style={({ pressed }) => [styles.primaryButton, { backgroundColor: theme.accent }, pressed && styles.pressed, saving && styles.disabled]} onPress={nextQuestion}><Text style={[styles.primaryButtonText, { color: theme.accentInk }]}>{saving ? "Saving trial…" : currentQuestion === questions.length - 1 ? "Reveal my rank" : "Next move"}</Text></Pressable> : <Text style={[styles.chooseHint, { color: theme.muted }]}>Choose the strongest answer to continue.</Text>}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#010807",
-  },
-
-  content: {
-    padding: 24,
-    paddingBottom: 50,
-  },
-
-  resultContent: {
-    flexGrow: 1,
-    padding: 24,
-    paddingBottom: 50,
-  },
-
-  logo: {
-    fontSize: 20,
-    fontWeight: "900",
-    letterSpacing: 5,
-    color: "#7AF5B8",
-    marginBottom: 28,
-  },
-
-  engine: {
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    color: "#7AF5B8",
-  },
-
-  title: {
-    fontSize: 31,
-    fontWeight: "900",
-    color: "#F5FFF9",
-    marginTop: 7,
-  },
-
-  subtitle: {
-    color: "#C8EED9",
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 8,
-    marginBottom: 18,
-  },
-
-  skillBadge: {
-    backgroundColor: "#071B16",
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 24,
-  },
-
-  skillBadgeLabel: {
-    color: "#7AF5B8",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-    marginBottom: 5,
-  },
-
-  skillBadgeText: {
-    color: "#F5FFF9",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-
-  goalText: {
-    color: "#7A9B8A",
-    fontSize: 12,
-    marginTop: 6,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 12,
-    color: "#F5FFF9",
-  },
-
-  difficultyRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 24,
-  },
-
-  difficultyButton: {
-    flex: 1,
-    backgroundColor: "#071B16",
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-  },
-
-  selectedDifficulty: {
-    backgroundColor: "#7AF5B8",
-  },
-
-  difficultyText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#F5FFF9",
-  },
-
-  selectedDifficultyText: {
-    color: "#010807",
-  },
-
-  rewardText: {
-    fontSize: 10,
-    color: "#B4D4C2",
-    marginTop: 3,
-    fontWeight: "700",
-  },
-
-  questionCard: {
-    backgroundColor: "#071B16",
-    borderRadius: 22,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-  },
-
-  questionNumber: {
-    fontSize: 11,
-    fontWeight: "900",
-    color: "#19A463",
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-
-  question: {
-    fontSize: 22,
-    lineHeight: 29,
-    fontWeight: "800",
-    marginBottom: 20,
-    color: "#F5FFF9",
-  },
-
-  option: {
-    backgroundColor: "#0B1B18",
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 10,
-  },
-
-  optionText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#F5FFF9",
-  },
-
-  correctOption: {
-    backgroundColor: "rgba(122, 245, 184, 0.12)",
-    borderWidth: 2,
-    borderColor: "#7AF5B8",
-    borderRadius: 14,
-    padding: 15,
-    marginBottom: 10,
-  },
-
-  correctText: {
-    color: "#7AF5B8",
-    fontWeight: "800",
-    fontSize: 15,
-  },
-
-  wrongOption: {
-    backgroundColor: "rgba(217, 83, 79, 0.08)",
-    borderWidth: 2,
-    borderColor: "#D9534F",
-    borderRadius: 14,
-    padding: 15,
-    marginBottom: 10,
-  },
-
-  wrongText: {
-    color: "#F7A6A0",
-    fontWeight: "800",
-    fontSize: 15,
-  },
-
-  explanation: {
-    marginTop: 10,
-    backgroundColor: "rgba(122, 245, 184, 0.08)",
-    borderRadius: 14,
-    padding: 15,
-  },
-
-  explanationTitle: {
-    fontWeight: "900",
-    color: "#19A463",
-    marginBottom: 5,
-  },
-
-  explanationText: {
-    color: "#C8EED9",
-    lineHeight: 20,
-  },
-
-  button: {
-    backgroundColor: "#7AF5B8",
-    borderRadius: 16,
-    paddingVertical: 17,
-    alignItems: "center",
-    marginTop: 20,
-  },
-
-  buttonText: {
-    color: "#010807",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: "#7AF5B8",
-    borderRadius: 16,
-    paddingVertical: 17,
-    alignItems: "center",
-    marginTop: 10,
-  },
-
-  secondaryButtonText: {
-    color: "#7AF5B8",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-
-  resultCard: {
-    flex: 1,
-    paddingTop: 20,
-  },
-
-  resultEmoji: {
-    fontSize: 55,
-    marginBottom: 15,
-  },
-
-  resultTitle: {
-    fontSize: 30,
-    fontWeight: "900",
-    color: "#F5FFF9",
-  },
-
-  score: {
-    fontSize: 65,
-    fontWeight: "900",
-    color: "#19A463",
-    marginVertical: 10,
-  },
-
-  resultText: {
-    fontSize: 16,
-    color: "#C8EED9",
-    lineHeight: 23,
-    marginTop: 5,
-  },
-
-  xpReward: {
-    fontSize: 30,
-    fontWeight: "900",
-    color: "#19A463",
-    marginVertical: 8,
-  },
-
-  resultInfo: {
-    backgroundColor: "#071B16",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#1E3A31",
-    padding: 16,
-    marginTop: 15,
-    marginBottom: 14,
-  },
-
-  resultInfoLabel: {
-    color: "#7A9B8A",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
-    marginTop: 6,
-  },
-
-  resultInfoValue: {
-    color: "#F5FFF9",
-    fontSize: 15,
-    fontWeight: "800",
-    marginTop: 2,
-  },
-
-  nextMoveCard: {
-    backgroundColor: "#071B16",
-    borderWidth: 1,
-    borderColor: "#7AF5B8",
-    borderRadius: 20,
-    padding: 18,
-    marginTop: 8,
-  },
-
-  nextMoveLabel: {
-    color: "#7AF5B8",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-
-  nextMoveTitle: {
-    color: "#F5FFF9",
-    fontSize: 22,
-    fontWeight: "900",
-    lineHeight: 28,
-  },
-
-  nextMoveDescription: {
-    color: "#C8EED9",
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 8,
-  },
-
-  adaptiveStats: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 16,
-  },
-
-  adaptiveStat: {
-    flex: 1,
-    backgroundColor: "#0D2F22",
-    borderRadius: 12,
-    padding: 12,
-  },
-
-  adaptiveStatLabel: {
-    color: "#7A9B8A",
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  adaptiveStatValue: {
-    color: "#F5FFF9",
-    fontSize: 14,
-    fontWeight: "800",
-    marginTop: 5,
-  },
-
-  whyBox: {
-    marginTop: 12,
-    backgroundColor: "rgba(122, 245, 184, 0.07)",
-    borderRadius: 12,
-    padding: 12,
-  },
-
-  whyLabel: {
-    color: "#7AF5B8",
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-
-  whyText: {
-    color: "#C8EED9",
-    fontSize: 13,
-    lineHeight: 19,
-  },
+  page: { flex: 1 },
+  content: { padding: 22, paddingTop: 58, paddingBottom: 80 },
+  resultContent: { padding: 22, paddingTop: 58, paddingBottom: 80 },
+  eyebrow: { fontSize: 10, fontWeight: "900", letterSpacing: 1.5 },
+  title: { fontSize: 35, lineHeight: 41, fontWeight: "900", letterSpacing: -1, marginTop: 8 },
+  subtitle: { fontSize: 15, lineHeight: 22, marginTop: 9, marginBottom: 24 },
+  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  skillPill: { flexShrink: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  skillPillText: { fontSize: 11, fontWeight: "900", letterSpacing: .4 },
+  scoreNow: { fontSize: 11, fontWeight: "800" },
+  progressTrack: { height: 5, borderRadius: 999, overflow: "hidden", marginTop: 14 },
+  progressFill: { height: "100%", borderRadius: 999 },
+  progressLabels: { flexDirection: "row", justifyContent: "space-between", marginTop: 8, marginBottom: 20 },
+  progressText: { fontSize: 9, fontWeight: "900", letterSpacing: 1 },
+  questionCard: { borderRadius: 22, borderWidth: 1, padding: 19 },
+  focusLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 1.4, marginBottom: 10 },
+  question: { fontSize: 22, lineHeight: 29, fontWeight: "800", letterSpacing: -.25 },
+  options: { marginTop: 20, gap: 9 },
+  option: { minHeight: 58, borderRadius: 14, borderWidth: 1, padding: 12, flexDirection: "row", alignItems: "center", gap: 11 },
+  wrongOption: { backgroundColor: "rgba(196, 72, 72, .10)", borderColor: "#B95B5B" },
+  optionKey: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  optionKeyText: { fontSize: 11, fontWeight: "900" },
+  optionText: { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: "600" },
+  coachNote: { borderWidth: 1, borderRadius: 14, padding: 14, marginTop: 15 },
+  coachLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 1.2 },
+  correctLine: { fontSize: 13, lineHeight: 19, fontWeight: "800", marginTop: 8 },
+  coachText: { fontSize: 13, lineHeight: 20, marginTop: 6 },
+  primaryButton: { minHeight: 55, borderRadius: 15, alignItems: "center", justifyContent: "center", paddingHorizontal: 18, marginTop: 18 },
+  primaryButtonText: { fontSize: 14, fontWeight: "900" },
+  secondaryButton: { minHeight: 52, borderRadius: 15, borderWidth: 1, alignItems: "center", justifyContent: "center", marginTop: 10 },
+  secondaryButtonText: { fontSize: 13, fontWeight: "800" },
+  textButton: { minHeight: 48, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  textButtonText: { fontSize: 13, fontWeight: "800" },
+  chooseHint: { textAlign: "center", fontSize: 12, marginTop: 16 },
+  resultTitle: { fontSize: 42, lineHeight: 48, fontWeight: "900", letterSpacing: -1.2, marginTop: 7 },
+  resultSubtitle: { fontSize: 14, marginTop: 5, marginBottom: 20 },
+  rankCard: { borderRadius: 22, borderWidth: 1, padding: 18, flexDirection: "row", alignItems: "center", gap: 15 },
+  rankMark: { width: 62, height: 62, borderRadius: 18, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  rankMarkText: { fontSize: 28, fontWeight: "900" },
+  rankBody: { flex: 1 },
+  rankLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
+  rankName: { fontSize: 21, fontWeight: "900", marginTop: 4 },
+  rankHelp: { fontSize: 11, marginTop: 4 },
+  rankTrack: { height: 6, borderRadius: 999, overflow: "hidden", marginTop: 15 },
+  rankFill: { height: "100%", borderRadius: 999 },
+  rewardText: { fontSize: 13, fontWeight: "800", marginTop: 11 },
+  badgeCard: { borderRadius: 16, padding: 15, marginTop: 18 },
+  badgeTitle: { fontSize: 17, fontWeight: "900", marginTop: 6 },
+  sectionTitle: { fontSize: 22, fontWeight: "900", letterSpacing: -.4, marginTop: 27 },
+  sectionHelp: { fontSize: 13, lineHeight: 19, marginTop: 5, marginBottom: 11 },
+  reviewCard: { borderRadius: 16, borderWidth: 1, padding: 15, marginBottom: 10 },
+  reviewNumber: { fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
+  reviewQuestion: { fontSize: 15, lineHeight: 21, fontWeight: "800", marginTop: 7 },
+  reviewAnswer: { fontSize: 12, lineHeight: 18, marginTop: 9, textDecorationLine: "line-through" },
+  reviewCorrect: { fontSize: 12, lineHeight: 18, fontWeight: "800", marginTop: 5 },
+  reviewWhy: { fontSize: 12, lineHeight: 18, marginTop: 7 },
+  nextCard: { borderRadius: 18, borderWidth: 1, padding: 17, marginTop: 10 },
+  nextTitle: { fontSize: 18, lineHeight: 23, fontWeight: "900", marginTop: 7 },
+  nextText: { fontSize: 13, lineHeight: 20, marginTop: 7 },
+  pressed: { opacity: .72 },
+  disabled: { opacity: .52 },
 });

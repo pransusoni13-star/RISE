@@ -29,6 +29,7 @@ export type XPEventMetadata = {
   coins?: number;
   passed?: boolean;
   source?: string;
+  rank?: string;
 };
 
 export type XPEvent = {

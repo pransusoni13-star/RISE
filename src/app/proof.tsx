@@ -536,7 +536,26 @@ export default function ProofScreen() {
               ? router.replace({ pathname: "/action", params: { mission: JSON.stringify(nextMission) } } as any)
               : hasRemainingMissions
                 ? router.replace("/(tabs)/today" as any)
-                : void loadProfile().then((profile) => router.replace({ pathname: "/quiz", params: { cycleGate: "1", cycleId: missionId, skillId: profile.weeklySkill || skillId, goal: profile.selectedGoals[0] || goal, goals: JSON.stringify(profile.selectedGoals), commitment: profile.commitment || "Every 7 days" } } as any))}
+                : void loadProfile().then((profile) => {
+                    const plan = createSevenDayPlan(profile);
+                    const finalMission = plan[plan.length - 1];
+                    router.replace({
+                      pathname: "/quiz",
+                      params: {
+                        cycleGate: "1",
+                        cycleId: missionId,
+                        skillId: profile.weeklySkill || skillId,
+                        goal: profile.selectedGoals[0] || goal,
+                        goals: JSON.stringify(profile.selectedGoals),
+                        commitment: profile.commitment || "Every 7 days",
+                        focusSkill: finalMission?.focusSkill || profile.weeklySkill || skillId,
+                        missionTitle: finalMission?.title || taskTitle,
+                        missionSteps: JSON.stringify(finalMission?.steps || []),
+                        successCriteria: finalMission?.successCriteria || "",
+                        reflectionPrompt: finalMission?.reflectionPrompt || "",
+                      },
+                    } as any);
+                  })}
           >
             <Text style={styles.continueButtonText}>
               {nextMission ? "Start Next Mission" : hasRemainingMissions ? "Done for today — come back tomorrow" : "Take Cycle Quiz to Unlock"}
