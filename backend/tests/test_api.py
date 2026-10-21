@@ -199,6 +199,8 @@ def test_login_attempts_are_rate_limited() -> None:
 def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkeypatch) -> None:
     with TestClient(app) as client:
         public_config = client.get("/config/public").json()
+        assert public_config["api_version"] == "1.1.0"
+        assert public_config["release_commit"] == "local"
         assert public_config["founding_redemption_enabled"] is False
         assert public_config["email_delivery_ready"] is False
         blocked = client.post("/auth/register", json={"email": "founder@example.com", "password": "very-secure-password", "display_name": "First Founder", "founding_code": "FOUNDING-ONE"})
@@ -305,15 +307,17 @@ def test_feedback_is_authenticated_emailed_exported_and_deleted(monkeypatch) -> 
     with TestClient(app) as client:
         session = client.post("/auth/register", json={"email": "feedback@example.com", "password": "very-secure-password", "display_name": "Feedback Member"}).json()
         headers = {"Authorization": f"Bearer {session['access_token']}"}
-        payload = {"category": "accessibility", "rating": 4, "message": "The larger text setting needs more room on the mission screen.", "app_version": "1.0.0"}
+        payload = {"client_feedback_id": "feedback-accessibility-001", "category": "accessibility", "rating": 4, "message": "The larger text setting needs more room on the mission screen.", "app_version": "1.0.0"}
         assert client.post("/feedback", json=payload).status_code == 401
         assert client.post("/feedback", json={**payload, "rating": 9}, headers=headers).status_code == 422
+        assert client.post("/feedback", json=payload, headers=headers).json() == {"received": True, "email_notified": True}
         assert client.post("/feedback", json=payload, headers=headers).json() == {"received": True, "email_notified": True}
         assert delivered["recipient"] == "rise.app13@gmail.com"
         assert delivered["member_email"] == "feedback@example.com"
         assert delivered["message"] == payload["message"]
         exported = client.get("/users/me/export", headers=headers).json()
         assert exported["product_feedback"][0]["category"] == "accessibility"
+        assert len(exported["product_feedback"]) == 1
         assert client.delete("/users/me", headers=headers).status_code == 204
 
 
@@ -325,7 +329,12 @@ def test_feedback_remains_saved_when_support_email_fails(monkeypatch) -> None:
     with TestClient(app) as client:
         session = client.post("/auth/register", json={"email": "feedback-fallback@example.com", "password": "very-secure-password", "display_name": "Feedback Fallback"}).json()
         headers = {"Authorization": f"Bearer {session['access_token']}"}
-        payload = {"category": "bug", "rating": 2, "message": "The mission button did not respond on my first tap.", "app_version": "1.0.0"}
+        payload = {"client_feedback_id": "feedback-fallback-001", "category": "bug", "rating": 2, "message": "The mission button did not respond on my first tap.", "app_version": "1.0.0"}
         assert client.post("/feedback", json=payload, headers=headers).json() == {"received": True, "email_notified": False}
+        delivered: list[str] = []
+        monkeypatch.setattr("app.main.send_product_feedback_notification", lambda *_args, **_kwargs: delivered.append("sent"))
+        assert client.post("/feedback", json=payload, headers=headers).json() == {"received": True, "email_notified": True}
+        assert delivered == ["sent"]
         exported = client.get("/users/me/export", headers=headers).json()
         assert exported["product_feedback"][0]["message"] == payload["message"]
+        assert len(exported["product_feedback"]) == 1

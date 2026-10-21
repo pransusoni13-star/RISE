@@ -22,15 +22,24 @@ export default function FeedbackScreen() {
   const [emailReady, setEmailReady] = useState(false);
   const [receipt, setReceipt] = useState<DeliveryReceipt | null>(null);
   const [lastSubmittedMessage, setLastSubmittedMessage] = useState("");
+  const [pendingFeedback, setPendingFeedback] = useState<ProductFeedback | null>(null);
   const valid = message.trim().length >= 5;
 
   useEffect(() => {
     let active = true;
-    void Promise.all([getCurrentUser().catch(() => null), getPublicConfig()]).then(([currentUser, config]) => {
+    void Promise.all([getCurrentUser().catch(() => null), getPublicConfig(), feedbackRepository.list()]).then(([currentUser, config, savedFeedback]) => {
       if (!active) return;
       setUser(currentUser);
       setEmailReady(config.email_delivery_ready);
       if (currentUser?.display_name) setFirstName(currentUser.display_name.trim().split(/\s+/)[0]);
+      const pending = savedFeedback.find((item) => item.deliveryStatus === "pending");
+      if (pending) {
+        setPendingFeedback(pending);
+        setCategory(pending.category);
+        setRating(pending.rating);
+        setMessage(pending.message);
+        setReceipt({ tone: "local", title: "Unsent feedback restored", detail: "Your earlier note is still private on this phone. Tap Send to retry safely." });
+      }
     }).catch(() => undefined);
     return () => { active = false; };
   }, []);
@@ -41,9 +50,13 @@ export default function FeedbackScreen() {
     try {
       const submittedMessage = message.trim();
       setLastSubmittedMessage(submittedMessage);
-      const saved = await feedbackRepository.add({ category, rating, message: submittedMessage });
-      const result = await submitProductFeedback({ category: saved.category, rating: saved.rating, message: saved.message, appVersion: saved.appVersion }).catch(() => ({ received: false, emailNotified: false }));
-      if (result.received) setMessage("");
+      const saved = pendingFeedback
+        ? await feedbackRepository.updatePending(pendingFeedback.id, { category, rating, message: submittedMessage }) ?? pendingFeedback
+        : await feedbackRepository.add({ category, rating, message: submittedMessage });
+      setPendingFeedback(saved);
+      const result = await submitProductFeedback({ clientFeedbackId: saved.id, category: saved.category, rating: saved.rating, message: saved.message, appVersion: saved.appVersion }).catch(() => ({ received: false, emailNotified: false }));
+      await feedbackRepository.markDelivery(saved.id, result.emailNotified ? "emailed" : result.received ? "received" : "pending");
+      if (result.received) { setMessage(""); setPendingFeedback(null); }
       const thanks = firstName ? `Thank you, ${firstName}.` : "Thank you for helping improve RISE.";
       if (result.received && result.emailNotified) {
         setReceipt({ tone: "success", title: "Delivered privately", detail: `${thanks} RISE stored your note and notified the private RISE inbox.` });

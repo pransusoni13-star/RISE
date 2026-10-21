@@ -4,6 +4,7 @@ from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 import logging
+import os
 from secrets import compare_digest
 from threading import Lock
 from time import monotonic
@@ -19,7 +20,7 @@ from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import Base, engine, get_db
 from .mailer import send_email_verification, send_password_reset, send_product_feedback_notification
-from .models import EmailVerification, FoundingInvite, LeaderboardConsent, PasswordResetToken, ProductFeedback, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
+from .models import EmailVerification, FeedbackSubmissionReceipt, FoundingInvite, LeaderboardConsent, PasswordResetToken, ProductFeedback, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
 from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProductFeedbackCreate, ProfileResponse, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
 
@@ -139,8 +140,10 @@ def health() -> dict[str, str]:
 
 
 @app.get("/config/public")
-def public_config() -> dict[str, bool]:
+def public_config() -> dict[str, bool | str]:
     return {
+        "api_version": "1.1.0",
+        "release_commit": os.getenv("RENDER_GIT_COMMIT", "local")[:12],
         "founding_redemption_enabled": settings.founding_redemption_enabled,
         "email_delivery_ready": settings.email_delivery_ready,
     }
@@ -339,10 +342,36 @@ def export_me(user: User = Depends(get_current_user), db: Session = Depends(get_
 @app.post("/feedback", status_code=201)
 def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, bool]:
     enforce_rate_limit(request, "feedback", limit=8, seconds=3600)
-    feedback = ProductFeedback(user_id=user.id, **payload.model_dump())
-    db.add(feedback)
-    db.commit()
-    db.refresh(feedback)
+    receipt = db.get(FeedbackSubmissionReceipt, payload.client_feedback_id) if payload.client_feedback_id else None
+    if receipt and receipt.user_id != user.id:
+        raise HTTPException(status_code=409, detail="Feedback request identifier is unavailable")
+
+    feedback = db.get(ProductFeedback, receipt.feedback_id) if receipt else None
+    if receipt and not feedback:
+        raise HTTPException(status_code=500, detail="Stored feedback is unavailable")
+
+    if not feedback:
+        feedback = ProductFeedback(user_id=user.id, **payload.model_dump(exclude={"client_feedback_id"}))
+        db.add(feedback)
+        db.flush()
+        if payload.client_feedback_id:
+            receipt = FeedbackSubmissionReceipt(client_feedback_id=payload.client_feedback_id, user_id=user.id, feedback_id=feedback.id)
+            db.add(receipt)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            receipt = db.get(FeedbackSubmissionReceipt, payload.client_feedback_id) if payload.client_feedback_id else None
+            if not receipt or receipt.user_id != user.id:
+                raise
+            feedback = db.get(ProductFeedback, receipt.feedback_id)
+            if not feedback:
+                raise HTTPException(status_code=500, detail="Stored feedback is unavailable")
+        db.refresh(feedback)
+
+    if receipt and receipt.email_notified:
+        return {"received": True, "email_notified": True}
+
     email_notified = True
     try:
         send_product_feedback_notification(
@@ -359,6 +388,9 @@ def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User
     except Exception:
         email_notified = False
         logger.exception("Feedback was stored but its support email notification failed", extra={"feedback_id": feedback.id})
+    if receipt and receipt.email_notified != email_notified:
+        receipt.email_notified = email_notified
+        db.commit()
     return {"received": True, "email_notified": email_notified}
 
 

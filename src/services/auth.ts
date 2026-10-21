@@ -308,9 +308,9 @@ export async function getCloudDataExport(): Promise<Record<string, unknown> | nu
 
 export type FeedbackSubmissionResult = { received: boolean; emailNotified: boolean };
 
-export async function submitProductFeedback(input: { category: "idea" | "bug" | "confusing" | "mission" | "accessibility"; rating: 1 | 2 | 3 | 4 | 5; message: string; appVersion: string }): Promise<FeedbackSubmissionResult> {
+export async function submitProductFeedback(input: { clientFeedbackId: string; category: "idea" | "bug" | "confusing" | "mission" | "accessibility"; rating: 1 | 2 | 3 | 4 | 5; message: string; appVersion: string }): Promise<FeedbackSubmissionResult> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return { received: false, emailNotified: false };
-  const result = await authenticatedRequest<{ received: boolean; email_notified: boolean }>("/feedback", { method: "POST", body: JSON.stringify({ category: input.category, rating: input.rating, message: input.message.slice(0, 1000), app_version: input.appVersion.slice(0, 24) }) });
+  const result = await authenticatedRequest<{ received: boolean; email_notified: boolean }>("/feedback", { method: "POST", body: JSON.stringify({ client_feedback_id: input.clientFeedbackId.slice(0, 120), category: input.category, rating: input.rating, message: input.message.slice(0, 1000), app_version: input.appVersion.slice(0, 24) }) });
   return { received: result.received, emailNotified: result.email_notified };
 }
 

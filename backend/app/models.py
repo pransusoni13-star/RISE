@@ -138,3 +138,14 @@ class ProductFeedback(Base):
     message: Mapped[str] = mapped_column(Text)
     app_version: Mapped[str] = mapped_column(String(24))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, index=True)
+
+
+class FeedbackSubmissionReceipt(Base):
+    """Idempotency and delivery state for feedback created by newer clients."""
+
+    __tablename__ = "feedback_submission_receipts"
+    client_feedback_id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    feedback_id: Mapped[str] = mapped_column(ForeignKey("product_feedback.id", ondelete="CASCADE"), unique=True)
+    email_notified: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)

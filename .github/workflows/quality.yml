@@ -21,8 +21,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run test:logic
       - run: npm run security:audit
-      - run: npx expo export --platform web --output-dir dist
+      - run: npx expo export --platform ios --output-dir dist-ios
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"

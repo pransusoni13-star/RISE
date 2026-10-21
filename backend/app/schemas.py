@@ -123,6 +123,7 @@ class DashboardResponse(BaseModel):
 
 
 class ProductFeedbackCreate(BaseModel):
+    client_feedback_id: str | None = Field(default=None, min_length=8, max_length=120)
     category: Literal["idea", "bug", "confusing", "mission", "accessibility"]
     rating: int = Field(ge=1, le=5)
     message: str = Field(min_length=5, max_length=1000)
