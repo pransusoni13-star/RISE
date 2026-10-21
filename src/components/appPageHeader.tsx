@@ -2,8 +2,9 @@ import { router } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRiseAppearance } from "../services/appearance";
+import { APP_HEADER_ACTIONS } from "../services/appNavigation";
 
-export function AppPageHeader({ showTour = false }: { showTour?: boolean }) {
+export function AppPageHeader() {
   const { theme } = useRiseAppearance();
   return (
     <View style={styles.header}>
@@ -11,20 +12,18 @@ export function AppPageHeader({ showTour = false }: { showTour?: boolean }) {
         <Text style={[styles.logo, { color: theme.accent }]}>RISE</Text>
       </Pressable>
       <View style={styles.actions}>
-        {showTour ? <HeaderButton label="Guide" route="/tour" /> : null}
-        <HeaderButton label="Plan" route="/goals" />
-        <HeaderButton label="Settings" route="/settings" />
+        {APP_HEADER_ACTIONS.map((action) => <HeaderButton key={action.route} {...action} />)}
       </View>
     </View>
   );
 }
 
-function HeaderButton({ label, route }: { label: string; route: string }) {
+function HeaderButton({ label, route, accessibilityLabel }: { label: string; route: string; accessibilityLabel: string }) {
   const { theme } = useRiseAppearance();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel}
       hitSlop={6}
       onPress={() => router.push(route as never)}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}
@@ -35,10 +34,10 @@ function HeaderButton({ label, route }: { label: string; route: string }) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 30 },
-  logo: { fontSize: 17, fontWeight: "900", letterSpacing: 4 },
-  actions: { flex: 1, flexDirection: "row", justifyContent: "flex-end", gap: 7 },
-  button: { minHeight: 40, paddingHorizontal: 7, alignItems: "center", justifyContent: "center" },
-  buttonText: { fontSize: 11, fontWeight: "800" },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 7, marginBottom: 28 },
+  logo: { fontSize: 16, fontWeight: "900", letterSpacing: 3.5 },
+  actions: { flex: 1, flexDirection: "row", justifyContent: "flex-end", gap: 1 },
+  button: { minHeight: 42, paddingHorizontal: 6, alignItems: "center", justifyContent: "center" },
+  buttonText: { fontSize: 9.5, fontWeight: "900" },
   pressed: { opacity: 0.72 },
 });

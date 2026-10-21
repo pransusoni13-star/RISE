@@ -15,6 +15,7 @@ __pycache__/
 .expo-design-audit/
 .expo-export*/
 dist/
+/dist-ios/
 dist-check/
 dist-next/
 dist-build*-check/
