@@ -17,7 +17,7 @@ export type QueuedProfile = {
 
 export type QueuedProgressEvent = {
   client_event_id: string;
-  event_type: "skill_selected" | "mission_completed" | "quiz_completed" | "reflection_completed" | "app_session";
+  event_type: "skill_selected" | "mission_started" | "mission_completed" | "quiz_completed" | "reflection_completed" | "app_session";
   skill_slug: string;
   value: number;
   minutes: number;

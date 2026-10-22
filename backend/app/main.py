@@ -552,18 +552,25 @@ def admin_analytics(x_rise_admin_key: str | None = Header(default=None), db: Ses
     signups = [event.event_metadata.get("elapsed_seconds") for event in events if event.event_type == "signup_completed" and isinstance(event.event_metadata.get("elapsed_seconds"), int)]
     feedback_counts = dict(db.execute(select(ProductFeedback.category, func.count()).group_by(ProductFeedback.category)).all())
     members = []
+    first_mission_start_delays = []
     first_mission_delays = []
     for user in users:
         if user.id not in consented_user_ids:
             continue
         user_events = event_by_user[user.id]
+        mission_starts = [event for event in user_events if event.event_type == "mission_started"]
         missions = [event for event in user_events if event.event_type == "mission_completed"]
         minutes = sum(event.minutes for event in user_events)
         app_seconds = sum(event.event_metadata.get("duration_seconds", 0) for event in user_events if event.event_type == "app_session")
+        first_mission_start = min((event.created_at for event in mission_starts), default=None)
         first_mission = min((event.created_at for event in missions), default=None)
+        if first_mission_start:
+            first_mission_start_delays.append(max(0, (first_mission_start.replace(tzinfo=timezone.utc) - user.created_at.replace(tzinfo=timezone.utc)).total_seconds() / 60))
         if first_mission:
             first_mission_delays.append(max(0, (first_mission.replace(tzinfo=timezone.utc) - user.created_at.replace(tzinfo=timezone.utc)).total_seconds() / 60))
         last_activity = max((event.created_at for event in user_events), default=None)
-        members.append({"user_id": user.id, "joined_at": user.created_at, "missions_completed": len(missions), "focused_minutes": minutes, "app_minutes": round(app_seconds / 60, 1), "active_days": len({event.created_at.date() for event in user_events}), "last_activity_at": last_activity})
+        members.append({"user_id": user.id, "joined_at": user.created_at, "missions_started": len(mission_starts), "missions_completed": len(missions), "focused_minutes": minutes, "app_minutes": round(app_seconds / 60, 1), "active_days": len({event.created_at.date() for event in user_events}), "last_activity_at": last_activity})
     members.sort(key=lambda member: (-member["missions_completed"], -member["focused_minutes"]))
-    return {"total_members": len(users), "analytics_participants": len(consented_user_ids), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "members_with_mission": sum(member["missions_completed"] > 0 for member in members), "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "feedback_total": sum(feedback_counts.values()), "feedback_by_category": feedback_counts, "members": members[:100]}
+    members_who_started = sum(member["missions_started"] > 0 for member in members)
+    members_who_completed = sum(member["missions_completed"] > 0 for member in members)
+    return {"total_members": len(users), "analytics_participants": len(consented_user_ids), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "members_with_mission_started": members_who_started, "members_with_mission": members_who_completed, "mission_start_completion_rate_percent": round((members_who_completed / members_who_started) * 100, 1) if members_who_started else None, "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission_start": round(sum(first_mission_start_delays) / len(first_mission_start_delays)) if first_mission_start_delays else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "feedback_total": sum(feedback_counts.values()), "feedback_by_category": feedback_counts, "members": members[:100]}

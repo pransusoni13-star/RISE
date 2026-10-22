@@ -212,6 +212,10 @@ def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkey
         assert client.post("/progress/events", json=session_event, headers=headers).status_code == 201
         assert client.post("/progress/events", json=session_event, headers=headers).json() == {"created": False}
         assert client.get("/users/me/dashboard", headers=headers).json()["skills"] == []
+        mission_started = {"client_event_id": "mission-started:day-1", "event_type": "mission_started", "skill_slug": "focus", "metadata": {"day": 1, "track": "life"}}
+        assert client.post("/progress/events", json=mission_started, headers=headers).status_code == 201
+        assert client.post("/progress/events", json=mission_started, headers=headers).json() == {"created": False}
+        assert client.get("/users/me/dashboard", headers=headers).json()["skills"][0]["skill_slug"] == "focus"
         assert client.post("/users/me/founding-claim", json={"founding_code": "FOUNDING-ONE"}, headers=headers).status_code == 403
         assert client.get("/admin/analytics").status_code == 403
         monkeypatch.setattr(settings, "founding_redemption_enabled", True)
@@ -223,6 +227,10 @@ def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkey
         assert analytics["average_signup_seconds"] == 48
         assert analytics["total_app_minutes"] == 2.0
         assert analytics["total_focused_minutes"] == 0
+        assert analytics["members_with_mission_started"] == 1
+        assert analytics["members_with_mission"] == 0
+        assert analytics["mission_start_completion_rate_percent"] == 0.0
+        assert analytics["average_minutes_to_first_mission_start"] is not None
         assert client.delete("/users/me/usage-analytics", headers=headers).json() == {"opted_in": False}
         assert client.get("/admin/analytics", headers={"X-RISE-ADMIN-KEY": settings.admin_api_key}).json()["analytics_participants"] == 0
         assert client.post("/progress/events", json={**session_event, "client_event_id": "session:second"}, headers=headers).status_code == 403

@@ -51,7 +51,8 @@ try {
   if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash || host === "localhost" || host === "127.0.0.1" || host.endsWith(".local") || /^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[01])\./.test(host)) {
     problems.push("EXPO_PUBLIC_API_URL must be a public HTTPS API, not localhost or a private LAN address.");
   } else {
-    checks.push({ label: "API health", url: new URL("/health", parsed).href, json: true });
+    checks.push({ label: "API health", url: new URL("/health", parsed).href, kind: "health" });
+    checks.push({ label: "API release configuration", url: new URL("/config/public", parsed).href, kind: "config" });
   }
 } catch {
   problems.push("Set EXPO_PUBLIC_API_URL to the deployed HTTPS API origin.");
@@ -61,7 +62,7 @@ for (const name of ["RISE_PRIVACY_POLICY_URL", "RISE_SUPPORT_URL"]) {
   try {
     const parsed = new URL(process.env[name]);
     if (parsed.protocol !== "https:") throw new Error("HTTPS required");
-    checks.push({ label: name, url: parsed.href, json: false });
+    checks.push({ label: name, url: parsed.href, kind: "page" });
   } catch {
     problems.push(`Set ${name} to a working public HTTPS page and enter it in App Store Connect.`);
   }
@@ -71,12 +72,16 @@ for (const check of checks) {
   try {
     // The free beta API may cold-start after inactivity. Match the app's
     // bounded wake-up window so preflight does not report a healthy host as dead.
-    const timeoutMs = check.json ? 75_000 : 15_000;
+    const timeoutMs = check.kind === "page" ? 15_000 : 75_000;
     const response = await fetch(check.url, { signal: AbortSignal.timeout(timeoutMs), redirect: "follow" });
     if (!response.ok || new URL(response.url).protocol !== "https:") throw new Error(`HTTP ${response.status} or non-HTTPS redirect`);
-    if (check.json) {
+    if (check.kind === "health") {
       const health = await response.json();
       if (health.status !== "ok") throw new Error("health response is not ok");
+    } else if (check.kind === "config") {
+      const config = await response.json();
+      if (config.api_version !== "1.1.0") throw new Error(`expected API 1.1.0, received ${config.api_version || "no version"}`);
+      if (config.email_delivery_ready !== true) throw new Error("verification email delivery is not ready");
     }
   } catch (error) {
     problems.push(`${check.label} must be reachable over HTTPS (${error.message}).`);

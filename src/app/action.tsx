@@ -20,6 +20,7 @@ import { missionRepository, MissionStatus } from "../services/missionRepository"
 import { missionResultQuality } from "../services/missionProgress";
 import { reflectionQuality } from "../services/proofValidation";
 import { useRiseAppearance } from "../services/appearance";
+import { recordProgressEvent } from "../services/auth";
 
 const fallbackMission: PersonalizedMission = {
   id: "personal-day-1",
@@ -62,6 +63,7 @@ export default function ActionScreen() {
   const [footerHeight, setFooterHeight] = useState(96);
   const saveLock = useRef(false);
   const loadedMissionId = useRef<string | null>(null);
+  const missionStartTracked = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const resultY = useRef(0);
   const stepsY = useRef(0);
@@ -111,6 +113,7 @@ export default function ActionScreen() {
 
   useEffect(() => {
     loadedMissionId.current = null;
+    missionStartTracked.current = false;
     missionRepository.get(mission.id).then((record) => {
       const storedResult = record.chosenResult || "";
       loadedMissionId.current = mission.id;
@@ -136,9 +139,18 @@ export default function ActionScreen() {
         status: nextStatus,
         ...(resultReview.passed || completedSteps.length ? { startedAt: new Date().toISOString() } : {}),
       }).catch(() => undefined);
+      if (nextStatus !== "not_started" && !missionStartTracked.current) {
+        missionStartTracked.current = true;
+        void recordProgressEvent({
+          clientEventId: `mission-started:${mission.id}`,
+          eventType: "mission_started",
+          skillSlug: mission.skillId,
+          metadata: { day: mission.day, track: mission.track },
+        }).catch(() => undefined);
+      }
     }, 350);
     return () => clearTimeout(timer);
-  }, [chosenResult, completedSteps, mission.id, mission.steps.length, resultReview.normalized, resultReview.passed, status]);
+  }, [chosenResult, completedSteps, mission.day, mission.id, mission.skillId, mission.steps.length, mission.track, resultReview.normalized, resultReview.passed, status]);
 
   const toggleStep = async (index: number) => {
     if (status === "completed" || saveLock.current) return;
