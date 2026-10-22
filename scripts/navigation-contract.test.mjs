@@ -13,7 +13,7 @@ function routeFile(route) {
 }
 
 test("every persistent header button points to a real screen", () => {
-  assert.deepEqual(APP_HEADER_ACTIONS.map((action) => action.label), ["Menu"]);
+  assert.deepEqual(APP_HEADER_ACTIONS.map((action) => action.label), ["Tour", "Plan", "Settings"]);
   for (const action of APP_HEADER_ACTIONS) {
     assert.equal(existsSync(routeFile(action.route)), true, `${action.label} route is missing: ${action.route}`);
   }

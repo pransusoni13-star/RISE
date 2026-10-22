@@ -34,10 +34,10 @@ function HeaderButton({ label, route, accessibilityLabel }: { label: string; rou
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 7, marginBottom: 24 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 5, marginBottom: 24 },
   logo: { fontSize: 16, fontWeight: "900", letterSpacing: 3.5 },
-  actions: { flex: 1, flexDirection: "row", justifyContent: "flex-end", gap: 1 },
-  button: { minHeight: 42, borderRadius: 13, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
-  buttonText: { fontSize: 11, fontWeight: "900" },
+  actions: { flex: 1, flexDirection: "row", justifyContent: "flex-end", gap: 0 },
+  button: { minHeight: 44, borderRadius: 12, paddingHorizontal: 8, alignItems: "center", justifyContent: "center" },
+  buttonText: { fontSize: 10, fontWeight: "900" },
   pressed: { opacity: 0.72 },
 });
