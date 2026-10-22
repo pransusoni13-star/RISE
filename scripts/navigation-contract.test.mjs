@@ -13,14 +13,14 @@ function routeFile(route) {
 }
 
 test("every persistent header button points to a real screen", () => {
-  assert.deepEqual(APP_HEADER_ACTIONS.map((action) => action.label), ["Tour", "Plan", "Feedback", "Settings"]);
+  assert.deepEqual(APP_HEADER_ACTIONS.map((action) => action.label), ["Menu"]);
   for (const action of APP_HEADER_ACTIONS) {
     assert.equal(existsSync(routeFile(action.route)), true, `${action.label} route is missing: ${action.route}`);
   }
 });
 
 test("the tour stays short and every optional destination exists", () => {
-  assert.equal(TOUR_STEPS.length, 4);
+  assert.equal(TOUR_STEPS.length, 1);
   for (const step of TOUR_STEPS) {
     assert.ok(step.description.length < 80, `${step.title} is too wordy`);
     assert.equal(step.previewRows.length, 3);

@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AppPageHeader } from "../../components/appPageHeader";
 import { RiseButton, RiseCard, RiseEyebrow } from "../../components/rise-ui";
@@ -64,19 +64,11 @@ export default function TodayTabScreen() {
       <Text style={[styles.greeting, { color: theme.text }]}>
         {greeting}{firstName ? `, ${firstName}` : ""}.
       </Text>
-      <Text style={[styles.intro, { color: theme.muted }]}>One focused step. That is all you need today.</Text>
-
-      <View style={[styles.momentum, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
-        <View style={styles.momentumCopy}>
-          <Text style={[styles.momentumLabel, { color: theme.accent }]}>{todayComplete ? "TODAY’S WIN" : hasStarted ? "KEEP YOUR MOMENTUM" : "READY WHEN YOU ARE"}</Text>
-          <Text style={[styles.momentumTitle, { color: theme.text }]}>{todayComplete ? "Locked in." : hasStarted ? "Pick up where you left off." : "Make one real thing better."}</Text>
-        </View>
-        <View style={styles.momentumScore}><Text style={[styles.momentumNumber, { color: theme.accent }]}>{todayComplete ? "✓" : `${missionStage}/3`}</Text></View>
-      </View>
+      <Text style={[styles.intro, { color: theme.muted }]}>{todayComplete ? "Today’s work is saved. Your next mission opens tomorrow." : "This is the one step that matters today."}</Text>
 
       <RiseCard style={styles.missionCard}>
         <View style={styles.missionHeader}>
-          <RiseEyebrow>DAY {todayMission?.day || 1} OF {plan.length || 7}</RiseEyebrow>
+          <RiseEyebrow>TODAY’S ONE MISSION · DAY {todayMission?.day || 1}</RiseEyebrow>
           <View style={[styles.readyPill, { backgroundColor: theme.surfaceStrong }]}><Text style={[styles.readyText, { color: theme.accent }]}>{todayComplete ? "COMPLETE" : hasStarted ? "IN PROGRESS" : "READY"}</Text></View>
         </View>
 
@@ -85,10 +77,15 @@ export default function TodayTabScreen() {
         </Text>
         <Text style={[styles.missionSummary, { color: theme.muted }]}>{missionSummary}</Text>
 
+        <View style={[styles.valueStrip, { backgroundColor: theme.surfaceStrong }]}>
+          <Text style={[styles.valueLabel, { color: theme.accent }]}>WHY THIS MATTERS</Text>
+          <Text style={[styles.valueText, { color: theme.text }]}>{todayMission?.onePercent || `You will strengthen ${todayMission?.focusSkill || profile?.weeklySkill || "your focus"} with work you can show.`}</Text>
+        </View>
+
         <View style={styles.statsRow}>
           <MissionStat label="TIME" value={`${todayMission?.duration || 30} min`} />
           <MissionStat label="REWARD" value={`+${todayMission?.reward || 40} XP`} />
-          <MissionStat label="FOCUS" value={todayMission?.focusSkill || profile?.weeklySkill || "Foundations"} wide />
+          <MissionStat label="FOCUS" value={todayMission?.focusSkill || profile?.weeklySkill || "Foundations"} />
         </View>
 
         <View style={styles.trail} accessibilityLabel={`${missionStage} of 3 mission stages complete`}>
@@ -106,30 +103,15 @@ export default function TodayTabScreen() {
             onPress={() => router.push({ pathname: "/action", params: todayMission ? { mission: JSON.stringify(todayMission) } : {} } as any)}
           />
         </View>
+        <Text style={[styles.progressNote, { color: theme.muted }]}>{todayComplete ? `${completedDays.length} of ${plan.length || 7} missions complete` : "RISE saves each step as you go."}</Text>
       </RiseCard>
-
-      <View style={styles.secondaryRow}>
-        <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/learn" as never)} style={({ pressed }) => [styles.secondaryLink, pressed && styles.pressed]}>
-          <Text style={[styles.secondaryText, { color: theme.text }]}>Learn today&apos;s skill</Text>
-          <Text style={[styles.secondaryArrow, { color: theme.accent }]}>→</Text>
-        </Pressable>
-        <View style={[styles.divider, { backgroundColor: theme.border }]} />
-        <Pressable accessibilityRole="button" onPress={() => router.push("/goals" as never)} style={({ pressed }) => [styles.secondaryLink, pressed && styles.pressed]}>
-          <Text style={[styles.secondaryText, { color: theme.text }]}>Change my plan</Text>
-          <Text style={[styles.secondaryArrow, { color: theme.accent }]}>→</Text>
-        </Pressable>
-      </View>
-
-      <Text style={[styles.progressNote, { color: theme.muted }]}>
-        {completedDays.length} of {plan.length || 7} missions complete
-      </Text>
     </ScrollView>
   );
 }
 
-function MissionStat({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+function MissionStat({ label, value }: { label: string; value: string }) {
   const { theme } = useRiseAppearance();
-  return <View style={[styles.stat, wide && styles.statWide, { backgroundColor: theme.surfaceStrong }]}><Text style={[styles.statLabel, { color: theme.muted }]}>{label}</Text><Text numberOfLines={1} style={[styles.statValue, { color: theme.text }]}>{value}</Text></View>;
+  return <View style={[styles.stat, { backgroundColor: theme.surfaceStrong }]}><Text style={[styles.statLabel, { color: theme.muted }]}>{label}</Text><Text numberOfLines={1} style={[styles.statValue, { color: theme.text }]}>{value}</Text></View>;
 }
 
 const styles = StyleSheet.create({
@@ -137,21 +119,17 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 22, paddingTop: 58, paddingBottom: 112 },
   greeting: { fontSize: 34, lineHeight: 40, fontWeight: "800", letterSpacing: -0.8 },
   intro: { fontSize: 15, lineHeight: 22, marginTop: 8, marginBottom: 18 },
-  momentum: { minHeight: 86, borderRadius: 20, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 16, flexDirection: "row", alignItems: "center", marginBottom: 14 },
-  momentumCopy: { flex: 1, paddingRight: 12 },
-  momentumLabel: { fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
-  momentumTitle: { fontSize: 17, lineHeight: 22, fontWeight: "900", marginTop: 5 },
-  momentumScore: { width: 52, height: 52, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  momentumNumber: { fontSize: 22, fontWeight: "900" },
   missionCard: { padding: 22 },
   missionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 19 },
   readyPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7 },
   readyText: { fontSize: 8, fontWeight: "900", letterSpacing: 1 },
   missionTitle: { fontSize: 30, lineHeight: 36, fontWeight: "800", letterSpacing: -0.6 },
   missionSummary: { fontSize: 15, lineHeight: 23, marginTop: 12 },
+  valueStrip: { borderRadius: 15, padding: 14, marginTop: 20 },
+  valueLabel: { fontSize: 8, fontWeight: "900", letterSpacing: 1.1 },
+  valueText: { fontSize: 12, lineHeight: 18, fontWeight: "700", marginTop: 5 },
   statsRow: { flexDirection: "row", gap: 8, marginTop: 22 },
-  stat: { minWidth: 68, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 10 },
-  statWide: { flex: 1 },
+  stat: { flex: 1, minWidth: 68, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 10 },
   statLabel: { fontSize: 7, fontWeight: "900", letterSpacing: .9 },
   statValue: { fontSize: 11, fontWeight: "900", marginTop: 4 },
   trail: { flexDirection: "row", alignItems: "flex-start", marginTop: 22 },
@@ -161,11 +139,5 @@ const styles = StyleSheet.create({
   trailLabel: { fontSize: 9, fontWeight: "800", marginTop: 7 },
   trailLine: { position: "absolute", height: 2, width: "66%", top: 15, left: "67%", zIndex: 1 },
   primaryAction: { marginTop: 22 },
-  secondaryRow: { marginTop: 20 },
-  secondaryLink: { minHeight: 54, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 },
-  secondaryText: { fontSize: 14, fontWeight: "700" },
-  secondaryArrow: { fontSize: 18, fontWeight: "800" },
-  divider: { height: 1 },
-  progressNote: { fontSize: 11, textAlign: "center", marginTop: 20 },
-  pressed: { opacity: 0.68 },
+  progressNote: { fontSize: 10, textAlign: "center", marginTop: 13 },
 });

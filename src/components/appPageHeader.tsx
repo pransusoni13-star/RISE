@@ -11,7 +11,7 @@ export function AppPageHeader() {
       <Pressable accessibilityRole="button" accessibilityLabel="Go to RISE home" hitSlop={8} onPress={() => router.replace("/(tabs)/today" as never)} style={({ pressed }) => pressed && styles.pressed}>
         <Text style={[styles.logo, { color: theme.accent }]}>RISE</Text>
       </Pressable>
-      <View style={styles.actions}>
+      <View style={styles.actions} accessibilityLabel="RISE menu">
         {APP_HEADER_ACTIONS.map((action) => <HeaderButton key={action.route} {...action} />)}
       </View>
     </View>
@@ -34,10 +34,10 @@ function HeaderButton({ label, route, accessibilityLabel }: { label: string; rou
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 7, marginBottom: 28 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 7, marginBottom: 24 },
   logo: { fontSize: 16, fontWeight: "900", letterSpacing: 3.5 },
   actions: { flex: 1, flexDirection: "row", justifyContent: "flex-end", gap: 1 },
-  button: { minHeight: 42, paddingHorizontal: 6, alignItems: "center", justifyContent: "center" },
-  buttonText: { fontSize: 9.5, fontWeight: "900" },
+  button: { minHeight: 42, borderRadius: 13, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
+  buttonText: { fontSize: 11, fontWeight: "900" },
   pressed: { opacity: 0.72 },
 });
