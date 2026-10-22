@@ -7,7 +7,8 @@ import logging
 import os
 from secrets import compare_digest
 from threading import Lock
-from time import monotonic
+from time import monotonic, perf_counter
+from uuid import uuid4
 
 import jwt
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
@@ -18,7 +19,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .database import Base, engine, get_db
+from .database import engine, get_db
 from .mailer import send_email_verification, send_password_reset, send_product_feedback_notification
 from .models import EmailVerification, FeedbackSubmissionReceipt, FoundingInvite, LeaderboardConsent, PasswordResetToken, ProductFeedback, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
 from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProductFeedbackCreate, ProfileResponse, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
@@ -32,7 +33,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(engine)
     with Session(engine) as db:
         for rank, (slug, name, category, description, goal) in enumerate(POPULAR_SKILLS, start=1):
             if not db.get(SkillCatalog, slug):
@@ -60,18 +60,32 @@ POPULAR_SKILLS = [
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    request_id = str(uuid4())
+    started = perf_counter()
     if request.method in {"POST", "PUT", "PATCH"}:
         content_length = request.headers.get("content-length")
         if content_length and (not content_length.isdecimal() or int(content_length) > 16384):
-            return Response(status_code=413, content="Request body too large")
-    response = await call_next(request)
+            response = Response(status_code=413, content="Request body too large")
+        else:
+            response = await call_next(request)
+    else:
+        response = await call_next(request)
     response.headers["Cache-Control"] = "no-store" if request.url.path.startswith(("/auth", "/users", "/profiles", "/progress", "/feedback", "/admin")) else "public, max-age=60"
+    response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     if settings.env.lower() == "production":
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    logger.info(
+        "request_complete method=%s path=%s status=%s duration_ms=%s request_id=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        round((perf_counter() - started) * 1000),
+        request_id,
+    )
     return response
 
 
@@ -573,4 +587,19 @@ def admin_analytics(x_rise_admin_key: str | None = Header(default=None), db: Ses
     members.sort(key=lambda member: (-member["missions_completed"], -member["focused_minutes"]))
     members_who_started = sum(member["missions_started"] > 0 for member in members)
     members_who_completed = sum(member["missions_completed"] > 0 for member in members)
-    return {"total_members": len(users), "analytics_participants": len(consented_user_ids), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "members_with_mission_started": members_who_started, "members_with_mission": members_who_completed, "mission_start_completion_rate_percent": round((members_who_completed / members_who_started) * 100, 1) if members_who_started else None, "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission_start": round(sum(first_mission_start_delays) / len(first_mission_start_delays)) if first_mission_start_delays else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "feedback_total": sum(feedback_counts.values()), "feedback_by_category": feedback_counts, "members": members[:100]}
+    def retention_window(start_day: int) -> dict[str, int | float | None]:
+        end_day = start_day + 1
+        eligible = [user for user in users if user.id in consented_user_ids and user.created_at.replace(tzinfo=timezone.utc) <= now - timedelta(days=end_day)]
+        retained = sum(
+            any(
+                user.created_at.replace(tzinfo=timezone.utc) + timedelta(days=start_day)
+                <= event.created_at.replace(tzinfo=timezone.utc)
+                < user.created_at.replace(tzinfo=timezone.utc) + timedelta(days=end_day)
+                for event in event_by_user[user.id]
+            )
+            for user in eligible
+        )
+        return {"eligible_members": len(eligible), "retained_members": retained, "rate_percent": round((retained / len(eligible)) * 100, 1) if eligible else None}
+
+    feedback_email_pending = db.scalar(select(func.count()).select_from(FeedbackSubmissionReceipt).where(FeedbackSubmissionReceipt.email_notified.is_(False))) or 0
+    return {"total_members": len(users), "analytics_participants": len(consented_user_ids), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "retention": {"day_1": retention_window(1), "day_7": retention_window(7), "day_30": retention_window(30)}, "members_with_mission_started": members_who_started, "members_with_mission": members_who_completed, "mission_start_completion_rate_percent": round((members_who_completed / members_who_started) * 100, 1) if members_who_started else None, "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission_start": round(sum(first_mission_start_delays) / len(first_mission_start_delays)) if first_mission_start_delays else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "feedback_total": sum(feedback_counts.values()), "feedback_by_category": feedback_counts, "feedback_email_pending": int(feedback_email_pending), "members": members[:100]}

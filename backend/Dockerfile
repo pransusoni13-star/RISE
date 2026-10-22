@@ -7,6 +7,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
+COPY alembic.ini ./alembic.ini
+COPY migrations ./migrations
 COPY scripts ./scripts
 
 RUN addgroup --system rise && adduser --system --ingroup rise rise

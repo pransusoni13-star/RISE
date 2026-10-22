@@ -1,7 +1,7 @@
 # RISE private-beta deployment handoff
 
-Status: prepared locally, not deployed. Hosting account and budget are not yet chosen.
-Do not collect real beta-user data until the release gates below are addressed.
+Status: the beta API is hosted on Render, but every release still requires the live
+version, email readiness, database and rollback checks below.
 
 ## Hosting setup
 
@@ -27,7 +27,7 @@ Do not collect real beta-user data until the release gates below are addressed.
 
 ## Gates before inviting real users
 
-- Add reviewed schema migrations; current `create_all` only initializes missing tables and cannot safely evolve an existing schema.
+- Apply and review every Alembic migration in staging before production. The first revision safely adopts the current beta schema; future revisions must contain explicit reversible operations.
 - Enable managed backups and successfully restore a test backup into a separate database.
 - Password recovery and email verification are implemented but must be tested end-to-end with the chosen email provider. Keep invitations controlled until delivery, spam placement, expired links, and resend behavior pass staging tests.
 - Before public email delivery, buy or use a RISE-owned domain, add it to Resend, publish the exact SPF and DKIM records Resend provides, add a DMARC policy, wait for Resend to show the domain as verified, then set `RISE_EMAIL_FROM` in Render. The shared `onboarding@resend.dev` sender is for testing and is not suitable for arbitrary beta users. No sender can guarantee inbox placement.

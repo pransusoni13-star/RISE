@@ -12,13 +12,15 @@ from sqlalchemy.exc import OperationalError
 from app.database import Base, SessionLocal, engine
 from app.config import Settings
 from app.main import app, settings, attempts, attempt_lock
-from app.models import FoundingInvite, ProgressEvent, now_utc
+from app.models import FoundingInvite, ProgressEvent, User, now_utc
 from app.security import hash_token
 
 
 def test_health_checks_database(monkeypatch) -> None:
     with TestClient(app) as client:
-        assert client.get("/health").json() == {"status": "ok"}
+        healthy = client.get("/health")
+        assert healthy.json() == {"status": "ok"}
+        assert len(healthy.headers["X-Request-ID"]) == 36
 
         def unavailable():
             raise OperationalError("SELECT 1", {}, RuntimeError("database unavailable"))
@@ -231,11 +233,31 @@ def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkey
         assert analytics["members_with_mission"] == 0
         assert analytics["mission_start_completion_rate_percent"] == 0.0
         assert analytics["average_minutes_to_first_mission_start"] is not None
+        assert analytics["retention"]["day_1"]["eligible_members"] == 0
+        assert analytics["feedback_email_pending"] == 0
         assert client.delete("/users/me/usage-analytics", headers=headers).json() == {"opted_in": False}
         assert client.get("/admin/analytics", headers={"X-RISE-ADMIN-KEY": settings.admin_api_key}).json()["analytics_participants"] == 0
         assert client.post("/progress/events", json={**session_event, "client_event_id": "session:second"}, headers=headers).status_code == 403
         assert client.put("/users/me/usage-analytics", headers=headers).json() == {"opted_in": True}
         assert client.get("/admin/analytics", headers={"X-RISE-ADMIN-KEY": settings.admin_api_key}).json()["total_app_minutes"] == 0
+
+
+def test_admin_analytics_reports_matured_retention_windows(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "admin_api_key", "test-admin-key-long-enough-for-a-test-123")
+    with TestClient(app) as client:
+        session = client.post("/auth/register", json={"email": "retention@example.com", "password": "very-secure-password", "display_name": "Retention Member", "usage_analytics_opt_in": True}).json()
+        headers = {"Authorization": f"Bearer {session['access_token']}"}
+        assert client.post("/progress/events", json={"client_event_id": "mission-started:retention", "event_type": "mission_started", "skill_slug": "focus"}, headers=headers).status_code == 201
+        with SessionLocal() as db:
+            user = db.query(User).filter(User.email == "retention@example.com").one()
+            user.created_at = now_utc() - timedelta(days=40)
+            event = db.query(ProgressEvent).filter(ProgressEvent.client_event_id == "mission-started:retention").one()
+            event.created_at = user.created_at + timedelta(days=7, hours=12)
+            db.commit()
+        retention = client.get("/admin/analytics", headers={"X-RISE-ADMIN-KEY": settings.admin_api_key}).json()["retention"]
+        assert retention["day_1"] == {"eligible_members": 1, "retained_members": 0, "rate_percent": 0.0}
+        assert retention["day_7"] == {"eligible_members": 1, "retained_members": 1, "rate_percent": 100.0}
+        assert retention["day_30"] == {"eligible_members": 1, "retained_members": 0, "rate_percent": 0.0}
 
 
 def test_production_settings_require_private_database_and_https_origin() -> None:

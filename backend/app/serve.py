@@ -3,6 +3,8 @@ import os
 
 import uvicorn
 
+from .migrations import upgrade_database
+
 
 def server_port() -> int:
     port = int(os.environ.get("PORT", "8000"))
@@ -12,4 +14,5 @@ def server_port() -> int:
 
 
 if __name__ == "__main__":
+    upgrade_database()
     uvicorn.run("app.main:app", host="0.0.0.0", port=server_port(), proxy_headers=True)
