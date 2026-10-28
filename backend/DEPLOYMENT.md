@@ -1,7 +1,8 @@
 # RISE private-beta deployment handoff
 
-Status: the beta API is hosted on Render, but every release still requires the live
-version, email readiness, database and rollback checks below.
+Status: the beta API is hosted on Render. The current reviewed public API contract is
+version `1.1.0`; every release still requires the live version, email readiness,
+database and rollback checks below.
 
 ## Hosting setup
 
