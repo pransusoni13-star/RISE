@@ -48,7 +48,8 @@ export default function HomeScreen() {
         <Pressable accessibilityRole="link" onPress={() => router.push("/feedback" as never)}><Text style={styles.link}>Feedback</Text></Pressable><Text style={styles.linkDot}>·</Text>
         <Pressable accessibilityRole="link" onPress={() => router.push("/rewards" as never)}><Text style={styles.link}>Rewards</Text></Pressable><Text style={styles.linkDot}>·</Text>
         <Pressable accessibilityRole="link" onPress={() => router.push("/help" as never)}><Text style={styles.link}>Help</Text></Pressable><Text style={styles.linkDot}>·</Text>
-        <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as never)}><Text style={styles.link}>Privacy</Text></Pressable>
+        <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)}><Text style={styles.link}>Privacy</Text></Pressable><Text style={styles.linkDot}>·</Text>
+        <Pressable accessibilityRole="link" onPress={() => router.push("/terms" as never)}><Text style={styles.link}>Terms</Text></Pressable>
       </View>
     </ScrollView>
   </SafeAreaView>;

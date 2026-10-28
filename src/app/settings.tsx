@@ -146,7 +146,10 @@ export default function SettingsScreen() {
     <Row title="Feedback & Improvements" text="Send a private bug report, idea, or confusing moment to RISE" onPress={() => router.push("/feedback" as any)} />
     <Row title="Export My RISE Data" text="Review or save a portable copy through an app you choose" onPress={() => void exportLocalData()} />
     <Row title="Help Center" text="Proof, safety, privacy, and trusted resources" onPress={() => router.push("/help" as any)} />
-    <Row title="Privacy, Safety & Terms" text="Permissions, acceptable use, and delete controls" onPress={() => router.push("/legal" as any)} />
+    <Row title="Privacy Policy" text="What RISE collects, why, providers, retention, and your rights" onPress={() => router.push("/privacy" as any)} />
+    <Row title="Privacy Choices" text="Export, delete, opt out, permissions, and privacy support" onPress={() => router.push("/privacy-choices" as any)} />
+    <Row title="Terms of Use" text="Beta rules, ownership, acceptable use, and service limits" onPress={() => router.push("/terms" as any)} />
+    <Row title="Safety Disclosure" text="Proof limits, professional-advice limits, and safe use" onPress={() => router.push("/legal" as any)} />
     <Pressable accessibilityRole="button" accessibilityLabel="Delete all RISE data" onPress={deleteLocalAccount} style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}><View style={styles.body}><Text style={styles.deleteTitle}>Delete My RISE Data</Text><Text style={styles.cardText}>Permanently erase this on-device profile and start over</Text></View><Text style={styles.deleteArrow}>›</Text></Pressable>
     {user ? <Pressable accessibilityRole="button" accessibilityLabel="Delete RISE account and data" onPress={deleteEverywhere} style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}><View style={styles.body}><Text style={styles.deleteTitle}>Delete Account Everywhere</Text><Text style={styles.cardText}>Remove the beta account and local RISE data</Text></View><Text style={styles.deleteArrow}>›</Text></Pressable> : null}
 

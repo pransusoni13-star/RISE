@@ -2,7 +2,6 @@ import React, { useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
-import { AppPageHeader } from "../components/appPageHeader";
 import { CycleQuestion, getCycleQuestions, getQuizRank, QuizLearningContext } from "../services/cycleQuiz";
 import { RISEProgress, addSkillXP, addXP, getNextRecommendation } from "../services/progressEngine";
 import { progressRepository } from "../services/progressRepository";
@@ -222,7 +221,6 @@ export default function QuizScreen() {
 
     return (
       <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
-        <AppPageHeader />
         <Text style={[styles.eyebrow, { color: theme.accent }]}>RANK TRIAL COMPLETE</Text>
         <Text style={[styles.resultTitle, { color: theme.text }]}>{rank.name}</Text>
         <Text style={[styles.resultSubtitle, { color: theme.muted }]}>{quizResult.score} of {questions.length} mastered · {quizResult.percentage}%</Text>
@@ -282,7 +280,6 @@ export default function QuizScreen() {
 
   return (
     <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <AppPageHeader />
       <Text style={[styles.eyebrow, { color: theme.accent }]}>{cycleGate ? "FINAL RANK TRIAL" : "MASTERY CHECK"}</Text>
       <Text style={[styles.title, { color: theme.text }]}>Earn your next rank.</Text>
       <Text style={[styles.subtitle, { color: theme.muted }]}>Answer from the work you learned. Every answer includes the reason, so a miss still makes you stronger.</Text>

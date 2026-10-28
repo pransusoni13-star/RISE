@@ -16,7 +16,6 @@ import {
 } from "../../services/rewards";
 import { createSevenDayPlan, loadProfile, RiseProfile } from "../../services/personalization";
 import { missionRepository, MissionRecord } from "../../services/missionRepository";
-import { AppPageHeader } from "../../components/appPageHeader";
 import { useRiseAppearance } from "../../services/appearance";
 
 export default function ProgressTabScreen() {
@@ -101,7 +100,6 @@ export default function ProgressTabScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <AppPageHeader />
       <Text style={[styles.heading, { color: theme.text }]}>Your progress</Text>
       <Text style={[styles.subtitle, { color: theme.muted }]}>Every real step adds up.</Text>
 

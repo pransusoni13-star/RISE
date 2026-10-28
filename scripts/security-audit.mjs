@@ -21,6 +21,11 @@ const temporaryExpo57Allowlist = new Set([
   "react-native",
   "react-native-reanimated",
   "react-native-worklets",
+  // Expo SDK 57's bundled CLI currently pins Zod 3.25.76. The published fix is
+  // Zod 4.6.6, which is not a drop-in SDK dependency upgrade. Keep this visible
+  // and time-boxed with the rest of the Expo 57 exception instead of forcing an
+  // incompatible override into production builds.
+  "zod",
 ]);
 const allowlistExpires = new Date("2026-11-15T00:00:00Z");
 

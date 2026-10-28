@@ -3,7 +3,6 @@ import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, T
 import { router, useFocusEffect } from "expo-router";
 import { createSevenDayPlan, loadProfile, PersonalizedMission, RiseProfile } from "../../services/personalization";
 import { spiritualResource, spiritualVideoSearch } from "../../services/spiritualResources";
-import { AppPageHeader } from "../../components/appPageHeader";
 import { RiseButton, RiseCard, RiseEyebrow } from "../../components/rise-ui";
 import { getAvailableMissionDay } from "../../services/dayUnlock";
 import { missionRepository, MissionRecord } from "../../services/missionRepository";
@@ -44,7 +43,6 @@ export default function LearnTabScreen() {
   if (!profile || !mission) return <View style={[styles.loading, { backgroundColor: theme.background }]}><ActivityIndicator color={theme.accent} /></View>;
 
   return <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <AppPageHeader />
     <RiseEyebrow>TODAY&apos;S SKILL</RiseEyebrow>
     <Text style={[styles.heading, { color: theme.text }]}>{mission.focusSkill}</Text>
     <Text style={[styles.subtitle, { color: theme.muted }]}>Learn one thing. Use it right away.</Text>

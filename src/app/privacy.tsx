@@ -3,7 +3,7 @@ import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/support";
 
-const UPDATED = "October 2, 2026";
+const UPDATED = "October 23, 2026";
 
 export default function PrivacyScreen() {
   return (
@@ -19,13 +19,16 @@ export default function PrivacyScreen() {
       </Text>
 
       <Section title="Who is responsible">
-        RISE operates this beta. For privacy questions, access requests, or deletion help, email {SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email.
+        RISE operates this beta and is responsible for the information described here. For privacy questions, access requests, complaints, or deletion help, email {SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email. The operator’s legal name and required mailing address must be added before App Store release; the support email alone does not complete that launch requirement.
       </Section>
       <Section title="Information kept on your device">
         Guest plans, mission steps, reflections, feedback copies, rewards, queued sync updates, and proof-file references are stored on your device. Proof photos and videos are not uploaded by the RISE beta. Optional faith or belief preferences use protected device storage in the native app and session-only memory on the website.
       </Section>
       <Section title="Information processed for an account">
         If you create an account, RISE processes your email address, display name, a protected password hash, email-verification status, selected goals and skills, schedule preferences, mission and quiz activity, focused minutes, progress scores, membership status, and feedback you explicitly submit. This information is used to provide sign-in, account recovery, progress syncing, personalization, and support. If the service is temporarily unavailable, eligible profile and progress updates remain queued on your device and retry later.
+      </Section>
+      <Section title="Why RISE processes information">
+        RISE processes required account and progress information to provide the service you request, keep accounts secure, respond to support, and comply with applicable law. Optional usage analytics and community comparison are based on your separate consent and remain off by default. RISE does not use proof files, reflections, or account information for targeted advertising.
       </Section>
       <Section title="Optional analytics and comparison">
         Usage analytics is off by default. If you opt in, RISE records signup duration and approximate foreground-use duration with your progress events so the operator can improve onboarding and missions. Turning it off removes past signup and app-session timing events. Community comparison is separate and off by default; if enabled, RISE calculates your rank from mission counts and focused minutes without publishing your email or proof.
@@ -34,13 +37,16 @@ export default function PrivacyScreen() {
         RISE requests photo, camera, microphone, or notification access only when you use a related feature. You can deny or change these permissions in device settings. Notifications are optional on-device reminders and are not guaranteed to arrive.
       </Section>
       <Section title="Service providers and external links">
-        Hosting, database, and transactional-email providers process account information only to operate RISE once the production service is enabled. YouTube, Google Maps, and other resources open outside RISE and follow their own privacy policies. RISE does not sell personal information or use an advertising SDK in this beta.
+        Render hosts the account API and database; Resend or a configured authenticated SMTP provider delivers transactional account and feedback email; Vercel hosts the public website; Expo/EAS provides app builds and updates; and Apple provides TestFlight and App Store distribution. These providers may process service data and technical records in countries outside your province or country under their own infrastructure and contractual safeguards. YouTube, Google Maps, and other resources open outside RISE and follow their own privacy policies. RISE does not sell personal information, share it for cross-context behavioral advertising, or use an advertising SDK in this beta.
       </Section>
       <Section title="Security and retention">
-        RISE uses short-lived access tokens, revocable refresh sessions, protected password hashes, input limits, and encrypted HTTPS connections in production. No service can promise absolute security. Account data is kept while the account is active and is deleted from the active service when you use in-app account deletion, except where a limited record must be retained for security or legal obligations. Backup deletion follows the hosting provider’s backup cycle.
+        RISE uses short-lived access tokens, revocable refresh sessions, protected password hashes, input limits, and encrypted HTTPS connections in production. No service can promise absolute security. Account, progress, and submitted feedback records are kept while the account is active. Verification links expire after 24 hours, password-reset links after 30 minutes, access tokens within 15 minutes, and refresh sessions after the configured period of no more than 90 days. In-app account deletion removes the active account and associated active-service records. Provider logs and backups may persist for their configured cycles; those exact production schedules must be documented before App Store release. A limited record may be retained only where required for security or law.
       </Section>
       <Section title="Your choices">
-        Settings lets you export your local and synced account information, turn optional analytics and comparison on or off, delete local data, and delete your account. You may also contact support to request access, correction, or deletion help. Withdrawing an optional choice does not block the core app.
+        Settings lets you export local and synced account information, turn optional analytics and comparison on or off, delete local data, and delete your account. You may contact support to request access, correction, deletion, portability help, consent withdrawal, or to challenge RISE’s handling of your information. Withdrawing an optional choice does not block the core app. Rights vary by location and RISE will not discriminate for using a legal privacy right.
+      </Section>
+      <Section title="Privacy incidents and complaints">
+        RISE investigates suspected privacy incidents, limits harm, preserves an incident record where required, and notifies affected people and regulators when applicable law requires it. Contact privacy support if you believe information was lost, accessed, or disclosed improperly. You may also complain to the privacy regulator in your location.
       </Section>
       <Section title="Age and safety">
         RISE is intended for people age 13 and older and is not offered in Apple’s Kids Category. It does not knowingly offer accounts to children who cannot provide valid consent in their region. A parent or guardian should contact support if they believe a child supplied information without appropriate consent.
@@ -51,6 +57,12 @@ export default function PrivacyScreen() {
 
       <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(SUPPORT_MAILTO)} style={styles.contactButton}>
         <Text style={styles.contactText}>Contact privacy support</Text>
+      </Pressable>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/privacy-choices" as never)} style={styles.secondaryButton}>
+        <Text style={styles.secondaryText}>Open Privacy Choices</Text>
+      </Pressable>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/terms" as never)} style={styles.secondaryButton}>
+        <Text style={styles.secondaryText}>Read the Terms of Use</Text>
       </Pressable>
       <Pressable accessibilityRole="link" onPress={() => router.push("/support" as never)} style={styles.secondaryButton}>
         <Text style={styles.secondaryText}>Open Support Center</Text>

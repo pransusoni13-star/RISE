@@ -2,7 +2,6 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { AppPageHeader } from "../../components/appPageHeader";
 import { RiseButton, RiseCard, RiseEyebrow } from "../../components/rise-ui";
 import { getCurrentUser, RiseUser } from "../../services/auth";
 import { getAvailableMissionDay } from "../../services/dayUnlock";
@@ -59,7 +58,6 @@ export default function TodayTabScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <AppPageHeader />
 
       <Text style={[styles.greeting, { color: theme.text }]}>
         {greeting}{firstName ? `, ${firstName}` : ""}.

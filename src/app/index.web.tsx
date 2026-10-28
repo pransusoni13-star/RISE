@@ -139,6 +139,7 @@ export default function WebHomeScreen() {
               <Pressable accessibilityRole="link" onPress={() => router.push("/help" as never)}><Text style={styles.navLink}>How it works</Text></Pressable>
               <Pressable accessibilityRole="link" onPress={() => router.push("/rewards" as never)}><Text style={styles.navLink}>Rewards</Text></Pressable>
               <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)}><Text style={styles.navLink}>Privacy</Text></Pressable>
+              <Pressable accessibilityRole="link" onPress={() => router.push("/terms" as never)}><Text style={styles.navLink}>Terms</Text></Pressable>
             </View>
           )}
           <Pressable
@@ -247,6 +248,8 @@ export default function WebHomeScreen() {
             <Pressable accessibilityRole="link" onPress={() => router.push("/support" as never)}><Text style={styles.footerLink}>Support</Text></Pressable>
             <Pressable accessibilityRole="link" onPress={() => router.push("/feedback" as never)}><Text style={styles.footerLink}>Feedback</Text></Pressable>
             <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)}><Text style={styles.footerLink}>Privacy</Text></Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push("/privacy-choices" as never)}><Text style={styles.footerLink}>Privacy Choices</Text></Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push("/terms" as never)}><Text style={styles.footerLink}>Terms</Text></Pressable>
           </View>
           <Text style={styles.footerLegal}>Educational planning tool · Private proof files · No payment collected</Text>
         </View>

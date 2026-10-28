@@ -1,11 +1,13 @@
 import "@/global.css";
-import { router, Stack } from "expo-router";
-import { useEffect } from "react";
-import { AppState } from "react-native";
+import { router, Stack, usePathname } from "expo-router";
+import { useEffect, useState } from "react";
+import { AppState, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { flushCloudSyncQueue, getUsageAnalyticsConsent, getUsageAnalyticsEnabledAt, isUsageAnalyticsEnabled, recordProgressEvent } from "../services/auth";
 import { initializeReminderNavigation } from "../services/reminders";
 import { RiseAppearanceProvider, useRiseAppearance } from "../services/appearance";
+import { hasSavedProfile } from "../services/personalization";
+import { AppPageHeader } from "../components/appPageHeader";
 
 export default function RootLayout() {
   return <RiseAppearanceProvider><ThemedRootLayout /></RiseAppearanceProvider>;
@@ -13,6 +15,13 @@ export default function RootLayout() {
 
 function ThemedRootLayout() {
   const { theme } = useRiseAppearance();
+  const pathname = usePathname();
+  const [showMemberHeader, setShowMemberHeader] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void hasSavedProfile().then((hasPlan) => { if (active) setShowMemberHeader(hasPlan); }).catch(() => { if (active) setShowMemberHeader(false); });
+    return () => { active = false; };
+  }, [pathname]);
   useEffect(() => {
     let dispose: (() => void) | undefined;
     let mounted = true;
@@ -44,8 +53,9 @@ function ThemedRootLayout() {
     });
     return () => { clearInterval(interval); subscription.remove(); };
   }, []);
-  return (<>
+  return (<View style={{ flex: 1, backgroundColor: theme.background }}>
     <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
+    {showMemberHeader ? <AppPageHeader /> : null}
     <Stack
       screenOptions={{
         headerShown: false,
@@ -70,6 +80,10 @@ function ThemedRootLayout() {
       <Stack.Screen name="legal" />
 
       <Stack.Screen name="privacy" />
+
+      <Stack.Screen name="privacy-choices" />
+
+      <Stack.Screen name="terms" />
 
       <Stack.Screen name="help" />
 
@@ -107,5 +121,5 @@ function ThemedRootLayout() {
 
       <Stack.Screen name="progress-screen" />
     </Stack>
-  </>);
+  </View>);
 }

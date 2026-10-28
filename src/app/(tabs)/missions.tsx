@@ -8,7 +8,6 @@ import {
   RiseProfile,
 } from "../../services/personalization";
 import { missionRepository, MissionRecord } from "../../services/missionRepository";
-import { AppPageHeader } from "../../components/appPageHeader";
 import { daysUntilMission, getAvailableMissionDay, getUnlockedDay } from "../../services/dayUnlock";
 import { useRiseAppearance } from "../../services/appearance";
 
@@ -46,7 +45,6 @@ export default function MissionsTabScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <AppPageHeader />
       <Text style={[styles.heading, { color: theme.text }]}>Missions 🎯</Text>
       <Text style={[styles.subtitle, { color: theme.muted }]}>One a day. Do it. Prove it. Grow.</Text>
       <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/progress" as never)} style={({ pressed }) => [styles.progressLink, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }, pressed && styles.progressLinkPressed]}><View><Text style={[styles.progressLabel, { color: theme.muted }]}>YOUR 7-DAY RUN</Text><Text style={[styles.progressValue, { color: theme.text }]}>{completedCount}/{missions.length} complete</Text></View><Text style={[styles.progressAction, { color: theme.accent }]}>See progress ›</Text></Pressable>

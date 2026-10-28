@@ -6,7 +6,7 @@ const LEGACY_STORAGE_KEY = "RISE_BETA_CONSENT";
 export type RiseConsent = {
   age13Plus: true;
   acknowledgedEducationalLimits: true;
-  policyVersion: "2026-09-20";
+  policyVersion: "2026-10-23";
   acceptedAt: string;
 };
 
@@ -15,7 +15,7 @@ export const consentRepository = {
     const consent: RiseConsent = {
       age13Plus: true,
       acknowledgedEducationalLimits: true,
-      policyVersion: "2026-09-20",
+      policyVersion: "2026-10-23",
       acceptedAt: new Date().toISOString(),
     };
     await Promise.all([

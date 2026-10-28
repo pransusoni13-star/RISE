@@ -25,9 +25,9 @@ export default function LegalScreen() {
 
   return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
-    <Text style={styles.eyebrow}>RISE • PRIVACY & SAFETY</Text>
-    <Text style={styles.title}>Clear by design.</Text>
-    <Text style={styles.updated}>Beta disclosure version 2026-10-03 • professional legal review recommended before public release</Text>
+    <Text style={styles.eyebrow}>RISE • SAFETY DISCLOSURE</Text>
+    <Text style={styles.title}>Use RISE safely.</Text>
+    <Text style={styles.updated}>Beta disclosure version 2026-10-23 • this supplements, but does not replace, the Privacy Policy and Terms of Use</Text>
 
     <Section title="What RISE stores">
       RISE stores your plan, mission state, reflections, rewards, and proof references on this device. If you create an account, the service also stores your email, display name, protected password hash, selected goals and skills, mission and quiz events, focused minutes, and founding-member status so progress can sync. RISE does not upload the attached proof photo or video in this beta.
@@ -83,6 +83,7 @@ export default function LegalScreen() {
     <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={deleteLocalData}><Text style={styles.deleteText}>Delete all local RISE data</Text></Pressable>
     <Pressable accessibilityRole="button" style={styles.helpButton} onPress={() => router.push("/help" as any)}><Text style={styles.helpText}>Open Help Center →</Text></Pressable>
     <Pressable accessibilityRole="link" style={styles.policyButton} onPress={() => router.push("/privacy" as any)}><Text style={styles.policyText}>Read the Privacy Policy →</Text></Pressable>
+    <Pressable accessibilityRole="link" style={styles.policyButton} onPress={() => router.push("/terms" as any)}><Text style={styles.policyText}>Read the Terms of Use →</Text></Pressable>
     <View style={styles.notice}>
       <Text style={styles.noticeTitle}>Before public release</Text>
       <Text style={styles.noticeText}>A lawyer should tailor the final Privacy Policy and Terms to the launch countries, age audience, business entity, analytics, subscriptions, and any future cloud backend. This screen is a truthful product disclosure, not legal advice.</Text>

@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
-import { AppPageHeader } from "../../components/appPageHeader";
 import { loadProfile, RiseProfile } from "../../services/personalization";
 import { getProjectIdeaLevels, ProjectDifficulty } from "../../services/projectIdeas";
 import { useRiseAppearance } from "../../services/appearance";
@@ -28,7 +27,6 @@ export default function ProjectsTabScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <AppPageHeader />
       <Text style={[styles.heading, { color: theme.text }]}>Build something 🛠️</Text>
       <Text style={[styles.subtitle, { color: theme.muted }]}>Choose a specific idea for {focusSkill || primaryGoal.replace(/-/g, " ")}. RISE gives you the result, steps, and proof.</Text>
 
