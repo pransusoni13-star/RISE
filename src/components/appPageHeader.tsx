@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   header: { width: "100%", maxWidth: 760, minHeight: 52, alignSelf: "center", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, paddingHorizontal: 18 },
   logo: { fontSize: 16, fontWeight: "900", letterSpacing: 3.5 },
   actions: { flex: 1, flexDirection: "row", justifyContent: "flex-end", gap: 4 },
-  button: { minHeight: 38, borderRadius: 12, borderWidth: 1, borderColor: "transparent", paddingHorizontal: 10, alignItems: "center", justifyContent: "center" },
+  button: { minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: "transparent", paddingHorizontal: 10, alignItems: "center", justifyContent: "center" },
   buttonText: { fontSize: 10, fontWeight: "900", letterSpacing: 0.2 },
   pressed: { opacity: 0.72 },
 });

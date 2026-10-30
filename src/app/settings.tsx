@@ -3,7 +3,7 @@ import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } 
 import { router } from "expo-router";
 import { loadProfile, RiseProfile } from "../services/personalization";
 import { createRiseDataExport, deleteAllRiseData } from "../services/localData";
-import { deleteCloudAccount, flushCloudSyncQueue, getCloudDataExport, getCurrentUser, getPendingSyncCount, getUsageAnalyticsConsent, logout, RiseUser, setUsageAnalyticsConsent } from "../services/auth";
+import { deleteCloudAccount, EXPECTED_API_VERSION, flushCloudSyncQueue, getCloudDataExport, getCurrentUser, getPendingSyncCount, getPublicConfig, getUsageAnalyticsConsent, logout, PublicApiConfig, RiseUser, setUsageAnalyticsConsent } from "../services/auth";
 import { cancelDailyReminder, getReminderState, ReminderState, ReminderTime, setDailyReminder } from "../services/reminders";
 import { RiseAppearanceMode, useRiseAppearance } from "../services/appearance";
 
@@ -16,10 +16,12 @@ export default function SettingsScreen() {
   const [reminderBusy, setReminderBusy] = useState(false);
   const [pendingSync, setPendingSync] = useState(0);
   const [syncBusy, setSyncBusy] = useState(false);
+  const [serviceStatus, setServiceStatus] = useState<PublicApiConfig | null>(null);
   useEffect(() => { void loadProfile().then(setProfile); }, []);
   useEffect(() => { void getCurrentUser().then(setUser); void getUsageAnalyticsConsent().then(setUsageAnalyticsOptIn); }, []);
   useEffect(() => { void getReminderState().then(setReminder); }, []);
   useEffect(() => { void getPendingSyncCount().then(setPendingSync); }, []);
+  useEffect(() => { void getPublicConfig().then(setServiceStatus); }, []);
 
   const retrySync = async () => {
     if (syncBusy) return;
@@ -106,6 +108,10 @@ export default function SettingsScreen() {
     <View style={[styles.statusCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
       <View style={[styles.statusDot, pendingSync > 0 && styles.statusDotWaiting]} /><View style={styles.body}><Text style={[styles.cardTitle, { color: theme.text }]}>{user ? pendingSync > 0 ? `${pendingSync} update${pendingSync === 1 ? "" : "s"} waiting to sync` : "Account progress is synced" : "Private on-device mode"}</Text><Text style={[styles.cardText, { color: theme.muted }]}>{user ? pendingSync > 0 ? "Your work is safe on this phone. RISE retries automatically when the service is reachable." : "Goals, selected skills, mission completion, and quiz scores can sync. Proof files and reflections stay on this device." : "Sign in to sync skill and progress metadata. Proof photos and videos remain on this device."}</Text>{user && pendingSync > 0 ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: syncBusy }} disabled={syncBusy} onPress={() => void retrySync()}><Text style={[styles.reminderLink, { color: theme.accent }]}>{syncBusy ? "Trying…" : "Try sync now"}</Text></Pressable> : null}</View>
     </View>
+    <View style={[styles.serviceCard, { backgroundColor: theme.surface, borderColor: serviceStatus?.compatible ? theme.border : "#6A5730" }]}>
+      <Text style={[styles.cardTitle, { color: theme.text }]}>{serviceStatus === null ? "Checking RISE service…" : serviceStatus.compatible ? "RISE service is current" : "RISE service update required"}</Text>
+      <Text style={[styles.cardText, { color: theme.muted }]}>{serviceStatus === null ? "Your plan stays available while this check finishes." : serviceStatus.compatible ? `API ${serviceStatus.apiVersion} is connected${serviceStatus.email_delivery_ready ? " and private email delivery is ready." : ", but authenticated email delivery still needs setup."}` : `This app expects API ${EXPECTED_API_VERSION}; the connected service ${serviceStatus.apiVersion ? `reports ${serviceStatus.apiVersion}` : "did not report a compatible version"}. Your on-device plan remains safe.`}</Text>
+    </View>
 
     <Text style={[styles.section, { color: theme.muted }]}>MY PERSONAL PLAN</Text>
     <View style={[styles.planCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -164,7 +170,7 @@ function Row({ title, text, onPress }: { title: string; text: string; onPress: (
 
 const styles = StyleSheet.create({
   page:{flex:1,backgroundColor:"#010807"},content:{padding:22,paddingTop:45,paddingBottom:55},back:{width:42,height:42,borderRadius:21,borderWidth:1,borderColor:"#29483B",alignItems:"center",justifyContent:"center",marginBottom:24},backText:{color:"#7AF5B8",fontSize:30,marginTop:-4},eyebrow:{color:"#7AF5B8",fontSize:10,fontWeight:"900",letterSpacing:1.4},title:{color:"#F5FFF9",fontSize:38,fontWeight:"900",marginTop:8},subtitle:{color:"#BBD8C8",fontSize:15,lineHeight:22,marginTop:8,marginBottom:22},
-  statusCard:{flexDirection:"row",backgroundColor:"rgba(122,245,184,0.08)",borderWidth:1,borderColor:"rgba(122,245,184,0.25)",borderRadius:18,padding:16,marginBottom:24},statusDot:{width:10,height:10,borderRadius:5,backgroundColor:"#7AF5B8",marginTop:5,marginRight:11},statusDotWaiting:{backgroundColor:"#FFCF70"},body:{flex:1},cardTitle:{color:"#F5FFF9",fontSize:14,fontWeight:"900"},cardText:{color:"#9FC3AF",fontSize:12,lineHeight:18,marginTop:4},section:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.3,marginTop:8,marginBottom:10},planCard:{backgroundColor:"#071B16",borderRadius:18,borderWidth:1,borderColor:"#1E3A31",padding:16,marginBottom:10},planLabel:{color:"#6F9883",fontSize:9,fontWeight:"900",letterSpacing:1.1,marginTop:9},planValue:{color:"#E8F8EF",fontSize:13,lineHeight:19,fontWeight:"800",marginTop:4},row:{minHeight:70,flexDirection:"row",alignItems:"center",backgroundColor:"#071B16",borderRadius:17,borderWidth:1,borderColor:"#1E3A31",padding:15,marginBottom:9},arrow:{color:"#7AF5B8",fontSize:24,marginLeft:10},note:{backgroundColor:"#0D2F22",borderRadius:17,padding:16,marginTop:17},noteTitle:{color:"#FFCF70",fontSize:13,fontWeight:"900"},noteText:{color:"#DFFDEE",fontSize:12,lineHeight:19,marginTop:6},
+  statusCard:{flexDirection:"row",backgroundColor:"rgba(122,245,184,0.08)",borderWidth:1,borderColor:"rgba(122,245,184,0.25)",borderRadius:18,padding:16,marginBottom:10},serviceCard:{borderWidth:1,borderRadius:18,padding:16,marginBottom:24},statusDot:{width:10,height:10,borderRadius:5,backgroundColor:"#7AF5B8",marginTop:5,marginRight:11},statusDotWaiting:{backgroundColor:"#FFCF70"},body:{flex:1},cardTitle:{color:"#F5FFF9",fontSize:14,fontWeight:"900"},cardText:{color:"#9FC3AF",fontSize:12,lineHeight:18,marginTop:4},section:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.3,marginTop:8,marginBottom:10},planCard:{backgroundColor:"#071B16",borderRadius:18,borderWidth:1,borderColor:"#1E3A31",padding:16,marginBottom:10},planLabel:{color:"#6F9883",fontSize:9,fontWeight:"900",letterSpacing:1.1,marginTop:9},planValue:{color:"#E8F8EF",fontSize:13,lineHeight:19,fontWeight:"800",marginTop:4},row:{minHeight:70,flexDirection:"row",alignItems:"center",backgroundColor:"#071B16",borderRadius:17,borderWidth:1,borderColor:"#1E3A31",padding:15,marginBottom:9},arrow:{color:"#7AF5B8",fontSize:24,marginLeft:10},note:{backgroundColor:"#0D2F22",borderRadius:17,padding:16,marginTop:17},noteTitle:{color:"#FFCF70",fontSize:13,fontWeight:"900"},noteText:{color:"#DFFDEE",fontSize:12,lineHeight:19,marginTop:6},
   deleteRow:{minHeight:70,flexDirection:"row",alignItems:"center",backgroundColor:"rgba(120,35,35,0.12)",borderRadius:17,borderWidth:1,borderColor:"#603F3C",padding:15,marginBottom:9},deleteTitle:{color:"#FFB4A8",fontSize:14,fontWeight:"900"},deleteArrow:{color:"#FFB4A8",fontSize:24,marginLeft:10},
   timeRow:{flexDirection:"row",flexWrap:"wrap",gap:8,marginTop:14,marginBottom:8},timeChoice:{paddingHorizontal:12,paddingVertical:10,borderRadius:12,borderWidth:1,borderColor:"#315544"},timeChoiceSelected:{backgroundColor:"#1A6B45",borderColor:"#7AF5B8"},timeText:{color:"#F5FFF9",fontWeight:"800",fontSize:12},reminderLink:{color:"#7AF5B8",fontWeight:"800",fontSize:13,marginTop:7,marginBottom:7},
   appearanceRow:{flexDirection:"row",gap:10,marginTop:14},appearanceChoice:{flex:1,minHeight:46,borderRadius:14,borderWidth:1,alignItems:"center",justifyContent:"center"},appearanceText:{fontSize:14,fontWeight:"900"},

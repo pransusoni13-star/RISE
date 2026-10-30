@@ -29,6 +29,7 @@ from .security import create_access_token, create_refresh_token, decode_access_t
 settings = get_settings()
 settings.validate_for_startup()
 logger = logging.getLogger(__name__)
+API_VERSION = "1.1.0"
 
 
 @asynccontextmanager
@@ -41,7 +42,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="RISE Beta API", version="1.0.0", docs_url="/docs" if settings.env != "production" else None, lifespan=lifespan)
+app = FastAPI(title="RISE Beta API", version=API_VERSION, docs_url="/docs" if settings.env != "production" else None, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=False, allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Authorization", "Content-Type"])
 bearer = HTTPBearer(auto_error=False)
 attempts: dict[str, deque[float]] = defaultdict(deque)
@@ -156,7 +157,7 @@ def health() -> dict[str, str]:
 @app.get("/config/public")
 def public_config() -> dict[str, bool | str]:
     return {
-        "api_version": "1.1.0",
+        "api_version": API_VERSION,
         "release_commit": os.getenv("RENDER_GIT_COMMIT", "local")[:12],
         "founding_redemption_enabled": settings.founding_redemption_enabled,
         "email_delivery_ready": settings.email_delivery_ready,

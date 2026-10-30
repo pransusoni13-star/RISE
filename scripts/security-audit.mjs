@@ -10,7 +10,13 @@ const temporaryExpo57Allowlist = new Set([
   "@react-native/metro-config",
   "@react-native/virtualized-lists",
   "braces",
+  // Expo Router 57.0.29 pins query-string 7.1.3, which pins the affected
+  // decode-uri-component release. The fixed query-string release is a major
+  // upgrade outside the SDK 57 compatibility set, so keep the risk visible and
+  // time-boxed instead of forcing a router dependency that Expo did not ship.
+  "decode-uri-component",
   "expo",
+  "expo-router",
   "expo-updates",
   "metro",
   "metro-config",
@@ -18,6 +24,7 @@ const temporaryExpo57Allowlist = new Set([
   "metro-transform-worker",
   "micromatch",
   "node-forge",
+  "query-string",
   "react-native",
   "react-native-reanimated",
   "react-native-worklets",

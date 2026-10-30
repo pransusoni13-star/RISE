@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { APP_HEADER_ACTIONS } from "../src/services/appNavigation.ts";
 import { TOUR_STEPS } from "../src/services/tourGuide.ts";
@@ -17,6 +17,12 @@ test("every persistent header button points to a real screen", () => {
   for (const action of APP_HEADER_ACTIONS) {
     assert.equal(existsSync(routeFile(action.route)), true, `${action.label} route is missing: ${action.route}`);
   }
+});
+
+test("member navigation is described as Settings, never Menu", () => {
+  const tourSource = readFileSync(join(appRoot, "tour.tsx"), "utf8");
+  assert.match(tourSource, /Tour, Plan, and Settings stay at the top of every member screen\./);
+  assert.doesNotMatch(tourSource, /always in Menu/i);
 });
 
 test("the tour stays short and every optional destination exists", () => {

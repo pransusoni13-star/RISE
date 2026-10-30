@@ -43,7 +43,7 @@ export default function TourScreen() {
       {TOUR_STEPS.length > 1 ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: index === 0 }} disabled={index === 0} onPress={() => setIndex((value) => value - 1)} style={[styles.secondary, { borderColor: theme.border }, index === 0 && styles.disabled]}><Text style={[styles.secondaryText, { color: theme.text }]}>Back</Text></Pressable> : null}
       <Pressable accessibilityRole="button" accessibilityState={{ disabled: finishing }} disabled={finishing} onPress={() => void finish()} style={({ pressed }) => [styles.primary, { backgroundColor: theme.accent }, (pressed || finishing) && styles.pressed]}><Text style={[styles.primaryText, { color: theme.accentInk }]}>{last ? (finishing ? "Saving…" : required ? "Start my first mission" : "Back to Today") : "Continue"}</Text></Pressable>
     </View>
-    <Text style={[styles.replay, { color: theme.muted }]}>Tour, plan, feedback, and preferences are always in Menu.</Text>
+    <Text style={[styles.replay, { color: theme.muted }]}>Tour, Plan, and Settings stay at the top of every member screen.</Text>
   </SafeAreaView>;
 }
 

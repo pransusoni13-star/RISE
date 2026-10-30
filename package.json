@@ -39,6 +39,9 @@
     "eslint-config-expo": "~57.0.2",
     "typescript": "~6.0.3"
   },
+  "overrides": {
+    "node-forge": "1.4.2"
+  },
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -47,7 +50,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test:logic": "node --experimental-strip-types --test scripts/cycle-quiz.test.mjs scripts/day-unlock.test.mjs scripts/mission-progress.test.mjs scripts/navigation-contract.test.mjs scripts/project-ideas.test.mjs scripts/proof-validation.test.mjs",
+    "test:logic": "node --experimental-strip-types --test scripts/cycle-quiz.test.mjs scripts/day-unlock.test.mjs scripts/mission-progress.test.mjs scripts/navigation-contract.test.mjs scripts/project-ideas.test.mjs scripts/proof-validation.test.mjs scripts/release-contract.test.mjs",
     "check": "npm run typecheck && npm run lint && expo install --check",
     "testflight:preflight": "node scripts/testflight-preflight.mjs",
     "security:audit": "node scripts/security-audit.mjs"

@@ -20,6 +20,7 @@ export default function AccountScreen() {
   const [existingUser, setExistingUser] = useState<RiseUser | null>(null);
   const [foundingOpen, setFoundingOpen] = useState(false);
   const [emailDeliveryReady, setEmailDeliveryReady] = useState(false);
+  const [serviceCompatible, setServiceCompatible] = useState<boolean | null>(null);
   const [usageAnalyticsOptIn, setUsageAnalyticsOptIn] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
@@ -29,7 +30,7 @@ export default function AccountScreen() {
     signupStartedAt.current = Date.now();
     if (!apiReady) return;
     void getCurrentUser().then(setExistingUser).catch(() => setError("We couldn’t check your session. Please try signing in again.")).finally(() => setCheckingSession(false));
-    void getPublicConfig().then((value) => { setFoundingOpen(value.founding_redemption_enabled); setEmailDeliveryReady(value.email_delivery_ready); }).catch(() => { setFoundingOpen(false); setEmailDeliveryReady(false); });
+    void getPublicConfig().then((value) => { setFoundingOpen(value.founding_redemption_enabled); setEmailDeliveryReady(value.email_delivery_ready); setServiceCompatible(value.compatible); }).catch(() => { setFoundingOpen(false); setEmailDeliveryReady(false); setServiceCompatible(false); });
   }, [apiReady]);
   useEffect(() => {
     if (!existingUser) return;
@@ -100,6 +101,7 @@ export default function AccountScreen() {
       <Text style={styles.title}>{mode === "create" ? "Build skills that move your life forward." : "Keep your momentum going."}</Text>
       <Text style={styles.subtitle}>{mode === "create" ? "Tell us where you want to grow. RISE turns it into small, useful missions made for your schedule." : "Sign in to continue your missions, streaks, and progress."}</Text>
       {!apiReady ? <View style={styles.importantCard}><Text style={styles.importantLabel}>IMPORTANT · ON-DEVICE BETA</Text><Text style={styles.importantTitle}>Account sign-in is not connected in this build.</Text><Text style={styles.importantText}>You did nothing wrong. Continue below and RISE will save your plan and progress privately on this device. Secure account sync will be enabled in a later build after the production server is connected.</Text></View> : <>
+        {serviceCompatible === false ? <View style={styles.importantCard}><Text style={styles.importantLabel}>SERVICE UPDATE PENDING</Text><Text style={styles.importantTitle}>Account delivery may be temporarily limited.</Text><Text style={styles.importantText}>Your on-device plan is safe. RISE is waiting for the current account service to finish deploying before verification email and feedback delivery can be confirmed.</Text></View> : null}
         <View style={styles.tabs} accessibilityRole="tablist">
           <Pressable accessibilityRole="tab" accessibilityState={{ selected: mode === "create" }} onPress={() => { setMode("create"); setError(""); }} style={[styles.tab, mode === "create" && styles.tabActive]}><Text style={[styles.tabText, mode === "create" && styles.tabTextActive]}>Create account</Text></Pressable>
           <Pressable accessibilityRole="tab" accessibilityState={{ selected: mode === "login" }} onPress={() => { setMode("login"); setError(""); }} style={[styles.tab, mode === "login" && styles.tabActive]}><Text style={[styles.tabText, mode === "login" && styles.tabTextActive]}>Sign in</Text></Pressable>

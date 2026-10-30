@@ -5,6 +5,7 @@ import { deleteAllRiseData } from "./localData";
 import { discardQueuedUsageAnalytics, getPendingSyncCount, listSyncOutbox, queueProfile, queueProgressEvent, removeSyncOutboxItem } from "./syncOutbox";
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL || "").replace(/\/$/, "");
+export const EXPECTED_API_VERSION = "1.1.0";
 const ACCESS_KEY = "RISE_AUTH_ACCESS";
 const REFRESH_KEY = "RISE_AUTH_REFRESH";
 const USER_KEY = "RISE_AUTH_USER";
@@ -315,13 +316,33 @@ export async function submitProductFeedback(input: { clientFeedbackId: string; c
   return { received: result.received, emailNotified: result.email_notified };
 }
 
-export async function getPublicConfig(): Promise<{ founding_redemption_enabled: boolean; email_delivery_ready: boolean }> {
-  if (!API_URL) return { founding_redemption_enabled: false, email_delivery_ready: false };
+export type PublicApiConfig = {
+  apiVersion: string | null;
+  compatible: boolean;
+  founding_redemption_enabled: boolean;
+  email_delivery_ready: boolean;
+};
+
+const unavailablePublicConfig = (): PublicApiConfig => ({
+  apiVersion: null,
+  compatible: false,
+  founding_redemption_enabled: false,
+  email_delivery_ready: false,
+});
+
+export async function getPublicConfig(): Promise<PublicApiConfig> {
+  if (!API_URL) return unavailablePublicConfig();
   try {
-    const config = await rawRequest<{ founding_redemption_enabled?: boolean; email_delivery_ready?: boolean }>("/config/public");
-    return { founding_redemption_enabled: config.founding_redemption_enabled === true, email_delivery_ready: config.email_delivery_ready === true };
+    const config = await rawRequest<{ api_version?: string; founding_redemption_enabled?: boolean; email_delivery_ready?: boolean }>("/config/public");
+    const apiVersion = typeof config.api_version === "string" ? config.api_version : null;
+    return {
+      apiVersion,
+      compatible: apiVersion === EXPECTED_API_VERSION,
+      founding_redemption_enabled: config.founding_redemption_enabled === true,
+      email_delivery_ready: apiVersion === EXPECTED_API_VERSION && config.email_delivery_ready === true,
+    };
   } catch {
-    return { founding_redemption_enabled: false, email_delivery_ready: false };
+    return unavailablePublicConfig();
   }
 }
 

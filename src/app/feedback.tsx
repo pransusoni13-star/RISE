@@ -20,9 +20,11 @@ export default function FeedbackScreen() {
   const [firstName, setFirstName] = useState("");
   const [user, setUser] = useState<RiseUser | null>(null);
   const [emailReady, setEmailReady] = useState(false);
+  const [serviceCompatible, setServiceCompatible] = useState(false);
   const [receipt, setReceipt] = useState<DeliveryReceipt | null>(null);
   const [lastSubmittedMessage, setLastSubmittedMessage] = useState("");
   const [pendingFeedback, setPendingFeedback] = useState<ProductFeedback | null>(null);
+  const [retryableFeedback, setRetryableFeedback] = useState<ProductFeedback | null>(null);
   const valid = message.trim().length >= 5;
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export default function FeedbackScreen() {
       if (!active) return;
       setUser(currentUser);
       setEmailReady(config.email_delivery_ready);
+      setServiceCompatible(config.compatible);
       if (currentUser?.display_name) setFirstName(currentUser.display_name.trim().split(/\s+/)[0]);
       const pending = savedFeedback.find((item) => item.deliveryStatus === "pending");
       if (pending) {
@@ -39,6 +42,12 @@ export default function FeedbackScreen() {
         setRating(pending.rating);
         setMessage(pending.message);
         setReceipt({ tone: "local", title: "Unsent feedback restored", detail: "Your earlier note is still private on this phone. Tap Send to retry safely." });
+      } else {
+        const retryable = savedFeedback.find((item) => item.deliveryStatus === "received");
+        if (retryable) {
+          setRetryableFeedback(retryable);
+          setReceipt({ tone: "warning", title: "Feedback saved; inbox alert pending", detail: "RISE has your note. You can retry the private inbox notification without submitting it twice." });
+        }
       }
     }).catch(() => undefined);
     return () => { active = false; };
@@ -57,6 +66,7 @@ export default function FeedbackScreen() {
       const result = await submitProductFeedback({ clientFeedbackId: saved.id, category: saved.category, rating: saved.rating, message: saved.message, appVersion: saved.appVersion }).catch(() => ({ received: false, emailNotified: false }));
       await feedbackRepository.markDelivery(saved.id, result.emailNotified ? "emailed" : result.received ? "received" : "pending");
       if (result.received) { setMessage(""); setPendingFeedback(null); }
+      setRetryableFeedback(result.received && !result.emailNotified ? { ...saved, deliveryStatus: "received" } : null);
       const thanks = firstName ? `Thank you, ${firstName}.` : "Thank you for helping improve RISE.";
       if (result.received && result.emailNotified) {
         setReceipt({ tone: "success", title: "Delivered privately", detail: `${thanks} RISE stored your note and notified the private RISE inbox.` });
@@ -67,6 +77,21 @@ export default function FeedbackScreen() {
       }
     } catch {
       Alert.alert("Could not save feedback", "Please try again.");
+    } finally { setSaving(false); }
+  };
+
+  const retryInboxDelivery = async () => {
+    if (!user || !retryableFeedback || saving) return;
+    setSaving(true);
+    try {
+      const result = await submitProductFeedback({ clientFeedbackId: retryableFeedback.id, category: retryableFeedback.category, rating: retryableFeedback.rating, message: retryableFeedback.message, appVersion: retryableFeedback.appVersion }).catch(() => ({ received: true, emailNotified: false }));
+      await feedbackRepository.markDelivery(retryableFeedback.id, result.emailNotified ? "emailed" : "received");
+      if (result.emailNotified) {
+        setRetryableFeedback(null);
+        setReceipt({ tone: "success", title: "Inbox notification delivered", detail: "Your existing feedback was not duplicated. RISE confirmed the private inbox alert." });
+      } else {
+        setReceipt({ tone: "warning", title: "Feedback is safe; inbox alert still pending", detail: "Your note remains stored in your RISE account. Use the email draft below if you want an immediate inbox copy." });
+      }
     } finally { setSaving(false); }
   };
 
@@ -92,10 +117,11 @@ export default function FeedbackScreen() {
 
       <View style={[styles.deliveryCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
         <View style={[styles.deliveryDot, { backgroundColor: user && emailReady ? theme.accent : theme.muted }]} />
-        <View style={styles.deliveryBody}><Text style={[styles.deliveryTitle, { color: theme.text }]}>{!user ? "Sign in to email feedback" : emailReady ? "Private delivery is ready" : "Email delivery needs attention"}</Text><Text style={[styles.deliveryText, { color: theme.muted }]}>{!user ? "Guest feedback stays safely on this phone." : emailReady ? "RISE will store this note and notify rise.app13@gmail.com." : "Your note will be stored in your RISE account, but the inbox alert may be delayed."}</Text></View>
+        <View style={styles.deliveryBody}><Text style={[styles.deliveryTitle, { color: theme.text }]}>{!user ? "Sign in to email feedback" : !serviceCompatible ? "RISE service update pending" : emailReady ? "Private delivery is ready" : "Email delivery needs attention"}</Text><Text style={[styles.deliveryText, { color: theme.muted }]}>{!user ? "Guest feedback stays safely on this phone." : !serviceCompatible ? "Feedback remains safe on this phone until the current RISE API is deployed." : emailReady ? "RISE will store this note and notify rise.app13@gmail.com." : "Your note will be stored in your RISE account, but the inbox alert may be delayed."}</Text></View>
       </View>
       {!user ? <Pressable accessibilityRole="button" onPress={() => router.push("/account" as never)} style={[styles.signInButton, { borderColor: theme.border }]}><Text style={[styles.signInText, { color: theme.text }]}>Sign in to send privately →</Text></Pressable> : null}
       {receipt ? <View accessibilityRole="summary" style={[styles.receipt, { backgroundColor: theme.surface, borderColor: receipt.tone === "success" ? theme.accent : theme.border }]}><Text style={[styles.receiptTitle, { color: theme.text }]}>{receipt.title}</Text><Text style={[styles.receiptText, { color: theme.muted }]}>{receipt.detail}</Text></View> : null}
+      {user && retryableFeedback ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: saving }} disabled={saving} onPress={() => void retryInboxDelivery()} style={[styles.signInButton, { borderColor: theme.border }]}><Text style={[styles.signInText, { color: theme.text }]}>{saving ? "Retrying…" : "Retry inbox delivery →"}</Text></Pressable> : null}
 
       <Text style={[styles.label, { color: theme.muted }]}>WHAT IS THIS ABOUT?</Text>
       <View style={styles.chips}>{categories.map(([value, label]) => <Pressable accessibilityRole="radio" accessibilityState={{ selected: category === value }} key={value} onPress={() => setCategory(value)} style={[styles.chip, { borderColor: theme.border }, category === value && { backgroundColor: theme.accent, borderColor: theme.accent }]}><Text style={[styles.chipText, { color: theme.text }, category === value && { color: theme.accentInk }]}>{label}</Text></Pressable>)}</View>
