@@ -3,9 +3,10 @@ import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } 
 import { router } from "expo-router";
 import { loadProfile, RiseProfile } from "../services/personalization";
 import { createRiseDataExport, deleteAllRiseData } from "../services/localData";
-import { deleteCloudAccount, EXPECTED_API_VERSION, flushCloudSyncQueue, getCloudDataExport, getCurrentUser, getPendingSyncCount, getPublicConfig, getUsageAnalyticsConsent, logout, PublicApiConfig, RiseUser, setUsageAnalyticsConsent } from "../services/auth";
+import { deleteCloudAccount, EXPECTED_API_VERSION, flushCloudSyncQueue, getCloudDataExport, getCurrentUser, getPendingSyncCount, getPublicConfig, getUsageAnalyticsConsent, logout, PublicApiConfig, recordProgressEvent, RiseUser, setUsageAnalyticsConsent } from "../services/auth";
 import { cancelDailyReminder, getReminderState, ReminderState, ReminderTime, setDailyReminder } from "../services/reminders";
 import { RiseAppearanceMode, useRiseAppearance } from "../services/appearance";
+import { buildRiseInviteMessage } from "../services/shareRise";
 
 export default function SettingsScreen() {
   const { mode, setMode, theme } = useRiseAppearance();
@@ -63,6 +64,18 @@ export default function SettingsScreen() {
       });
     } catch {
       Alert.alert("Could not export data", "Your saved RISE data was not changed. Please try again.");
+    }
+  };
+
+  const inviteSomeone = async () => {
+    try {
+      const result = await Share.share({ title: "Try RISE", message: buildRiseInviteMessage() });
+      if (result.action === Share.sharedAction && user && usageAnalyticsOptIn) {
+        const now = Date.now();
+        void recordProgressEvent({ clientEventId: `invite:${now}`, eventType: "invite_shared", skillSlug: "app" }).catch(() => undefined);
+      }
+    } catch {
+      Alert.alert("Could not open sharing", "No message was sent. Please try again.");
     }
   };
 
@@ -150,6 +163,7 @@ export default function SettingsScreen() {
     <Row title="Popular Skill Quick Starts" text="Begin a proven starter path in one tap" onPress={() => router.push("/popular-skills" as any)} />
     <Row title="RISE Rewards" text="See your coin balance and honest reward rules" onPress={() => router.push("/rewards" as any)} />
     <Row title="Feedback & Improvements" text="Send a private bug report, idea, or confusing moment to RISE" onPress={() => router.push("/feedback" as any)} />
+    <Row title="Invite Someone to RISE" text="Share only the public TestFlight link—never your goal, proof, or progress" onPress={() => void inviteSomeone()} />
     <Row title="Export My RISE Data" text="Review or save a portable copy through an app you choose" onPress={() => void exportLocalData()} />
     <Row title="Help Center" text="Proof, safety, privacy, and trusted resources" onPress={() => router.push("/help" as any)} />
     <Row title="Privacy Policy" text="What RISE collects, why, providers, retention, and your rights" onPress={() => router.push("/privacy" as any)} />
@@ -159,7 +173,7 @@ export default function SettingsScreen() {
     <Pressable accessibilityRole="button" accessibilityLabel="Delete all RISE data" onPress={deleteLocalAccount} style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}><View style={styles.body}><Text style={styles.deleteTitle}>Delete My RISE Data</Text><Text style={styles.cardText}>Permanently erase this on-device profile and start over</Text></View><Text style={styles.deleteArrow}>›</Text></Pressable>
     {user ? <Pressable accessibilityRole="button" accessibilityLabel="Delete RISE account and data" onPress={deleteEverywhere} style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}><View style={styles.body}><Text style={styles.deleteTitle}>Delete Account Everywhere</Text><Text style={styles.cardText}>Remove the beta account and local RISE data</Text></View><Text style={styles.deleteArrow}>›</Text></Pressable> : null}
 
-    <View style={styles.note}><Text style={styles.noteTitle}>Your proof stays yours</Text><Text style={styles.noteText}>Account sync sends progress metadata—not attached proof files. Exporting opens your device share sheet; RISE does not choose or contact a recipient. No paid subscription is active in this beta.</Text></View>
+    <View style={styles.note}><Text style={styles.noteTitle}>Your proof stays yours</Text><Text style={styles.noteText}>Account sync sends progress metadata—not attached proof files. Exporting or inviting opens your device share sheet; RISE does not choose or contact a recipient. The invite contains only the public beta link. No paid subscription is active in this beta.</Text></View>
   </ScrollView>;
 }
 

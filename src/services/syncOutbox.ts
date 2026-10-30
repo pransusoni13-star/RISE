@@ -17,7 +17,7 @@ export type QueuedProfile = {
 
 export type QueuedProgressEvent = {
   client_event_id: string;
-  event_type: "skill_selected" | "mission_started" | "mission_completed" | "quiz_completed" | "reflection_completed" | "app_session";
+  event_type: "skill_selected" | "mission_started" | "mission_completed" | "quiz_completed" | "reflection_completed" | "app_session" | "invite_shared";
   skill_slug: string;
   value: number;
   minutes: number;
@@ -66,7 +66,7 @@ export async function removeSyncOutboxItem(id: string): Promise<void> {
 }
 
 export async function discardQueuedUsageAnalytics(): Promise<void> {
-  await write((await read()).filter((item) => item.kind !== "event" || item.payload.event_type !== "app_session"));
+  await write((await read()).filter((item) => item.kind !== "event" || !["app_session", "invite_shared"].includes(item.payload.event_type)));
 }
 
 export async function getPendingSyncCount(): Promise<number> {

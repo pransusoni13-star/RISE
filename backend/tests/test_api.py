@@ -201,7 +201,7 @@ def test_login_attempts_are_rate_limited() -> None:
 def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkeypatch) -> None:
     with TestClient(app) as client:
         public_config = client.get("/config/public").json()
-        assert public_config["api_version"] == "1.1.0"
+        assert public_config["api_version"] == "1.2.0"
         assert public_config["release_commit"] == "local"
         assert public_config["founding_redemption_enabled"] is False
         assert public_config["email_delivery_ready"] is False
@@ -213,6 +213,9 @@ def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkey
         session_event = {"client_event_id": "session:first", "event_type": "app_session", "skill_slug": "app", "metadata": {"duration_seconds": 120}}
         assert client.post("/progress/events", json=session_event, headers=headers).status_code == 201
         assert client.post("/progress/events", json=session_event, headers=headers).json() == {"created": False}
+        invite_event = {"client_event_id": "invite:first", "event_type": "invite_shared", "skill_slug": "app"}
+        assert client.post("/progress/events", json=invite_event, headers=headers).status_code == 201
+        assert client.post("/progress/events", json=invite_event, headers=headers).json() == {"created": False}
         assert client.get("/users/me/dashboard", headers=headers).json()["skills"] == []
         mission_started = {"client_event_id": "mission-started:day-1", "event_type": "mission_started", "skill_slug": "focus", "metadata": {"day": 1, "track": "life"}}
         assert client.post("/progress/events", json=mission_started, headers=headers).status_code == 201
@@ -228,6 +231,8 @@ def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkey
         assert analytics["analytics_participants"] == 1
         assert analytics["average_signup_seconds"] == 48
         assert analytics["total_app_minutes"] == 2.0
+        assert analytics["invite_shares"] == 1
+        assert analytics["members_who_shared"] == 1
         assert analytics["total_focused_minutes"] == 0
         assert analytics["members_with_mission_started"] == 1
         assert analytics["members_with_mission"] == 0
@@ -238,6 +243,7 @@ def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkey
         assert client.delete("/users/me/usage-analytics", headers=headers).json() == {"opted_in": False}
         assert client.get("/admin/analytics", headers={"X-RISE-ADMIN-KEY": settings.admin_api_key}).json()["analytics_participants"] == 0
         assert client.post("/progress/events", json={**session_event, "client_event_id": "session:second"}, headers=headers).status_code == 403
+        assert client.post("/progress/events", json={**invite_event, "client_event_id": "invite:second"}, headers=headers).status_code == 403
         assert client.put("/users/me/usage-analytics", headers=headers).json() == {"opted_in": True}
         assert client.get("/admin/analytics", headers={"X-RISE-ADMIN-KEY": settings.admin_api_key}).json()["total_app_minutes"] == 0
 

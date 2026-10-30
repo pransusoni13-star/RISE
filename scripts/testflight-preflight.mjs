@@ -80,7 +80,7 @@ for (const check of checks) {
       if (health.status !== "ok") throw new Error("health response is not ok");
     } else if (check.kind === "config") {
       const config = await response.json();
-      if (config.api_version !== "1.1.0") throw new Error(`expected API 1.1.0, received ${config.api_version || "no version"}`);
+      if (config.api_version !== "1.2.0") throw new Error(`expected API 1.2.0, received ${config.api_version || "no version"}`);
       if (config.email_delivery_ready !== true) throw new Error("verification email delivery is not ready");
     }
   } catch (error) {

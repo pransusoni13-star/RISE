@@ -29,7 +29,7 @@ from .security import create_access_token, create_refresh_token, decode_access_t
 settings = get_settings()
 settings.validate_for_startup()
 logger = logging.getLogger(__name__)
-API_VERSION = "1.1.0"
+API_VERSION = "1.2.0"
 
 
 @asynccontextmanager
@@ -440,12 +440,15 @@ def record_progress(payload: ProgressEventCreate, user: User = Depends(get_curre
     if existing:
         return {"created": False}
     event = ProgressEvent(user_id=user.id, client_event_id=payload.client_event_id, event_type=payload.event_type, skill_slug=payload.skill_slug, value=payload.value, minutes=payload.minutes, event_metadata=payload.metadata)
-    if payload.event_type == "app_session":
+    if payload.event_type in {"app_session", "invite_shared"}:
         if not db.get(UsageAnalyticsConsent, user.id):
             raise HTTPException(status_code=403, detail="Usage analytics is off")
-        seconds = payload.metadata.get("duration_seconds")
-        if not isinstance(seconds, int) or not 10 <= seconds <= 3600 or payload.minutes != 0:
-            raise HTTPException(status_code=422, detail="Invalid app session duration")
+        if payload.event_type == "app_session":
+            seconds = payload.metadata.get("duration_seconds")
+            if not isinstance(seconds, int) or not 10 <= seconds <= 3600 or payload.minutes != 0:
+                raise HTTPException(status_code=422, detail="Invalid app session duration")
+        elif payload.metadata or payload.minutes != 0 or payload.value != 0 or payload.skill_slug != "app":
+            raise HTTPException(status_code=422, detail="Invalid invite event")
         db.add(event)
         try:
             db.commit()
@@ -533,7 +536,7 @@ def opt_in_usage_analytics(user: User = Depends(get_current_user), db: Session =
 @app.delete("/users/me/usage-analytics")
 def opt_out_usage_analytics(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, bool]:
     db.execute(delete(UsageAnalyticsConsent).where(UsageAnalyticsConsent.user_id == user.id))
-    db.execute(delete(ProgressEvent).where(ProgressEvent.user_id == user.id, ProgressEvent.event_type.in_(["app_session", "signup_completed"])))
+    db.execute(delete(ProgressEvent).where(ProgressEvent.user_id == user.id, ProgressEvent.event_type.in_(["app_session", "signup_completed", "invite_shared"])))
     db.commit()
     return {"opted_in": False}
 
@@ -603,4 +606,5 @@ def admin_analytics(x_rise_admin_key: str | None = Header(default=None), db: Ses
         return {"eligible_members": len(eligible), "retained_members": retained, "rate_percent": round((retained / len(eligible)) * 100, 1) if eligible else None}
 
     feedback_email_pending = db.scalar(select(func.count()).select_from(FeedbackSubmissionReceipt).where(FeedbackSubmissionReceipt.email_notified.is_(False))) or 0
-    return {"total_members": len(users), "analytics_participants": len(consented_user_ids), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "retention": {"day_1": retention_window(1), "day_7": retention_window(7), "day_30": retention_window(30)}, "members_with_mission_started": members_who_started, "members_with_mission": members_who_completed, "mission_start_completion_rate_percent": round((members_who_completed / members_who_started) * 100, 1) if members_who_started else None, "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission_start": round(sum(first_mission_start_delays) / len(first_mission_start_delays)) if first_mission_start_delays else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "feedback_total": sum(feedback_counts.values()), "feedback_by_category": feedback_counts, "feedback_email_pending": int(feedback_email_pending), "members": members[:100]}
+    invite_events = [event for event in events if event.event_type == "invite_shared"]
+    return {"total_members": len(users), "analytics_participants": len(consented_user_ids), "active_last_7_days": len({event.user_id for event in events if event.created_at.replace(tzinfo=timezone.utc) >= now - timedelta(days=7)}), "retention": {"day_1": retention_window(1), "day_7": retention_window(7), "day_30": retention_window(30)}, "members_with_mission_started": members_who_started, "members_with_mission": members_who_completed, "mission_start_completion_rate_percent": round((members_who_completed / members_who_started) * 100, 1) if members_who_started else None, "total_missions": sum(member["missions_completed"] for member in members), "total_focused_minutes": sum(member["focused_minutes"] for member in members), "total_app_minutes": round(sum(member["app_minutes"] for member in members), 1), "average_signup_seconds": round(sum(signups) / len(signups)) if signups else None, "average_minutes_to_first_mission_start": round(sum(first_mission_start_delays) / len(first_mission_start_delays)) if first_mission_start_delays else None, "average_minutes_to_first_mission": round(sum(first_mission_delays) / len(first_mission_delays)) if first_mission_delays else None, "invite_shares": len(invite_events), "members_who_shared": len({event.user_id for event in invite_events}), "feedback_total": sum(feedback_counts.values()), "feedback_by_category": feedback_counts, "feedback_email_pending": int(feedback_email_pending), "members": members[:100]}

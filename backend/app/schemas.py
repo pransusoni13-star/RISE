@@ -82,7 +82,7 @@ class ProfileResponse(ProfileUpdate):
 
 class ProgressEventCreate(BaseModel):
     client_event_id: str = Field(min_length=3, max_length=120)
-    event_type: Literal["skill_selected", "mission_started", "mission_completed", "quiz_completed", "reflection_completed", "app_session"]
+    event_type: Literal["skill_selected", "mission_started", "mission_completed", "quiz_completed", "reflection_completed", "app_session", "invite_shared"]
     skill_slug: str = Field(min_length=1, max_length=100)
     value: float = Field(default=0, ge=0, le=100)
     minutes: int = Field(default=0, ge=0, le=1440)

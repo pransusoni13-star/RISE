@@ -5,7 +5,7 @@ import { deleteAllRiseData } from "./localData";
 import { discardQueuedUsageAnalytics, getPendingSyncCount, listSyncOutbox, queueProfile, queueProgressEvent, removeSyncOutboxItem } from "./syncOutbox";
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL || "").replace(/\/$/, "");
-export const EXPECTED_API_VERSION = "1.1.0";
+export const EXPECTED_API_VERSION = "1.2.0";
 const ACCESS_KEY = "RISE_AUTH_ACCESS";
 const REFRESH_KEY = "RISE_AUTH_REFRESH";
 const USER_KEY = "RISE_AUTH_USER";
@@ -256,7 +256,7 @@ export async function getCloudProfile(): Promise<CloudProfile | null> {
   return authenticatedRequest<CloudProfile | null>("/profiles/me");
 }
 
-export async function recordProgressEvent(event: { clientEventId: string; eventType: "skill_selected" | "mission_started" | "mission_completed" | "quiz_completed" | "reflection_completed" | "app_session"; skillSlug: string; value?: number; minutes?: number; metadata?: Record<string, unknown> }): Promise<void> {
+export async function recordProgressEvent(event: { clientEventId: string; eventType: "skill_selected" | "mission_started" | "mission_completed" | "quiz_completed" | "reflection_completed" | "app_session" | "invite_shared"; skillSlug: string; value?: number; minutes?: number; metadata?: Record<string, unknown> }): Promise<void> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return;
   await queueProgressEvent({ client_event_id: event.clientEventId.slice(0, 120), event_type: event.eventType, skill_slug: event.skillSlug.slice(0, 100), value: event.value || 0, minutes: event.minutes || 0, metadata: event.metadata || {} });
   await flushCloudSyncQueue();
@@ -285,8 +285,8 @@ async function performOutboxFlush(): Promise<{ synced: number; pending: number }
       synced += 1;
     } catch (error) {
       // A terminally invalid event must not block later progress forever. A 403 is
-      // expected only when optional app-session analytics has been disabled.
-      if (error instanceof ApiError && item.kind === "event" && (error.status === 422 || (item.payload.event_type === "app_session" && error.status === 403))) {
+      // expected when optional usage analytics has been disabled.
+      if (error instanceof ApiError && item.kind === "event" && (error.status === 422 || (["app_session", "invite_shared"].includes(item.payload.event_type) && error.status === 403))) {
         await removeSyncOutboxItem(item.id);
         continue;
       }
