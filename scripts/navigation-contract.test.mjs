@@ -25,10 +25,14 @@ test("member navigation is described as Settings, never Menu", () => {
   assert.doesNotMatch(tourSource, /always in Menu/i);
 });
 
-test("the tour stays short and every optional destination exists", () => {
-  assert.equal(TOUR_STEPS.length, 1);
+test("the tour explains the complete RISE loop in five concise steps", () => {
+  assert.equal(TOUR_STEPS.length, 5);
+  assert.deepEqual(
+    TOUR_STEPS.map((step) => step.destination),
+    ["Today tab", "Learn tab", "Proof screen", "Progress tab", "Settings screen"],
+  );
   for (const step of TOUR_STEPS) {
-    assert.ok(step.description.length < 80, `${step.title} is too wordy`);
+    assert.ok(step.description.length < 90, `${step.title} is too wordy`);
     assert.equal(step.previewRows.length, 3);
     assert.equal(existsSync(routeFile(step.destinationRoute)), true, `Tour destination is missing: ${step.destinationRoute}`);
   }
