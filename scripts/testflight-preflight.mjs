@@ -58,7 +58,7 @@ try {
   problems.push("Set EXPO_PUBLIC_API_URL to the deployed HTTPS API origin.");
 }
 
-for (const name of ["RISE_PRIVACY_POLICY_URL", "RISE_SUPPORT_URL"]) {
+for (const name of ["RISE_PRIVACY_POLICY_URL", "RISE_PRIVACY_CHOICES_URL", "RISE_SUPPORT_URL"]) {
   try {
     const parsed = new URL(process.env[name]);
     if (parsed.protocol !== "https:") throw new Error("HTTPS required");

@@ -40,7 +40,7 @@ On a real iPhone away from the laptop's Wi-Fi, finish both guest and signed-in o
 
 ## 4. Preflight and build
 
-Set `RISE_PRIVACY_POLICY_URL` and `RISE_SUPPORT_URL` in the operator terminal along with the production `EXPO_PUBLIC_API_URL`, then run `npm run testflight:preflight`. It intentionally fails until the bundle ID, HTTPS API, and public URLs are real. Run `npm run check`, `backend/.venv/Scripts/python -m pytest -q` on Windows, and `npx expo export --platform web`.
+Set `RISE_PRIVACY_POLICY_URL`, `RISE_PRIVACY_CHOICES_URL`, and `RISE_SUPPORT_URL` in the operator terminal along with the production `EXPO_PUBLIC_API_URL`, then run `npm run testflight:preflight`. It intentionally fails until the bundle ID, HTTPS API, authenticated email delivery, and public URLs are real. Run `npm run check`, `backend/.venv/Scripts/python -m pytest -q` on Windows, and `npx expo export --platform web`.
 
 After the preflight passes, create and upload the signed iOS build using the `testflight` EAS profile (`eas build --platform ios --profile testflight`, then `eas submit --platform ios --profile production`). These commands require your Expo and Apple accounts and may prompt for credentials; do not run them with placeholder values. Follow [Expo's iOS submission guide](https://docs.expo.dev/submit/ios/).
 

@@ -26,17 +26,19 @@ This is an engineering checklist, not legal advice. Have counsel adapt the final
 
 ## Current MVP posture
 
-- Personalization, mission state, progress, rewards, and proof metadata are stored locally with AsyncStorage.
+- RISE provides email/password accounts, email verification, password recovery, authenticated cloud sync, export, and in-app account deletion through the first-party API.
+- Personalization, mission state, progress, rewards, and proof metadata are stored locally and selected account/progress metadata is synchronized to the first-party API.
 - Selected proof media is not uploaded to a RISE cloud service.
-- RISE does not include analytics, advertising SDKs, authentication, payments, or a cloud database.
+- RISE has no advertising SDK, payment flow, or third-party analytics SDK. Optional first-party operator analytics is off by default and must match the published disclosures and App Store privacy answers.
+- The production service uses a cloud database and short-lived access tokens with rotated refresh sessions. The deployment still requires an authenticated transactional-email sender before public release.
 - YouTube and Google Maps open as external supporting resources.
-- The repository contains no detected common secret-key patterns as of the latest engineering check.
+- The repository contains no committed production API keys by design. Repeat secret scanning and dependency review before every release.
 
 ## Required repeat review
 
 Repeat this audit whenever RISE adds accounts, cloud sync, analytics, subscriptions, ads, social sharing, precise location, health integrations, AI APIs, or support for minors.
 
-## Primary requirements reviewed (September 18, 2026)
+## Primary requirements reviewed (November 4, 2026)
 
 - [Apple App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) — safety, app completeness, privacy, support contact, accurate claims, and user-generated-content safeguards.
 - [Google Play User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311) — privacy policy, accurate Data Safety disclosures, secure handling, permissions, and deletion requirements.
