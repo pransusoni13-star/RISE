@@ -4,23 +4,28 @@ import { router } from "expo-router";
 import { loadProfile, RiseProfile } from "../services/personalization";
 import { createRiseDataExport, deleteAllRiseData } from "../services/localData";
 import { deleteCloudAccount, EXPECTED_API_VERSION, flushCloudSyncQueue, getCloudDataExport, getCurrentUser, getPendingSyncCount, getPublicConfig, getUsageAnalyticsConsent, logout, PublicApiConfig, recordProgressEvent, RiseUser, setUsageAnalyticsConsent } from "../services/auth";
-import { cancelDailyReminder, getReminderState, ReminderState, ReminderTime, setDailyReminder } from "../services/reminders";
+import { cancelDailyReminder, getReminderState, ReminderState, ReminderTime, setDailyReminders } from "../services/reminders";
 import { RiseAppearanceMode, useRiseAppearance } from "../services/appearance";
 import { buildRiseInviteMessage } from "../services/shareRise";
+import { applyDownloadedRiseUpdate, checkAndDownloadRiseUpdate, getRiseReleaseInfo } from "../services/appUpdates";
 
 export default function SettingsScreen() {
   const { mode, setMode, theme } = useRiseAppearance();
+  const releaseInfo = getRiseReleaseInfo();
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [user, setUser] = useState<RiseUser | null>(null);
   const [usageAnalyticsOptIn, setUsageAnalyticsOptIn] = useState(false);
   const [reminder, setReminder] = useState<ReminderState>({ enabled: false, time: "20:00", times: ["20:00"], permission: "unavailable" });
+  const [selectedReminderTimes, setSelectedReminderTimes] = useState<ReminderTime[]>(["20:00"]);
   const [reminderBusy, setReminderBusy] = useState(false);
+  const [updateBusy, setUpdateBusy] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState("RISE checks automatically when the app opens. You can also check now.");
   const [pendingSync, setPendingSync] = useState(0);
   const [syncBusy, setSyncBusy] = useState(false);
   const [serviceStatus, setServiceStatus] = useState<PublicApiConfig | null>(null);
   useEffect(() => { void loadProfile().then(setProfile); }, []);
   useEffect(() => { void getCurrentUser().then(setUser); void getUsageAnalyticsConsent().then(setUsageAnalyticsOptIn); }, []);
-  useEffect(() => { void getReminderState().then(setReminder); }, []);
+  useEffect(() => { void getReminderState().then((saved) => { setReminder(saved); setSelectedReminderTimes(saved.times); }); }, []);
   useEffect(() => { void getPendingSyncCount().then(setPendingSync); }, []);
   useEffect(() => { void getPublicConfig().then(setServiceStatus); }, []);
 
@@ -34,12 +39,13 @@ export default function SettingsScreen() {
     } finally { setSyncBusy(false); }
   };
 
-  const changeReminder = async (enabled: boolean, time: ReminderTime) => {
+  const saveReminders = async (enabled: boolean) => {
     if (reminderBusy) return;
     setReminderBusy(true);
     try {
-      const next = await setDailyReminder(enabled, time);
+      const next = await setDailyReminders(enabled, selectedReminderTimes);
       setReminder(next);
+      setSelectedReminderTimes(next.times);
       if (enabled && !next.enabled && next.permission === "denied") {
         Alert.alert("Notifications are off", "Allow RISE notifications in your phone settings to receive daily check-ins. Your mission is still available in the app.");
       }
@@ -47,6 +53,35 @@ export default function SettingsScreen() {
       Alert.alert("Reminder not saved", "Your previous reminder was not changed. Please try again.");
       setReminder(await getReminderState());
     } finally { setReminderBusy(false); }
+  };
+
+  const toggleReminderTime = (time: ReminderTime) => {
+    if (reminderBusy) return;
+    setSelectedReminderTimes((current) => current.includes(time)
+      ? current.filter((value) => value !== time)
+      : current.length < 3 ? [...current, time] : current);
+  };
+
+  const checkForAppUpdate = async () => {
+    if (updateBusy) return;
+    setUpdateBusy(true);
+    setUpdateMessage("Checking for the newest RISE update…");
+    try {
+      const result = await checkAndDownloadRiseUpdate();
+      if (result.status === "unavailable") {
+        setUpdateMessage("Manual update checks work in the installed TestFlight app. Development and web previews update through their normal refresh.");
+      } else if (result.status === "current") {
+        setUpdateMessage("You already have the newest compatible RISE update.");
+      } else {
+        setUpdateMessage("The newest update is downloaded and ready.");
+        Alert.alert("RISE update ready", "Restart now to use the newest update. Your saved plan and progress will stay in place.", [
+          { text: "Later", style: "cancel" },
+          { text: "Restart RISE", onPress: () => void applyDownloadedRiseUpdate() },
+        ]);
+      }
+    } catch {
+      setUpdateMessage("RISE could not check right now. Your current version still works; check your connection and try again.");
+    } finally { setUpdateBusy(false); }
   };
 
   const toggleUsageAnalytics = async () => {
@@ -126,6 +161,13 @@ export default function SettingsScreen() {
       <Text style={[styles.cardText, { color: theme.muted }]}>{serviceStatus === null ? "Your plan stays available while this check finishes." : serviceStatus.compatible ? `API ${serviceStatus.apiVersion} is connected${serviceStatus.email_delivery_ready ? " and private email delivery is ready." : ", but authenticated email delivery still needs setup."}` : `This app expects API ${EXPECTED_API_VERSION}; the connected service ${serviceStatus.apiVersion ? `reports ${serviceStatus.apiVersion}` : "did not report a compatible version"}. Your on-device plan remains safe.`}</Text>
     </View>
 
+    <View style={[styles.planCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <Text style={[styles.cardTitle, { color: theme.text }]}>App update</Text>
+      <Text style={[styles.cardText, { color: theme.muted }]}>{updateMessage}</Text>
+      <Text style={[styles.releaseText, { color: theme.muted }]}>Version {releaseInfo.version} · build {releaseInfo.build} · {releaseInfo.channel}</Text>
+      <Pressable accessibilityRole="button" accessibilityState={{ disabled: updateBusy }} disabled={updateBusy} onPress={() => void checkForAppUpdate()} style={[styles.primaryButton, { backgroundColor: theme.accent }]}><Text style={[styles.primaryButtonText, { color: theme.accentInk }]}>{updateBusy ? "Checking…" : "Check for updates"}</Text></Pressable>
+    </View>
+
     <Text style={[styles.section, { color: theme.muted }]}>MY PERSONAL PLAN</Text>
     <View style={[styles.planCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <Text style={[styles.planLabel, { color: theme.muted }]}>DIRECTION</Text><Text style={[styles.planValue, { color: theme.text }]}>{profile?.customGoal || "Personal growth"}</Text>
@@ -152,11 +194,12 @@ export default function SettingsScreen() {
       <Text style={[styles.cardTitle, { color: theme.text }]}>Daily check-in</Text>
       <Text style={[styles.cardText, { color: theme.muted }]}>{reminder.permission === "unavailable" ? "On the web beta, check in on Today. Phone reminders are available in the iOS and Android app." : reminder.enabled ? `On at ${reminder.times.join(", ")}. Tap a notification to open Today's mission.` : "Off. Choose a time and turn on a gentle phone reminder."}</Text>
       {reminder.permission !== "unavailable" ? <>
-        <View style={styles.timeRow}>{(["08:00", "12:00", "18:00", "20:00"] as ReminderTime[]).map((time) => { const selected = reminder.enabled && reminder.time === time; return <Pressable key={time} accessibilityRole="button" accessibilityLabel={`Set reminder for ${time}`} onPress={() => void changeReminder(true, time)} disabled={reminderBusy} style={[styles.timeChoice, { borderColor: theme.border }, selected && { backgroundColor: theme.accent, borderColor: theme.accent }]}><Text style={[styles.timeText, { color: selected ? theme.accentInk : theme.text }]}>{time}</Text></Pressable>; })}</View>
-        {reminder.enabled ? <Pressable accessibilityRole="button" onPress={() => void changeReminder(false, reminder.time)} disabled={reminderBusy}><Text style={styles.reminderLink}>Turn reminders off</Text></Pressable> : null}
+        <View style={styles.timeRow}>{(["08:00", "12:00", "18:00", "20:00"] as ReminderTime[]).map((time) => { const selected = selectedReminderTimes.includes(time); const atLimit = !selected && selectedReminderTimes.length >= 3; return <Pressable key={time} accessibilityRole="checkbox" accessibilityState={{ checked: selected, disabled: reminderBusy || atLimit }} accessibilityLabel={atLimit ? `Maximum three reminders selected; ${time} is unavailable` : `${selected ? "Remove" : "Add"} ${time} reminder`} onPress={() => toggleReminderTime(time)} disabled={reminderBusy || atLimit} style={[styles.timeChoice, { borderColor: theme.border }, selected && { backgroundColor: theme.accent, borderColor: theme.accent }, atLimit && styles.disabledButton]}><Text style={[styles.timeText, { color: selected ? theme.accentInk : theme.text }]}>{time}</Text></Pressable>; })}</View>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: reminderBusy || selectedReminderTimes.length === 0 }} disabled={reminderBusy || selectedReminderTimes.length === 0} onPress={() => void saveReminders(true)} style={[styles.primaryButton, { backgroundColor: theme.accent }, (reminderBusy || selectedReminderTimes.length === 0) && styles.disabledButton]}><Text style={[styles.primaryButtonText, { color: theme.accentInk }]}>{reminderBusy ? "Saving…" : reminder.enabled ? "Save reminder times" : "Turn reminders on"}</Text></Pressable>
+        {reminder.enabled ? <Pressable accessibilityRole="button" onPress={() => void saveReminders(false)} disabled={reminderBusy}><Text style={[styles.reminderLink, { color: theme.accent }]}>Turn reminders off</Text></Pressable> : null}
         {reminder.permission === "denied" ? <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()}><Text style={styles.reminderLink}>Open phone notification settings</Text></Pressable> : null}
       </> : null}
-      <Text style={[styles.cardText, { color: theme.muted }]}>Choose up to three reminders during plan setup. Focus modes and phone settings can delay or silence them.</Text>
+      <Text style={[styles.cardText, { color: theme.muted }]}>Choose one to three times, then save. Focus modes and phone settings can delay or silence reminders.</Text>
     </View>
     {user ? <Row title={`Share improvement analytics: ${usageAnalyticsOptIn ? "On" : "Off"}`} text="Optional. Turning off excludes you from operator reports and deletes past usage-time and signup-time records; your own mission progress stays." onPress={() => void toggleUsageAnalytics()} /> : null}
     {user ? <><Row title="Synced Improvement" text="Quiz baselines, completed missions, and focused minutes" onPress={() => router.push("/account-progress" as any)} /><Row title="Sign Out" text={`Signed in as ${user.email}`} onPress={() => void logout().then(() => router.replace("/account" as never))} /></> : <Row title="Create or Sign In" text="Sync skills and improvement across the beta" onPress={() => router.push("/account" as any)} />}
@@ -188,4 +231,5 @@ const styles = StyleSheet.create({
   deleteRow:{minHeight:70,flexDirection:"row",alignItems:"center",backgroundColor:"rgba(120,35,35,0.12)",borderRadius:17,borderWidth:1,borderColor:"#603F3C",padding:15,marginBottom:9},deleteTitle:{color:"#FFB4A8",fontSize:14,fontWeight:"900"},deleteArrow:{color:"#FFB4A8",fontSize:24,marginLeft:10},
   timeRow:{flexDirection:"row",flexWrap:"wrap",gap:8,marginTop:14,marginBottom:8},timeChoice:{paddingHorizontal:12,paddingVertical:10,borderRadius:12,borderWidth:1,borderColor:"#315544"},timeChoiceSelected:{backgroundColor:"#1A6B45",borderColor:"#7AF5B8"},timeText:{color:"#F5FFF9",fontWeight:"800",fontSize:12},reminderLink:{color:"#7AF5B8",fontWeight:"800",fontSize:13,marginTop:7,marginBottom:7},
   appearanceRow:{flexDirection:"row",gap:10,marginTop:14},appearanceChoice:{flex:1,minHeight:46,borderRadius:14,borderWidth:1,alignItems:"center",justifyContent:"center"},appearanceText:{fontSize:14,fontWeight:"900"},
+  primaryButton:{minHeight:48,borderRadius:14,alignItems:"center",justifyContent:"center",paddingHorizontal:16,marginTop:12},primaryButtonText:{fontSize:14,fontWeight:"900"},disabledButton:{opacity:0.45},releaseText:{fontSize:10,fontWeight:"700",marginTop:8},
 });
