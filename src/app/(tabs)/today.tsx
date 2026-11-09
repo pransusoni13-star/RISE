@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { RiseButton, RiseCard, RiseEyebrow } from "../../components/rise-ui";
 import { getCurrentUser, RiseUser } from "../../services/auth";
@@ -14,9 +14,15 @@ export default function TodayTabScreen() {
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [user, setUser] = useState<RiseUser | null>(null);
   const [records, setRecords] = useState<Record<string, MissionRecord>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useFocusEffect(useCallback(() => {
+    // A changed key represents an explicit retry and intentionally restarts this load.
+    void reloadKey;
     let active = true;
+    setLoadError("");
     void Promise.all([
       loadProfile(),
       getCurrentUser().catch(() => null),
@@ -26,9 +32,13 @@ export default function TodayTabScreen() {
       setProfile(storedProfile);
       setUser(storedUser);
       setRecords(Object.fromEntries(storedRecords.map((record) => [record.missionId, record])));
+    }).catch(() => {
+      if (active) setLoadError("RISE could not open your saved mission. Your progress has not been changed.");
+    }).finally(() => {
+      if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, []));
+  }, [reloadKey]));
 
   const plan = useMemo(() => profile ? createSevenDayPlan(profile) : [], [profile]);
   const completedDays = useMemo(
@@ -51,6 +61,19 @@ export default function TodayTabScreen() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 21 ? "Good evening" : "Good night";
   const missionSummary = (todayMission?.description || "Your next focused step is ready.").split(/(?<=[.!?])\s+/)[0];
+  const cycleProgress = plan.length ? Math.round((completedDays.length / plan.length) * 100) : 0;
+
+  if (loading) {
+    return <View style={[styles.statePage, { backgroundColor: theme.background }]}><ActivityIndicator color={theme.accent} /><Text style={[styles.stateText, { color: theme.muted }]}>Opening today’s mission…</Text></View>;
+  }
+
+  if (loadError) {
+    return <View style={[styles.statePage, { backgroundColor: theme.background }]}><Text style={[styles.stateTitle, { color: theme.text }]}>Your mission is still safe.</Text><Text style={[styles.stateText, { color: theme.muted }]}>{loadError}</Text><View style={styles.stateAction}><RiseButton label="Try again" onPress={() => { setLoading(true); setReloadKey((value) => value + 1); }} /></View></View>;
+  }
+
+  if (!profile || !todayMission) {
+    return <View style={[styles.statePage, { backgroundColor: theme.background }]}><Text style={[styles.stateTitle, { color: theme.text }]}>Choose your first direction.</Text><Text style={[styles.stateText, { color: theme.muted }]}>RISE needs one goal before it can build today’s focused mission.</Text><View style={styles.stateAction}><RiseButton label="Build my plan" onPress={() => router.replace("/popular-skills" as never)} /></View></View>;
+  }
 
   return (
     <ScrollView
@@ -63,6 +86,12 @@ export default function TodayTabScreen() {
         {greeting}{firstName ? `, ${firstName}` : ""}.
       </Text>
       <Text style={[styles.intro, { color: theme.muted }]}>{todayComplete ? "Today’s work is saved. Your next mission opens tomorrow." : "This is the one step that matters today."}</Text>
+
+      <View accessibilityRole="progressbar" accessibilityLabel={`${completedDays.length} of ${plan.length} missions complete`} accessibilityValue={{ min: 0, max: plan.length, now: completedDays.length }} style={styles.cycleRow}>
+        <Text style={[styles.cycleLabel, { color: theme.muted }]}>7-DAY RISE</Text>
+        <View style={[styles.cycleTrack, { backgroundColor: theme.surfaceStrong }]}><View style={[styles.cycleFill, { backgroundColor: theme.accent, width: `${cycleProgress}%` }]} /></View>
+        <Text style={[styles.cycleValue, { color: theme.text }]}>{completedDays.length}/{plan.length}</Text>
+      </View>
 
       <RiseCard style={styles.missionCard}>
         <View style={styles.missionHeader}>
@@ -114,9 +143,18 @@ function MissionStat({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   page: { flex: 1 },
+  statePage: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
+  stateTitle: { fontSize: 26, lineHeight: 32, fontWeight: "900", textAlign: "center" },
+  stateText: { maxWidth: 420, fontSize: 14, lineHeight: 21, textAlign: "center", marginTop: 10 },
+  stateAction: { width: "100%", maxWidth: 360, marginTop: 22 },
   content: { paddingHorizontal: 22, paddingTop: 58, paddingBottom: 112 },
   greeting: { fontSize: 34, lineHeight: 40, fontWeight: "800", letterSpacing: -0.8 },
   intro: { fontSize: 15, lineHeight: 22, marginTop: 8, marginBottom: 18 },
+  cycleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
+  cycleLabel: { fontSize: 8, fontWeight: "900", letterSpacing: 1.1 },
+  cycleTrack: { flex: 1, height: 5, borderRadius: 999, overflow: "hidden" },
+  cycleFill: { height: "100%", borderRadius: 999 },
+  cycleValue: { fontSize: 10, fontWeight: "900" },
   missionCard: { padding: 22 },
   missionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 19 },
   readyPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7 },

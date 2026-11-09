@@ -21,9 +21,9 @@ export default function OnboardingScreen() {
   return <View style={styles.page}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.top}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>FREE BETA</Text></View>
-      <Text style={styles.eyebrow}>YOUR PLAN. YOUR PACE.</Text>
-      <Text style={styles.title}>Let’s build your RISE.</Text>
-      <Text style={styles.subtitle}>Career + life goals become one clear daily mission.</Text>
+      <Text style={styles.eyebrow}>ONE DIRECTION. ONE DAILY WIN.</Text>
+      <Text style={styles.title}>Start with what matters now.</Text>
+      <Text style={styles.subtitle}>Choose one area to improve. RISE turns it into a focused mission you can finish today.</Text>
 
       <View style={styles.path}>
         <Path number="1" title="Choose" text="What matters now." />
@@ -31,7 +31,7 @@ export default function OnboardingScreen() {
         <Path number="3" title="Prove" text="Show the work. See growth." />
       </View>
 
-      <View style={styles.privacy}><Text style={styles.privacyTitle}>🔒 Private by default</Text><Text style={styles.privacyText}>Proof stays on this device. Signed-in members can sync selected skills and progress. No advertising tracker.</Text></View>
+      <View style={styles.privacy}><Text style={styles.privacyTitle}>PRIVATE BY DEFAULT</Text><Text style={styles.privacyText}>Proof stays on this device. Signed-in members can sync selected skills and progress. No advertising tracker.</Text></View>
 
       <Check checked={ageConfirmed} onPress={() => setAgeConfirmed((value) => !value)} title="I am 13 or older" text="RISE is not designed for children under 13." />
       <Check checked={limitsConfirmed} onPress={() => setLimitsConfirmed((value) => !value)} title="I agree to the Terms and understand the limits" text="RISE provides educational suggestions, not medical, legal, financial, religious, or other professional advice." />
