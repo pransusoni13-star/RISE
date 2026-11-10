@@ -4,6 +4,7 @@ const STORAGE_KEY = "RISE_CLOUD_SYNC_OUTBOX";
 // At the API's 2 KB metadata ceiling this remains a bounded, device-local queue
 // while leaving enough room for a long offline learning cycle.
 const MAX_ITEMS = 1000;
+let mutationTail: Promise<void> = Promise.resolve();
 
 export type QueuedProfile = {
   selected_goals: string[];
@@ -42,33 +43,45 @@ async function write(items: SyncOutboxItem[]): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(-MAX_ITEMS)));
 }
 
+async function mutate(update: (items: SyncOutboxItem[]) => SyncOutboxItem[]): Promise<void> {
+  const operation = mutationTail.then(async () => {
+    const items = await read();
+    await write(update(items));
+  });
+  // Keep later operations moving even if the device rejects one storage write;
+  // the caller still receives that original failure and can surface/retry it.
+  mutationTail = operation.catch(() => undefined);
+  return operation;
+}
+
 export async function queueProfile(payload: QueuedProfile): Promise<void> {
-  const items: SyncOutboxItem[] = (await read()).filter((item) => item.kind !== "profile");
-  items.push({ id: "profile:latest", kind: "profile", createdAt: new Date().toISOString(), payload });
-  await write(items);
+  await mutate((items) => [
+    ...items.filter((item) => item.kind !== "profile"),
+    { id: "profile:latest", kind: "profile", createdAt: new Date().toISOString(), payload },
+  ]);
 }
 
 export async function queueProgressEvent(payload: QueuedProgressEvent): Promise<void> {
   const id = `event:${payload.client_event_id}`;
-  const items = await read();
-  if (!items.some((item) => item.id === id)) {
-    items.push({ id, kind: "event", createdAt: new Date().toISOString(), payload });
-    await write(items);
-  }
+  await mutate((items) => items.some((item) => item.id === id)
+    ? items
+    : [...items, { id, kind: "event", createdAt: new Date().toISOString(), payload }]);
 }
 
 export async function listSyncOutbox(): Promise<SyncOutboxItem[]> {
+  await mutationTail;
   return read();
 }
 
 export async function removeSyncOutboxItem(id: string): Promise<void> {
-  await write((await read()).filter((item) => item.id !== id));
+  await mutate((items) => items.filter((item) => item.id !== id));
 }
 
 export async function discardQueuedUsageAnalytics(): Promise<void> {
-  await write((await read()).filter((item) => item.kind !== "event" || !["app_session", "invite_shared"].includes(item.payload.event_type)));
+  await mutate((items) => items.filter((item) => item.kind !== "event" || !["app_session", "invite_shared"].includes(item.payload.event_type)));
 }
 
 export async function getPendingSyncCount(): Promise<number> {
+  await mutationTail;
   return (await read()).length;
 }

@@ -60,6 +60,10 @@ export type LeaderboardSnapshot = { opted_in: boolean; rank: number | null; part
 let webSession: AuthResponse | null = null;
 let usageAnalyticsConsent = false;
 let usageAnalyticsEnabledAt = 0;
+let lastSuccessfulApiRequestAt = 0;
+const API_WARM_WINDOW_MS = 10 * 60 * 1000;
+const COLD_START_TIMEOUT_MS = 75_000;
+const WARM_REQUEST_TIMEOUT_MS = 20_000;
 
 function isSafeReleaseApiUrl(): boolean {
   try {
@@ -117,9 +121,10 @@ class ApiError extends Error {
 async function rawRequest<T>(path: string, init: RequestInit = {}, accessToken?: string | null): Promise<T> {
   if (!isApiConfigured()) throw new Error("RISE account service needs a public HTTPS API for this build.");
   const controller = new AbortController();
-  // Free beta hosts can cold-start after inactivity. Give the first request
-  // enough time to wake while keeping subsequent failures bounded.
-  const timeout = setTimeout(() => controller.abort(), 75_000);
+  // Give a sleeping beta host time to wake, but fail a warm request quickly
+  // enough for the member to retry instead of staring at a frozen screen.
+  const isRecentlyWarm = Date.now() - lastSuccessfulApiRequestAt < API_WARM_WINDOW_MS;
+  const timeout = setTimeout(() => controller.abort(), isRecentlyWarm ? WARM_REQUEST_TIMEOUT_MS : COLD_START_TIMEOUT_MS);
   try {
     const response = await fetch(`${API_URL}${path}`, {
       ...init,
@@ -128,9 +133,10 @@ async function rawRequest<T>(path: string, init: RequestInit = {}, accessToken?:
     });
     const body = response.status === 204 ? null : await response.json().catch(() => null);
     if (!response.ok) throw new ApiError(errorMessage(body, `Request failed (${response.status})`), response.status);
+    lastSuccessfulApiRequestAt = Date.now();
     return body as T;
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") throw new Error("RISE could not wake the account service. Check your connection and try once more.");
+    if (error instanceof Error && error.name === "AbortError") throw new Error(isRecentlyWarm ? "RISE took too long to respond. Your work is safe—please try again." : "RISE could not wake the account service. Check your connection and try once more.");
     if (error instanceof TypeError) throw new Error("RISE could not connect. Check your internet connection and try again.");
     throw error;
   } finally {

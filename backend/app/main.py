@@ -14,7 +14,7 @@ import jwt
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import case, delete, func, select, text, update
+from sqlalchemy import case, delete, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -47,6 +47,10 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_cr
 bearer = HTTPBearer(auto_error=False)
 attempts: dict[str, deque[float]] = defaultdict(deque)
 attempt_lock = Lock()
+RATE_LIMIT_MAX_BUCKETS = 10_000
+RATE_LIMIT_MAX_WINDOW_SECONDS = 3_600
+RATE_LIMIT_CLEANUP_INTERVAL_SECONDS = 300
+last_rate_limit_cleanup = 0.0
 
 POPULAR_SKILLS = [
     ("react-native", "React Native", "Career", "Build useful mobile apps with guided practice.", "software-engineer"),
@@ -91,10 +95,22 @@ async def security_headers(request: Request, call_next):
 
 
 def enforce_rate_limit(request: Request, bucket: str, limit: int = 6, seconds: int = 60) -> None:
+    global last_rate_limit_cleanup
     address = request.client.host if request.client else "unknown"
     key = f"{bucket}:{address}"
     now = monotonic()
     with attempt_lock:
+        if now - last_rate_limit_cleanup >= RATE_LIMIT_CLEANUP_INTERVAL_SECONDS or len(attempts) >= RATE_LIMIT_MAX_BUCKETS:
+            stale_before = now - RATE_LIMIT_MAX_WINDOW_SECONDS
+            stale_keys = [candidate for candidate, values in attempts.items() if not values or values[-1] <= stale_before]
+            for candidate in stale_keys:
+                attempts.pop(candidate, None)
+            last_rate_limit_cleanup = now
+        if key not in attempts and len(attempts) >= RATE_LIMIT_MAX_BUCKETS:
+            # An address spray must not grow memory without bound. Evict the
+            # oldest bucket instead of rejecting every legitimate new member.
+            oldest_key = min(attempts, key=lambda candidate: attempts[candidate][-1] if attempts[candidate] else 0)
+            attempts.pop(oldest_key, None)
         history = attempts[key]
         while history and history[0] <= now - seconds:
             history.popleft()
@@ -117,8 +133,15 @@ def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(
 
 
 def issue_session(db: Session, user: User) -> AuthResponse:
+    now = now_utc()
+    db.execute(
+        delete(RefreshSession).where(
+            RefreshSession.user_id == user.id,
+            or_(RefreshSession.revoked_at.is_not(None), RefreshSession.expires_at <= now),
+        )
+    )
     raw_refresh = create_refresh_token()
-    db.add(RefreshSession(user_id=user.id, token_hash=hash_token(raw_refresh), expires_at=now_utc() + timedelta(days=settings.refresh_token_days)))
+    db.add(RefreshSession(user_id=user.id, token_hash=hash_token(raw_refresh), expires_at=now + timedelta(days=settings.refresh_token_days)))
     db.commit()
     return AuthResponse(access_token=create_access_token(user.id), refresh_token=raw_refresh, user=UserResponse.model_validate(user))
 

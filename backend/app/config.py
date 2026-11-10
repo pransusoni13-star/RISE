@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     smtp_username: str = ""
     smtp_password: str = ""
     smtp_use_tls: bool = True
+    db_pool_size: int = Field(default=5, ge=1, le=20)
+    db_max_overflow: int = Field(default=5, ge=0, le=40)
+    db_pool_timeout_seconds: int = Field(default=15, ge=1, le=60)
+    db_pool_recycle_seconds: int = Field(default=300, ge=60, le=3600)
 
     @property
     def cors_origins(self) -> list[str]:

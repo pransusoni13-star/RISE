@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -38,6 +38,7 @@ class FoundingInvite(Base):
 
 class RefreshSession(Base):
     __tablename__ = "refresh_sessions"
+    __table_args__ = (Index("ix_refresh_sessions_user_state", "user_id", "revoked_at", "expires_at"),)
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
@@ -105,7 +106,11 @@ class UserSkill(Base):
 
 class ProgressEvent(Base):
     __tablename__ = "progress_events"
-    __table_args__ = (UniqueConstraint("user_id", "client_event_id", name="uq_user_client_event"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "client_event_id", name="uq_user_client_event"),
+        Index("ix_progress_events_user_type_created", "user_id", "event_type", "created_at"),
+        Index("ix_progress_events_user_created", "user_id", "created_at"),
+    )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     client_event_id: Mapped[str] = mapped_column(String(120))

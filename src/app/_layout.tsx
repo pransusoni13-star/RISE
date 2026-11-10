@@ -1,13 +1,30 @@
 import "@/global.css";
-import { router, Stack, usePathname } from "expo-router";
+import { router, Stack, type ErrorBoundaryProps, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
-import { AppState, View } from "react-native";
+import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { flushCloudSyncQueue, getUsageAnalyticsConsent, getUsageAnalyticsEnabledAt, isUsageAnalyticsEnabled, recordProgressEvent } from "../services/auth";
 import { initializeReminderNavigation } from "../services/reminders";
 import { RiseAppearanceProvider, useRiseAppearance } from "../services/appearance";
 import { hasSavedProfile } from "../services/personalization";
 import { AppPageHeader } from "../components/appPageHeader";
+
+const ANALYTICS_FLUSH_INTERVAL_MS = 5 * 60 * 1000;
+
+function ScreenErrorBoundary({ retry }: ErrorBoundaryProps) {
+  const { theme } = useRiseAppearance();
+  return <View style={[styles.errorScreen, { backgroundColor: theme.background }]}>
+    <Text style={[styles.errorEyebrow, { color: theme.accent }]}>YOUR PROGRESS IS SAFE</Text>
+    <Text style={[styles.errorTitle, { color: theme.text }]}>This screen needs another try.</Text>
+    <Text style={[styles.errorBody, { color: theme.muted }]}>RISE hit a temporary display problem. Retry the screen without losing your saved plan or mission progress.</Text>
+    <Pressable accessibilityRole="button" onPress={() => void retry()} style={[styles.errorButton, { backgroundColor: theme.accent }]}>
+      <Text style={[styles.errorButtonText, { color: theme.background }]}>Try again</Text>
+    </Pressable>
+    <Pressable accessibilityRole="button" onPress={() => router.replace("/(tabs)/today" as never)}>
+      <Text style={[styles.errorLink, { color: theme.accent }]}>Return to Today</Text>
+    </Pressable>
+  </View>;
+}
 
 export default function RootLayout() {
   return <RiseAppearanceProvider><ThemedRootLayout /></RiseAppearanceProvider>;
@@ -45,7 +62,10 @@ function ThemedRootLayout() {
       void recordProgressEvent({ clientEventId: `session:${now}`, eventType: "app_session", skillSlug: "app", metadata: { duration_seconds: duration } }).catch(() => undefined);
     };
     // Record while foregrounded too: mobile OSes may suspend a network request on background.
-    const interval = setInterval(recordElapsed, 60_000);
+    // Aggregate foreground time locally and sync every five minutes instead of
+    // writing one analytics row per minute. Backgrounding still flushes the
+    // partial session, so measured time remains accurate with far less load.
+    const interval = setInterval(recordElapsed, ANALYTICS_FLUSH_INTERVAL_MS);
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") { activeSince = Date.now(); void getUsageAnalyticsConsent(); void flushCloudSyncQueue(); return; }
       recordElapsed();
@@ -57,6 +77,7 @@ function ThemedRootLayout() {
     <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
     {showMemberHeader ? <AppPageHeader /> : null}
     <Stack
+      unstable_screenErrorBoundary={ScreenErrorBoundary}
       screenOptions={{
         headerShown: false,
         animation: "default",
@@ -123,3 +144,13 @@ function ThemedRootLayout() {
     </Stack>
   </View>);
 }
+
+const styles = StyleSheet.create({
+  errorScreen: { flex: 1, justifyContent: "center", paddingHorizontal: 28 },
+  errorEyebrow: { fontSize: 12, fontWeight: "800", letterSpacing: 1.4, marginBottom: 12 },
+  errorTitle: { fontSize: 30, fontWeight: "900", lineHeight: 34, marginBottom: 12 },
+  errorBody: { fontSize: 16, lineHeight: 24, marginBottom: 24 },
+  errorButton: { minHeight: 54, borderRadius: 16, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
+  errorButtonText: { fontSize: 16, fontWeight: "900" },
+  errorLink: { alignSelf: "center", fontSize: 15, fontWeight: "800", marginTop: 20, padding: 8 },
+});

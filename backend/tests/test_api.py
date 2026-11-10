@@ -1,4 +1,5 @@
 import os
+from collections import deque
 from datetime import timedelta
 from pathlib import Path
 
@@ -12,7 +13,8 @@ from sqlalchemy.exc import OperationalError
 from app.database import Base, SessionLocal, engine
 from app.config import Settings
 from app.main import app, settings, attempts, attempt_lock
-from app.models import FoundingInvite, ProgressEvent, User, now_utc
+import app.main as main_module
+from app.models import FoundingInvite, ProgressEvent, RefreshSession, User, now_utc
 from app.security import hash_token
 
 
@@ -196,6 +198,29 @@ def test_login_attempts_are_rate_limited() -> None:
         for _ in range(6):
             assert client.post("/auth/login", json=payload).status_code == 401
         assert client.post("/auth/login", json=payload).status_code == 429
+
+
+def test_refresh_rotation_removes_revoked_session_rows() -> None:
+    with TestClient(app) as client:
+        created = client.post("/auth/register", json={"email": "rotation@example.com", "password": "very-secure-password", "display_name": "Rotation Member"}).json()
+        refreshed = client.post("/auth/refresh", json={"refresh_token": created["refresh_token"]})
+        assert refreshed.status_code == 200
+        with SessionLocal() as db:
+            sessions = list(db.query(RefreshSession).all())
+            assert len(sessions) == 1
+            assert sessions[0].revoked_at is None
+
+
+def test_rate_limit_bucket_storage_prunes_stale_addresses(monkeypatch) -> None:
+    monkeypatch.setattr(main_module, "RATE_LIMIT_MAX_BUCKETS", 3)
+    monkeypatch.setattr(main_module, "last_rate_limit_cleanup", 0.0)
+    with attempt_lock:
+        attempts.update({f"login:stale-{index}": deque([0.0]) for index in range(3)})
+    with TestClient(app) as client:
+        response = client.post("/auth/login", json={"email": "unknown@example.com", "password": "incorrect-password"})
+        assert response.status_code == 401
+    with attempt_lock:
+        assert list(attempts) == ["login:testclient"]
 
 
 def test_founding_claims_wait_for_public_launch_and_analytics_are_private(monkeypatch) -> None:
