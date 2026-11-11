@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createSerializedMutationQueue } from "./serializedMutations";
 
 const STORAGE_KEY = "RISE_MISSION_RECORDS";
+const runMutation = createSerializedMutationQueue();
 
 export type MissionStatus =
   | "not_started"
@@ -70,15 +72,17 @@ export const missionRepository = {
   },
 
   async patch(missionId: string, changes: Partial<MissionRecord>): Promise<MissionRecord> {
-    const records = await loadAll();
-    const current = records[missionId] || {
-      missionId,
-      status: "not_started" as MissionStatus,
-      completedSteps: [],
-    };
-    const next = { ...current, ...changes, missionId };
-    records[missionId] = next;
-    await saveAll(records);
-    return next;
+    return runMutation(async () => {
+      const records = await loadAll();
+      const current = records[missionId] || {
+        missionId,
+        status: "not_started" as MissionStatus,
+        completedSteps: [],
+      };
+      const next = { ...current, ...changes, missionId };
+      records[missionId] = next;
+      await saveAll(records);
+      return next;
+    });
   },
 };

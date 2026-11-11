@@ -10,12 +10,15 @@ import {
 import { missionRepository } from "../services/missionRepository";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hasCompletedRequiredTour } from "../services/tourState";
+import { daysUntilMission, getAvailableMissionDay, isMissionAvailable } from "../services/dayUnlock";
+import { useRiseAppearance } from "../services/appearance";
 
 const valueOf = (value: string | string[] | undefined, fallback = "") =>
   Array.isArray(value) ? value[0] || fallback : value || fallback;
 
 export default function PlanScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useRiseAppearance();
   const params = useLocalSearchParams();
   const [savedProfile, setSavedProfile] = useState<RiseProfile | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
@@ -66,75 +69,91 @@ export default function PlanScreen() {
   const profile = hasPlanParams ? paramProfile : savedProfile;
   const missions = useMemo(() => profile ? createSevenDayPlan(profile) : [], [profile]);
   const completedCount = missions.filter((mission) => completedIds.includes(mission.id)).length;
-  const nextMission = missions.find((mission) => !completedIds.includes(mission.id));
+  const completedDays = missions.filter((mission) => completedIds.includes(mission.id)).map((mission) => mission.day);
+  const availableDay = getAvailableMissionDay(profile?.skillStartDate, missions.length || 1, completedDays);
+  const activeMission = missions[availableDay - 1];
+  const activeMissionComplete = Boolean(activeMission && completedIds.includes(activeMission.id));
 
   const openMission = (mission: PersonalizedMission) => {
+    if (!isMissionAvailable(mission.day, profile?.skillStartDate, missions.length || 1, completedDays)) return;
     router.push({
       pathname: "/action",
       params: { mission: JSON.stringify(mission) },
     } as any);
   };
 
-  if (!profile) return <View style={styles.loading}><ActivityIndicator color="#7AF5B8" /></View>;
+  if (!profile) return <View style={[styles.loading, { backgroundColor: theme.background }]}><ActivityIndicator color={theme.accent} /></View>;
 
   return (
-    <View style={styles.page}>
+    <View style={[styles.page, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>YOUR PERSONAL 1% SYSTEM</Text>
-        <Text style={styles.title}>
-          One connected cycle.{"\n"}<Text style={styles.green}>Two balanced directions.</Text>
+        <Text style={[styles.eyebrow, { color: theme.accent }]}>YOUR PERSONAL 1% SYSTEM</Text>
+        <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
+          One direction.{"\n"}<Text style={{ color: theme.accent }}>Seven focused wins.</Text>
         </Text>
-        <Text style={styles.subtitle}>
-          Built for “{profile.customGoal}” by strengthening {profile.weeklySkill} at {profile.availableTime} per day.
-          Each mission teaches, applies, and proves the next step.
+        <Text style={[styles.subtitle, { color: theme.muted }]}>
+          RISE turns “{profile.customGoal}” into one guided {profile.weeklySkill} mission per day. Finish today before tomorrow opens.
         </Text>
 
-        <View style={styles.summary}>
+        <View style={[styles.summary, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View>
-            <Text style={styles.summaryLabel}>SKILL</Text>
-            <Text style={styles.summaryValue}>{profile.weeklySkill}</Text>
+            <Text style={[styles.summaryLabel, { color: theme.muted }]}>SKILL</Text>
+            <Text style={[styles.summaryValue, { color: theme.text }]}>{profile.weeklySkill}</Text>
           </View>
           <View>
-            <Text style={styles.summaryLabel}>CYCLE</Text>
-            <Text style={styles.summaryValue}>{profile.commitment}</Text>
+            <Text style={[styles.summaryLabel, { color: theme.muted }]}>CYCLE</Text>
+            <Text style={[styles.summaryValue, { color: theme.text }]}>{profile.commitment}</Text>
           </View>
           <View>
-            <Text style={styles.summaryLabel}>DAILY</Text>
-            <Text style={styles.summaryValue}>{profile.availableTime}</Text>
+            <Text style={[styles.summaryLabel, { color: theme.muted }]}>DAILY</Text>
+            <Text style={[styles.summaryValue, { color: theme.text }]}>{profile.availableTime}</Text>
           </View>
         </View>
 
         <View style={styles.sectionRow}>
-          <View><Text style={styles.section}>YOUR {missions.length}-DAY PATH</Text><Text style={styles.progressCopy}>{completedCount} of {missions.length} missions complete</Text></View>
-          <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/progress" as never)} style={({ pressed }) => [styles.progressButton, pressed && styles.pressed]}><Text style={styles.progressButtonText}>View my progress ↗</Text></Pressable>
+          <View><Text style={[styles.section, { color: theme.muted }]}>YOUR {missions.length}-DAY PATH</Text><Text style={[styles.progressCopy, { color: theme.muted }]}>{completedCount} of {missions.length} missions complete</Text></View>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/progress" as never)} style={({ pressed }) => [styles.progressButton, { borderColor: theme.border }, pressed && styles.pressed]}><Text style={[styles.progressButtonText, { color: theme.accent }]}>View progress ↗</Text></Pressable>
         </View>
-        <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${missions.length ? completedCount / missions.length * 100 : 0}%` }]} /></View>
-        {missions.map((mission) => (
-          <Pressable key={mission.id} accessibilityRole="button" style={({ pressed }) => [styles.card, completedIds.includes(mission.id) && styles.cardComplete, pressed && styles.pressed]} onPress={() => openMission(mission)}>
-            <View style={styles.dayCircle}><Text style={styles.dayText}>{completedIds.includes(mission.id) ? "✓" : mission.day}</Text></View>
+        <View style={[styles.progressTrack, { backgroundColor: theme.surfaceStrong }]}><View style={[styles.progressFill, { backgroundColor: theme.accent, width: `${missions.length ? completedCount / missions.length * 100 : 0}%` }]} /></View>
+        {missions.map((mission) => {
+          const completed = completedIds.includes(mission.id);
+          const available = isMissionAvailable(mission.day, profile.skillStartDate, missions.length || 1, completedDays);
+          const active = mission.day === availableDay && !completed;
+          const waitDays = daysUntilMission(mission.day, availableDay);
+          const stateLabel = completed ? "COMPLETE" : active ? "TODAY" : available ? "AVAILABLE" : waitDays === 1 ? "TOMORROW" : `IN ${waitDays} DAYS`;
+          return (
+          <Pressable
+            key={mission.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Day ${mission.day}: ${mission.title}. ${stateLabel.toLowerCase()}.`}
+            accessibilityState={{ disabled: !available }}
+            disabled={!available}
+            style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: active ? theme.accent : theme.border }, completed && { backgroundColor: theme.surfaceStrong, borderColor: theme.accent }, !available && styles.cardLocked, pressed && styles.pressed]}
+            onPress={() => openMission(mission)}
+          >
+            <View style={[styles.dayCircle, { backgroundColor: available ? theme.surfaceStrong : theme.background }]}><Text style={[styles.dayText, { color: available ? theme.accent : theme.muted }]}>{completed ? "✓" : mission.day}</Text></View>
             <View style={styles.cardBody}>
-              <Text style={styles.cardMeta}>DAY {mission.day} • {mission.track.toUpperCase()} • {mission.duration} MIN • {completedIds.includes(mission.id) ? "COMPLETE" : mission.difficulty}</Text>
-              <Text style={styles.cardTitle}>{mission.title}</Text>
-              <Text style={styles.skillLabel}>{mission.focusSkill}</Text>
-              <Text style={styles.cardDescription} numberOfLines={2}>{mission.description}</Text>
-              <Text style={styles.connection}>{mission.day === 1 ? "Starts your baseline" : `Builds on Day ${mission.day - 1}`}</Text>
+              <Text style={[styles.cardMeta, { color: available ? theme.accent : theme.muted }]}>DAY {mission.day} • {mission.duration} MIN • {stateLabel}</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{mission.title}</Text>
+              {available ? <Text style={[styles.skillLabel, { color: theme.text, backgroundColor: theme.surfaceStrong }]}>{mission.focusSkill}</Text> : null}
+              {active || completed ? <Text style={[styles.cardDescription, { color: theme.muted }]} numberOfLines={2}>{mission.description}</Text> : null}
+              <Text style={[styles.connection, { color: theme.muted }]}>{completed ? "Saved in your progress" : active ? "Your one mission for today" : available ? "Ready when you are" : waitDays === 1 ? "Opens tomorrow after today is complete" : `Opens in ${waitDays} days after earlier missions`}</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <Text style={[styles.arrow, { color: available ? theme.accent : theme.muted }]}>{available ? "›" : "•"}</Text>
           </Pressable>
-        ))}
+        );})}
 
-        <View style={styles.proofCard}>
-          <Text style={styles.proofTitle}>Progress requires proof</Text>
-          <Text style={styles.proofText}>
-            Every mission ends with reviewed proof and a 2–3 sentence reflection.
-            The cycle quiz must be passed before new skills unlock.
+        <View style={[styles.proofCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
+          <Text style={[styles.proofTitle, { color: theme.accent }]}>Earn progress by doing the work</Text>
+          <Text style={[styles.proofText, { color: theme.text }]}>
+            Complete the mission, add proof, and write the short reflection. RISE saves every finished step.
           </Text>
         </View>
       </ScrollView>
 
       <View style={[styles.footer, { bottom: insets.bottom + 12 }]}>
-        <Pressable accessibilityRole="button" style={({ pressed }) => [styles.button, pressed && styles.pressed]} onPress={() => nextMission ? openMission(nextMission) : router.push("/(tabs)/progress" as never)}>
-          <Text style={styles.buttonText}>{nextMission ? `Continue Day ${nextMission.day} →` : "View my progress →"}</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: activeMissionComplete }} disabled={activeMissionComplete} style={({ pressed }) => [styles.button, { backgroundColor: theme.accent }, activeMissionComplete && styles.buttonDisabled, pressed && styles.pressed]} onPress={() => activeMission ? openMission(activeMission) : router.push("/(tabs)/progress" as never)}>
+          <Text style={[styles.buttonText, { color: theme.accentInk }]}>{activeMissionComplete ? "Today complete — return tomorrow" : activeMission ? `${completedCount ? "Continue" : "Start"} Day ${activeMission.day} →` : "View my progress →"}</Text>
         </Pressable>
       </View>
     </View>
@@ -162,6 +181,7 @@ const styles = StyleSheet.create({
   progressFill: { height: 6, borderRadius: 3, backgroundColor: "#7AF5B8" },
   card: { flexDirection: "row", alignItems: "center", backgroundColor: "#071B16", borderRadius: 19, borderWidth: 1, borderColor: "#1E3A31", padding: 14, marginBottom: 11 },
   cardComplete: { borderColor: "#3B7555", backgroundColor: "#0D2F22" },
+  cardLocked: { opacity: .58 },
   dayCircle: { width: 38, height: 38, borderRadius: 19, backgroundColor: "#11382B", alignItems: "center", justifyContent: "center", marginRight: 12 },
   dayText: { color: "#7AF5B8", fontSize: 15, fontWeight: "900" },
   cardBody: { flex: 1 },
@@ -176,5 +196,6 @@ const styles = StyleSheet.create({
   proofText: { color: "#C8EED9", fontSize: 13, lineHeight: 20 },
   footer: { position: "absolute", left: 22, right: 22, bottom: 22 },
   button: { height: 58, borderRadius: 29, backgroundColor: "#7AF5B8", alignItems: "center", justifyContent: "center" },
+  buttonDisabled: { opacity: .58 },
   buttonText: { color: "#010807", fontSize: 17, fontWeight: "900" },
 });

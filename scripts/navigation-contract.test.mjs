@@ -38,3 +38,11 @@ test("the tour explains the complete RISE loop in five concise steps", () => {
   }
 });
 
+test("the plan keeps future missions locked behind time and completion", () => {
+  const planSource = readFileSync(join(appRoot, "plan.tsx"), "utf8");
+  assert.match(planSource, /isMissionAvailable\(mission\.day/);
+  assert.match(planSource, /disabled=\{!available\}/);
+  assert.match(planSource, /Finish today before tomorrow opens\./);
+  assert.match(planSource, /Your one mission for today/);
+});
+
