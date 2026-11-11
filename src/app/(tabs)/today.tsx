@@ -62,6 +62,28 @@ export default function TodayTabScreen() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 21 ? "Good evening" : "Good night";
   const missionSummary = (todayMission?.description || "Your next focused step is ready.").split(/(?<=[.!?])\s+/)[0];
   const cycleProgress = plan.length ? Math.round((completedDays.length / plan.length) * 100) : 0;
+  const cycleComplete = plan.length > 0 && completedDays.length === plan.length;
+
+  const openCycleQuiz = () => {
+    const finalMission = plan[plan.length - 1];
+    if (!finalMission || !profile) return;
+    router.push({
+      pathname: "/quiz",
+      params: {
+        cycleGate: "1",
+        cycleId: finalMission.id,
+        skillId: profile.weeklySkill || finalMission.skillId,
+        goal: profile.selectedGoals[0] || finalMission.goal,
+        goals: JSON.stringify(profile.selectedGoals),
+        commitment: profile.commitment || "Every 7 days",
+        focusSkill: finalMission.focusSkill,
+        missionTitle: finalMission.title,
+        missionSteps: JSON.stringify(finalMission.steps),
+        successCriteria: finalMission.successCriteria,
+        reflectionPrompt: finalMission.reflectionPrompt || "",
+      },
+    } as any);
+  };
 
   if (loading) {
     return <View style={[styles.statePage, { backgroundColor: theme.background }]}><ActivityIndicator color={theme.accent} /><Text style={[styles.stateText, { color: theme.muted }]}>Opening today’s mission…</Text></View>;
@@ -85,7 +107,7 @@ export default function TodayTabScreen() {
       <Text style={[styles.greeting, { color: theme.text }]}>
         {greeting}{firstName ? `, ${firstName}` : ""}.
       </Text>
-      <Text style={[styles.intro, { color: theme.muted }]}>{todayComplete ? "Today’s work is saved. Your next mission opens tomorrow." : "This is the one step that matters today."}</Text>
+      <Text style={[styles.intro, { color: theme.muted }]}>{cycleComplete ? "Your cycle is complete. Take the final rank trial to prove what you learned." : todayComplete ? "Today’s work is saved. Your next mission opens tomorrow." : "This is the one step that matters today."}</Text>
 
       <View accessibilityRole="progressbar" accessibilityLabel={`${completedDays.length} of ${plan.length} missions complete`} accessibilityValue={{ min: 0, max: plan.length, now: completedDays.length }} style={styles.cycleRow}>
         <Text style={[styles.cycleLabel, { color: theme.muted }]}>7-DAY RISE</Text>
@@ -125,9 +147,9 @@ export default function TodayTabScreen() {
 
         <View style={styles.primaryAction}>
           <RiseButton
-            disabled={todayComplete}
-            label={todayComplete ? "Complete — come back tomorrow" : hasStarted ? "Continue my mission" : "Start today’s mission"}
-            onPress={() => router.push({ pathname: "/action", params: todayMission ? { mission: JSON.stringify(todayMission) } : {} } as any)}
+            disabled={todayComplete && !cycleComplete}
+            label={cycleComplete ? "Take my final rank trial" : todayComplete ? "Complete — come back tomorrow" : hasStarted ? "Continue my mission" : "Start today’s mission"}
+            onPress={() => cycleComplete ? openCycleQuiz() : router.push({ pathname: "/action", params: todayMission ? { mission: JSON.stringify(todayMission) } : {} } as any)}
           />
         </View>
         <Text style={[styles.progressNote, { color: theme.muted }]}>{todayComplete ? `${completedDays.length} of ${plan.length || 7} missions complete` : "RISE saves each step as you go."}</Text>

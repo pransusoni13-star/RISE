@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { progressRepository } from "./progressRepository";
+import { createSerializedMutationQueue } from "./serializedMutations";
 
 const REDEMPTIONS_KEY = "RISE_REWARD_REDEMPTIONS";
+const runRedemption = createSerializedMutationQueue();
 
 export type CoinReward = {
   id: string;
@@ -46,39 +48,48 @@ export async function loadRedemptions(): Promise<string[]> {
 }
 
 export async function redeemCoinReward(reward: CoinReward) {
-  const [progress, redeemed] = await Promise.all([
-    progressRepository.load(),
-    loadRedemptions(),
-  ]);
+  return runRedemption(async () => {
+    const [progress, redeemed] = await Promise.all([
+      progressRepository.load(),
+      loadRedemptions(),
+    ]);
 
-  if (redeemed.includes(reward.id)) {
-    return { ok: false as const, reason: "already" as const, progress, redeemed };
-  }
-  if (progress.coins < reward.cost) {
-    return { ok: false as const, reason: "coins" as const, progress, redeemed };
-  }
+    const eventSource = `reward:${reward.id}`;
+    const alreadyRecorded = progress.events.some((event) => event.metadata?.source === eventSource);
+    if (redeemed.includes(reward.id) || alreadyRecorded) {
+      if (alreadyRecorded && !redeemed.includes(reward.id)) {
+        const repaired = [...redeemed, reward.id];
+        await AsyncStorage.setItem(REDEMPTIONS_KEY, JSON.stringify(repaired));
+        return { ok: false as const, reason: "already" as const, progress, redeemed: repaired };
+      }
+      return { ok: false as const, reason: "already" as const, progress, redeemed };
+    }
+    if (progress.coins < reward.cost) {
+      return { ok: false as const, reason: "coins" as const, progress, redeemed };
+    }
 
-  const nextProgress = {
-    ...progress,
-    coins: progress.coins - reward.cost,
-    events: [
-      ...progress.events,
-      {
-        id: `reward-${reward.id}-${Date.now()}`,
-        type: "milestone" as const,
-        amount: 0,
-        title: `Reward unlocked: ${reward.title}`,
-        timestamp: Date.now(),
-        metadata: { coins: -reward.cost, source: `reward:${reward.id}` },
-      },
-    ],
-  };
-  const nextRedeemed = [...redeemed, reward.id];
+    const nextProgress = {
+      ...progress,
+      coins: progress.coins - reward.cost,
+      events: [
+        ...progress.events,
+        {
+          id: `reward-${reward.id}-${Date.now()}`,
+          type: "milestone" as const,
+          amount: 0,
+          title: `Reward unlocked: ${reward.title}`,
+          timestamp: Date.now(),
+          metadata: { coins: -reward.cost, source: eventSource },
+        },
+      ],
+    };
+    const nextRedeemed = [...redeemed, reward.id];
 
-  await Promise.all([
-    progressRepository.save(nextProgress),
-    AsyncStorage.setItem(REDEMPTIONS_KEY, JSON.stringify(nextRedeemed)),
-  ]);
+    await Promise.all([
+      progressRepository.save(nextProgress),
+      AsyncStorage.setItem(REDEMPTIONS_KEY, JSON.stringify(nextRedeemed)),
+    ]);
 
-  return { ok: true as const, progress: nextProgress, redeemed: nextRedeemed };
+    return { ok: true as const, progress: nextProgress, redeemed: nextRedeemed };
+  });
 }

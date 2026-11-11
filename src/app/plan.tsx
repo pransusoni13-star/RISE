@@ -73,12 +73,34 @@ export default function PlanScreen() {
   const availableDay = getAvailableMissionDay(profile?.skillStartDate, missions.length || 1, completedDays);
   const activeMission = missions[availableDay - 1];
   const activeMissionComplete = Boolean(activeMission && completedIds.includes(activeMission.id));
+  const cycleComplete = missions.length > 0 && completedCount === missions.length;
 
   const openMission = (mission: PersonalizedMission) => {
     if (!isMissionAvailable(mission.day, profile?.skillStartDate, missions.length || 1, completedDays)) return;
     router.push({
       pathname: "/action",
       params: { mission: JSON.stringify(mission) },
+    } as any);
+  };
+
+  const openCycleQuiz = () => {
+    const finalMission = missions[missions.length - 1];
+    if (!finalMission || !profile) return;
+    router.push({
+      pathname: "/quiz",
+      params: {
+        cycleGate: "1",
+        cycleId: finalMission.id,
+        skillId: profile.weeklySkill || finalMission.skillId,
+        goal: profile.selectedGoals[0] || finalMission.goal,
+        goals: JSON.stringify(profile.selectedGoals),
+        commitment: profile.commitment || "Every 7 days",
+        focusSkill: finalMission.focusSkill,
+        missionTitle: finalMission.title,
+        missionSteps: JSON.stringify(finalMission.steps),
+        successCriteria: finalMission.successCriteria,
+        reflectionPrompt: finalMission.reflectionPrompt || "",
+      },
     } as any);
   };
 
@@ -152,8 +174,8 @@ export default function PlanScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { bottom: insets.bottom + 12 }]}>
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: activeMissionComplete }} disabled={activeMissionComplete} style={({ pressed }) => [styles.button, { backgroundColor: theme.accent }, activeMissionComplete && styles.buttonDisabled, pressed && styles.pressed]} onPress={() => activeMission ? openMission(activeMission) : router.push("/(tabs)/progress" as never)}>
-          <Text style={[styles.buttonText, { color: theme.accentInk }]}>{activeMissionComplete ? "Today complete — return tomorrow" : activeMission ? `${completedCount ? "Continue" : "Start"} Day ${activeMission.day} →` : "View my progress →"}</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: activeMissionComplete && !cycleComplete }} disabled={activeMissionComplete && !cycleComplete} style={({ pressed }) => [styles.button, { backgroundColor: theme.accent }, activeMissionComplete && !cycleComplete && styles.buttonDisabled, pressed && styles.pressed]} onPress={() => cycleComplete ? openCycleQuiz() : activeMission ? openMission(activeMission) : router.push("/(tabs)/progress" as never)}>
+          <Text style={[styles.buttonText, { color: theme.accentInk }]}>{cycleComplete ? "Take final rank trial →" : activeMissionComplete ? "Today complete — return tomorrow" : activeMission ? `${completedCount ? "Continue" : "Start"} Day ${activeMission.day} →` : "View my progress →"}</Text>
         </Pressable>
       </View>
     </View>
