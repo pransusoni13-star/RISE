@@ -36,3 +36,13 @@ test("settings supports one to three explicit reminder times", () => {
   assert.match(settings, /setDailyReminders\(enabled, selectedReminderTimes\)/);
   assert.match(settings, /Choose one to three times, then save\./);
 });
+
+test("rewards respects appearance and prevents duplicate unlock taps", () => {
+  const rewards = readFileSync(join(root, "src", "app", "rewards.tsx"), "utf8");
+  assert.match(rewards, /useRiseAppearance\(\)/);
+  assert.match(rewards, /redeemingId/);
+  assert.match(rewards, /if \(redeemingId\) return/);
+  assert.match(rewards, /busy: saving/);
+  assert.match(rewards, /Your coins are safe/);
+  assert.doesNotMatch(rewards, /backgroundColor:\s*"#010807"/);
+});
