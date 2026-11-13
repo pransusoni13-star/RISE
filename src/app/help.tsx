@@ -2,6 +2,7 @@ import React from "react";
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/support";
+import { useRiseAppearance } from "../services/appearance";
 
 const resources = [
   {
@@ -27,6 +28,7 @@ const resources = [
 ];
 
 export default function HelpScreen() {
+  const { theme } = useRiseAppearance();
   const open = async (url: string) => {
     try {
       await Linking.openURL(url);
@@ -36,60 +38,58 @@ export default function HelpScreen() {
   };
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>‹</Text>
-      </Pressable>
-      <Text style={styles.eyebrow}>RISE HELP CENTER</Text>
-      <Text style={styles.title}>Help that meets you where you are.</Text>
-      <Text style={styles.subtitle}>Quick answers for proof, safety, privacy, and getting useful support.</Text>
+    <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <Text style={[styles.eyebrow, { color: theme.accent }]}>RISE HELP CENTER</Text>
+      <Text style={[styles.title, { color: theme.text }]}>Help that meets you where you are.</Text>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>Quick answers for proof, safety, privacy, and getting useful support.</Text>
 
-      <Pressable accessibilityRole="button" style={styles.tourButton} onPress={() => router.push("/tour" as any)}>
-        <Text style={styles.tourEyebrow}>NEW TO RISE?</Text>
-        <Text style={styles.tourTitle}>Take the guided app tour →</Text>
-        <Text style={styles.tourText}>Learn where every main feature lives and what to do next.</Text>
+      <Pressable accessibilityRole="button" style={[styles.tourButton, { backgroundColor: theme.surfaceStrong, borderColor: theme.blueBorder }]} onPress={() => router.push("/tour" as any)}>
+        <Text style={[styles.tourEyebrow, { color: theme.accent }]}>NEW TO RISE?</Text>
+        <Text style={[styles.tourTitle, { color: theme.text }]}>Take the guided app tour →</Text>
+        <Text style={[styles.tourText, { color: theme.muted }]}>Learn where every main feature lives and what to do next.</Text>
       </Pressable>
 
-      <Text style={styles.section}>CONTACT RISE</Text>
+      <Text style={[styles.section, { color: theme.muted }]}>CONTACT RISE</Text>
       <Resource title="Email support" detail={SUPPORT_EMAIL} onPress={() => open(SUPPORT_MAILTO)} />
-      <Text selectable style={styles.subtitle}>Include your device, app version, what happened, and what you expected. Never send passwords, sign-in codes, or private proof. If your email app does not open, copy the address above into your email service. Support is not monitored for emergencies.</Text>
+      <Text selectable style={[styles.subtitle, { color: theme.muted }]}>Include your device, app version, what happened, and what you expected. Never send passwords, sign-in codes, or private proof. If your email app does not open, copy the address above into your email service. Support is not monitored for emergencies.</Text>
 
       {resources.map((item, index) => (
-        <View key={item.title} style={styles.card}>
-          <View style={styles.number}><Text style={styles.numberText}>{index + 1}</Text></View>
-          <View style={styles.cardBody}><Text style={styles.cardTitle}>{item.title}</Text><Text style={styles.cardText}>{item.text}</Text></View>
+        <View key={item.title} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.number, { backgroundColor: theme.blueSurface }]}><Text style={[styles.numberText, { color: theme.accent }]}>{index + 1}</Text></View>
+          <View style={styles.cardBody}><Text style={[styles.cardTitle, { color: theme.text }]}>{item.title}</Text><Text style={[styles.cardText, { color: theme.muted }]}>{item.text}</Text></View>
         </View>
       ))}
 
-      <Text style={styles.section}>TRUSTED EXTERNAL HELP</Text>
+      <Text style={[styles.section, { color: theme.muted }]}>TRUSTED EXTERNAL HELP</Text>
       <Resource title="Find local emotional-support services" detail="Global directory by country" onPress={() => open("https://findahelpline.com/")} />
       <Resource title="Google Safety Center" detail="Privacy, security, and family resources" onPress={() => open("https://safety.google/")} />
       <Resource title="YouTube Help" detail="Copyright, privacy, and creator guidance" onPress={() => open("https://support.google.com/youtube/")} />
 
-      <View style={styles.notice}>
+      <View style={[styles.notice, { backgroundColor: theme.surface, borderColor: theme.mode === "dark" ? "#633B38" : "#D9A29C" }]}>
         <Text style={styles.noticeTitle}>In immediate danger?</Text>
-        <Text style={styles.noticeText}>RISE is not an emergency service. Contact your local emergency number or a trusted person nearby.</Text>
+        <Text style={[styles.noticeText, { color: theme.text }]}>RISE is not an emergency service. Contact your local emergency number or a trusted person nearby.</Text>
       </View>
 
-      <Pressable accessibilityRole="button" style={styles.legalButton} onPress={() => router.push("/legal" as any)}>
-        <Text style={styles.legalButtonText}>Read Privacy, Safety & Terms →</Text>
+      <Pressable accessibilityRole="button" style={[styles.legalButton, { backgroundColor: theme.accent }]} onPress={() => router.push("/legal" as any)}>
+        <Text style={[styles.legalButtonText, { color: theme.accentInk }]}>Read Privacy, Safety & Terms →</Text>
       </Pressable>
     </ScrollView>
   );
 }
 
 function Resource({ title, detail, onPress }: { title: string; detail: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="link" onPress={onPress} style={({ pressed }) => [styles.resource, pressed && { opacity: 0.7 }]}>
-    <View style={styles.cardBody}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.cardText}>{detail}</Text></View><Text style={styles.arrow}>↗</Text>
+  const { theme } = useRiseAppearance();
+  return <Pressable accessibilityRole="link" onPress={onPress} style={({ pressed }) => [styles.resource, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: 0.7 }]}>
+    <View style={styles.cardBody}><Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.cardText, { color: theme.muted }]}>{detail}</Text></View><Text style={[styles.arrow, { color: theme.accent }]}>↗</Text>
   </Pressable>;
 }
 
 const styles = StyleSheet.create({
-  page:{flex:1,backgroundColor:"#010807"},content:{padding:22,paddingTop:45,paddingBottom:60},back:{width:42,height:42,borderRadius:21,borderWidth:1,borderColor:"#29483B",alignItems:"center",justifyContent:"center",marginBottom:25},backText:{color:"#7AF5B8",fontSize:30,marginTop:-4},
-  eyebrow:{color:"#7AF5B8",fontSize:10,fontWeight:"900",letterSpacing:1.4},title:{color:"#F5FFF9",fontSize:36,lineHeight:42,fontWeight:"900",marginTop:10},subtitle:{color:"#BBD8C8",fontSize:15,lineHeight:23,marginTop:12,marginBottom:24},
-  card:{flexDirection:"row",backgroundColor:"#071B16",borderRadius:18,borderWidth:1,borderColor:"#1E3A31",padding:15,marginBottom:10},number:{width:32,height:32,borderRadius:16,backgroundColor:"#11382B",alignItems:"center",justifyContent:"center",marginRight:12},numberText:{color:"#7AF5B8",fontWeight:"900"},cardBody:{flex:1},cardTitle:{color:"#F5FFF9",fontSize:14,fontWeight:"900"},cardText:{color:"#A7CBB7",fontSize:12,lineHeight:18,marginTop:5},
-  section:{color:"#8FB6A2",fontSize:10,fontWeight:"900",letterSpacing:1.3,marginTop:20,marginBottom:10},resource:{flexDirection:"row",alignItems:"center",backgroundColor:"#071B16",borderRadius:16,borderWidth:1,borderColor:"#1E3A31",padding:15,marginBottom:9},arrow:{color:"#7AF5B8",fontSize:20,marginLeft:10},
-  notice:{backgroundColor:"rgba(255,180,168,0.08)",borderColor:"rgba(255,180,168,0.25)",borderWidth:1,borderRadius:17,padding:16,marginTop:18},noticeTitle:{color:"#FFB4A8",fontWeight:"900"},noticeText:{color:"#DCECE3",fontSize:12,lineHeight:19,marginTop:6},
-  legalButton:{height:58,borderRadius:29,backgroundColor:"#7AF5B8",alignItems:"center",justifyContent:"center",marginTop:18},legalButtonText:{color:"#010807",fontWeight:"900",fontSize:14},
-  tourButton:{backgroundColor:"#0D2F22",borderRadius:20,borderWidth:1,borderColor:"#346249",padding:18,marginBottom:6},tourEyebrow:{color:"#7AF5B8",fontSize:9,fontWeight:"900",letterSpacing:1.2},tourTitle:{color:"#F5FFF9",fontSize:18,fontWeight:"900",marginTop:7},tourText:{color:"#A7CBB7",fontSize:12,lineHeight:18,marginTop:5},
+  page:{flex:1},content:{width:"100%",maxWidth:760,alignSelf:"center",padding:22,paddingTop:30,paddingBottom:60},
+  eyebrow:{fontSize:10,fontWeight:"900",letterSpacing:1.4},title:{fontSize:36,lineHeight:42,fontWeight:"900",marginTop:10},subtitle:{fontSize:15,lineHeight:23,marginTop:12,marginBottom:24},
+  card:{flexDirection:"row",borderRadius:18,borderWidth:1,padding:15,marginBottom:10},number:{width:32,height:32,borderRadius:16,alignItems:"center",justifyContent:"center",marginRight:12},numberText:{fontWeight:"900"},cardBody:{flex:1},cardTitle:{fontSize:14,fontWeight:"900"},cardText:{fontSize:12,lineHeight:18,marginTop:5},
+  section:{fontSize:10,fontWeight:"900",letterSpacing:1.3,marginTop:20,marginBottom:10},resource:{flexDirection:"row",alignItems:"center",borderRadius:16,borderWidth:1,padding:15,marginBottom:9},arrow:{fontSize:20,marginLeft:10},
+  notice:{borderWidth:1,borderRadius:17,padding:16,marginTop:18},noticeTitle:{color:"#C45145",fontWeight:"900"},noticeText:{fontSize:12,lineHeight:19,marginTop:6},
+  legalButton:{height:58,borderRadius:29,alignItems:"center",justifyContent:"center",marginTop:18},legalButtonText:{fontWeight:"900",fontSize:14},
+  tourButton:{borderRadius:20,borderWidth:1,padding:18,marginBottom:6},tourEyebrow:{fontSize:9,fontWeight:"900",letterSpacing:1.2},tourTitle:{fontSize:18,fontWeight:"900",marginTop:7},tourText:{fontSize:12,lineHeight:18,marginTop:5},
 });

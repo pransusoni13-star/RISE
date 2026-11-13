@@ -46,3 +46,15 @@ test("rewards respects appearance and prevents duplicate unlock taps", () => {
   assert.match(rewards, /Your coins are safe/);
   assert.doesNotMatch(rewards, /backgroundColor:\s*"#010807"/);
 });
+
+test("member help and synced progress respect the shared appearance", () => {
+  const help = readFileSync(join(root, "src", "app", "help.tsx"), "utf8");
+  const progress = readFileSync(join(root, "src", "app", "account-progress.tsx"), "utf8");
+  for (const source of [help, progress]) {
+    assert.match(source, /useRiseAppearance\(\)/);
+    assert.match(source, /theme\.background/);
+    assert.match(source, /theme\.text/);
+  }
+  assert.doesNotMatch(help, /accessibilityLabel="Go back"/);
+  assert.doesNotMatch(progress, /accessibilityLabel="Go back"/);
+});
