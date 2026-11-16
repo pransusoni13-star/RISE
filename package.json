@@ -33,14 +33,17 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
-    "@expo/ngrok": "^4.1.3",
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
     "typescript": "~6.0.3"
   },
   "overrides": {
-    "node-forge": "1.4.2"
+    "decode-uri-component": "0.5.1",
+    "node-forge": "1.4.3",
+    "@expo/fingerprint": {
+      "minimatch": "11.0.8"
+    }
   },
   "scripts": {
     "start": "expo start",
@@ -53,6 +56,7 @@
     "test:logic": "node --experimental-strip-types --test scripts/cycle-quiz.test.mjs scripts/day-unlock.test.mjs scripts/growth-loop.test.mjs scripts/mission-progress.test.mjs scripts/navigation-contract.test.mjs scripts/project-ideas.test.mjs scripts/proof-validation.test.mjs scripts/release-contract.test.mjs scripts/serialized-mutations.test.mjs",
     "check": "npm run typecheck && npm run lint && expo install --check",
     "testflight:preflight": "node scripts/testflight-preflight.mjs",
+    "appstore:preflight": "node scripts/app-store-preflight.mjs",
     "security:audit": "node scripts/security-audit.mjs"
   },
   "private": true

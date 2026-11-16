@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { LAUNCH_JURISDICTION, LEGAL_IDENTITY_READY, OPERATOR_LEGAL_NAME, OPERATOR_MAILING_ADDRESS } from "../constants/legal";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/support";
 
-const UPDATED = "October 23, 2026";
+const UPDATED = "November 16, 2026";
 
 export default function TermsScreen() {
   return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -24,7 +25,9 @@ export default function TermsScreen() {
     <Section title="Results and disclaimers">RISE does not guarantee income, employment, grades, health, audience growth, virality, retention, or any specific result. To the fullest extent permitted by applicable law, the beta is provided “as is” and “as available.” Nothing in these Terms excludes a right or remedy that cannot legally be excluded.</Section>
     <Section title="Responsibility and liability">You are responsible for deciding whether a mission is safe, lawful, and suitable. To the fullest extent permitted by applicable law, RISE is not liable for indirect, incidental, special, consequential, or lost-profit damages arising from beta use. This limitation does not apply where prohibited or to liability that cannot legally be limited.</Section>
     <Section title="Deletion and ending use">You can stop using RISE at any time. Settings lets you erase local data and, when signed in, request deletion of the account and active-service records. RISE may suspend access for serious misuse, security risk, or legal necessity. Provisions that logically survive termination—including ownership, disclaimers, and lawful limitations—remain effective.</Section>
-    <Section title="Changes and applicable law">Material changes will be identified in the app or through another appropriate notice before they take effect. Mandatory consumer and privacy protections in your location continue to apply. The final operator legal name, address, and launch-jurisdiction clause must be completed before App Store release; RISE will not invent those details.</Section>
+    <Section title="Changes and applicable law">{LEGAL_IDENTITY_READY
+      ? `Material changes will be identified in the app or through another appropriate notice before they take effect. These Terms are governed by the laws of ${LAUNCH_JURISDICTION}, while mandatory consumer and privacy protections in your location continue to apply. The service is operated by ${OPERATOR_LEGAL_NAME}, ${OPERATOR_MAILING_ADDRESS}.`
+      : "Material changes will be identified in the app or through another appropriate notice before they take effect. Mandatory consumer and privacy protections in your location continue to apply. The verified operator identity, mailing address, and launch jurisdiction must be configured before public App Store release."}</Section>
     <Section title="Contact">Questions about these Terms can be sent to {SUPPORT_EMAIL}. Never email a password, verification token, or private proof file.</Section>
 
     <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)} style={styles.secondaryButton}><Text style={styles.secondaryText}>Read the Privacy Policy</Text></Pressable>

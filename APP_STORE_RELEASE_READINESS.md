@@ -1,14 +1,14 @@
 # RISE App Store release readiness
 
-Updated: 2026-11-04
+Updated: 2026-11-16
 
 ## Current decision
 
-RISE is **not ready for public App Store submission yet**. TestFlight build 17 remains the latest binary and receives compatible runtime `1.0.0` updates. The repository is configured for iOS build 19, but a new binary should not be uploaded until the blocking items below are resolved and the preflight passes.
+RISE is **not ready for public App Store submission yet**. TestFlight build 22 is the latest verified uploaded binary. A new binary must use build 23 or higher, but it must not be submitted until the blocking items below are resolved and both automated preflights pass.
 
 ## Verified complete
 
-- Production backend commit `57c40b0` is deployed and `/health` returns `ok`.
+- Production `/health` returns `ok` and the public API reports version `1.2.0`.
 - Public API configuration reports API version `1.2.0`.
 - Privacy Policy, Privacy Choices, and Support pages are live over HTTPS.
 - Email/password accounts, verification and password-reset token flows, export, sign-out, and in-app account deletion are implemented.
@@ -20,11 +20,13 @@ RISE is **not ready for public App Store submission yet**. TestFlight build 17 r
 - The app has no purchases, subscriptions, advertising SDK, or third-party analytics SDK.
 - App tracking is not used.
 - Account deletion is available inside the app.
-- The project currently has no critical dependency-audit findings.
+- `npm audit` and the production security gate currently report zero known vulnerabilities.
+- Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 39 app logic tests pass, and 36 backend tests pass.
+- The App Store preflight prevents a public submission when email delivery, operator identity, jurisdiction, or the release build number is incomplete.
 
 ## Blocking before a new TestFlight binary
 
-1. **Transactional email:** public API configuration currently reports `email_delivery_ready: false`. Supply a RISE-owned domain, verify it in Resend with SPF, DKIM, and DMARC, then set Render's `RISE_EMAIL_FROM` (or the supported sender variable) and `RISE_RESEND_API_KEY`. A personal Gmail address or `onboarding@resend.dev` is not a production sender.
+1. **Transactional email:** public API configuration currently reports `email_delivery_ready: false`. Supply a RISE-owned domain, verify it in Resend with SPF, DKIM, and DMARC, then set Render's `RISE_EMAIL_FROM` and `RISE_RESEND_API_KEY`. A personal Gmail address or `onboarding@resend.dev` is not a production sender.
 2. Run `npm run testflight:preflight` until it passes. Do not bypass its email-delivery check.
 3. Complete the physical-iPhone QA checklist below on the exact release candidate.
 
@@ -32,7 +34,7 @@ RISE is **not ready for public App Store submission yet**. TestFlight build 17 r
 
 ### Founder/legal information
 
-1. Replace the placeholders in the in-app Privacy Policy and Terms with the verified operator legal name, mailing address, and launch-jurisdiction wording. Have qualified counsel review the final documents; this repository cannot provide a guarantee against legal claims.
+1. Set `EXPO_PUBLIC_OPERATOR_LEGAL_NAME`, `EXPO_PUBLIC_OPERATOR_MAILING_ADDRESS`, and `EXPO_PUBLIC_LAUNCH_JURISDICTION` to verified public facts in the EAS production environment. The in-app Privacy Policy, Terms, and Safety Disclosure now read these values and the App Store preflight rejects missing or placeholder values. Have qualified counsel review the final documents; this repository cannot provide a guarantee against legal claims.
 2. Confirm the monitored support contact and a deletion-request contact/process.
 3. Confirm the minimum audience age and complete the age-rating questionnaire truthfully. If RISE will knowingly serve children under 13, obtain a specific COPPA review before launch.
 
@@ -89,6 +91,8 @@ Only after the blockers are cleared:
 npm run check
 npm run test:logic
 npm run testflight:preflight
+npm run appstore:preflight
+npm run security:audit
 npx expo-doctor
 npx eas-cli build --profile testflight --platform ios --auto-submit --non-interactive
 ```

@@ -17,7 +17,20 @@ test("the app and API require the same release contract", () => {
 
 test("the safely patchable node-forge advisory stays overridden", () => {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  assert.equal(packageJson.overrides?.["node-forge"], "1.4.2");
+  assert.equal(packageJson.overrides?.["node-forge"], "1.4.3");
+  assert.equal(packageJson.overrides?.["decode-uri-component"], "0.5.1");
+  assert.equal(packageJson.overrides?.["@expo/fingerprint"]?.minimatch, "11.0.8");
+});
+
+test("public App Store release has an automated legal and service gate", () => {
+  const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const preflight = readFileSync(join(root, "scripts", "app-store-preflight.mjs"), "utf8");
+  const legal = readFileSync(join(root, "src", "constants", "legal.ts"), "utf8");
+  assert.equal(packageJson.scripts?.["appstore:preflight"], "node scripts/app-store-preflight.mjs");
+  for (const name of ["EXPO_PUBLIC_OPERATOR_LEGAL_NAME", "EXPO_PUBLIC_OPERATOR_MAILING_ADDRESS", "EXPO_PUBLIC_LAUNCH_JURISDICTION"]) {
+    assert.match(preflight, new RegExp(name));
+    assert.match(legal, new RegExp(name));
+  }
 });
 
 test("installed builds can safely check, download, and apply an OTA update", () => {

@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { router } from "expo-router";
 import { deleteAllRiseData } from "../services/localData";
 import { cancelDailyReminder } from "../services/reminders";
+import { LAUNCH_JURISDICTION, LEGAL_IDENTITY_READY, OPERATOR_LEGAL_NAME, OPERATOR_MAILING_ADDRESS } from "../constants/legal";
 import { SUPPORT_EMAIL } from "../constants/support";
 
 export default function LegalScreen() {
@@ -72,7 +73,9 @@ export default function LegalScreen() {
       The current native app does not set advertising cookies, include an analytics SDK, or send marketing email. A cookie banner or unsubscribe link would be misleading today. If the future website or app adds non-essential cookies, analytics, advertising, or email marketing, RISE must add the required notice, consent, and opt-out controls before enabling them.
     </Section>
     <Section title="Operator and contact details">
-      {`For support, privacy questions, or a deletion problem, contact ${SUPPORT_EMAIL}. Never send passwords or sign-in codes. Before distribution, the operator must still publish their legal name, address where required, final Privacy Policy and Terms, and a privacy-request response process. The support email alone does not complete those requirements.`}
+      {LEGAL_IDENTITY_READY
+        ? `${OPERATOR_LEGAL_NAME}, ${OPERATOR_MAILING_ADDRESS}, operates RISE from ${LAUNCH_JURISDICTION}. For support, privacy questions, or a deletion problem, contact ${SUPPORT_EMAIL}. Never send passwords or sign-in codes.`
+        : `For support, privacy questions, or a deletion problem, contact ${SUPPORT_EMAIL}. Never send passwords or sign-in codes. The verified operator identity, mailing address, and launch jurisdiction must be configured before public App Store release.`}
     </Section>
     <Section title="Age and family safety">
       RISE is intended for people age 13 and older and is not offered in the App Store Kids Category. It does not include verified parental consent. Distribution to children would require age-appropriate notices, high-privacy defaults, parental controls where required, and a formal child-safety assessment.
@@ -84,10 +87,10 @@ export default function LegalScreen() {
     <Pressable accessibilityRole="button" style={styles.helpButton} onPress={() => router.push("/help" as any)}><Text style={styles.helpText}>Open Help Center →</Text></Pressable>
     <Pressable accessibilityRole="link" style={styles.policyButton} onPress={() => router.push("/privacy" as any)}><Text style={styles.policyText}>Read the Privacy Policy →</Text></Pressable>
     <Pressable accessibilityRole="link" style={styles.policyButton} onPress={() => router.push("/terms" as any)}><Text style={styles.policyText}>Read the Terms of Use →</Text></Pressable>
-    <View style={styles.notice}>
-      <Text style={styles.noticeTitle}>Before public release</Text>
-      <Text style={styles.noticeText}>A lawyer should tailor the final Privacy Policy and Terms to the launch countries, age audience, business entity, analytics, subscriptions, and any future cloud backend. This screen is a truthful product disclosure, not legal advice.</Text>
-    </View>
+    {!LEGAL_IDENTITY_READY ? <View style={styles.notice}>
+      <Text style={styles.noticeTitle}>Beta disclosure</Text>
+      <Text style={styles.noticeText}>The operator identity and launch jurisdiction are not configured in this beta. Public App Store submission is blocked until they are supplied and the final policies are reviewed for the launch countries and audience.</Text>
+    </View> : null}
   </ScrollView>;
 }
 

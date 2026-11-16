@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { LEGAL_IDENTITY_READY, OPERATOR_LEGAL_NAME, OPERATOR_MAILING_ADDRESS } from "../constants/legal";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/support";
 
-const UPDATED = "October 23, 2026";
+const UPDATED = "November 16, 2026";
 
 export default function PrivacyScreen() {
   return (
@@ -19,7 +20,9 @@ export default function PrivacyScreen() {
       </Text>
 
       <Section title="Who is responsible">
-        RISE operates this beta and is responsible for the information described here. For privacy questions, access requests, complaints, or deletion help, email {SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email. The operator’s legal name and required mailing address must be added before App Store release; the support email alone does not complete that launch requirement.
+        {LEGAL_IDENTITY_READY
+          ? `${OPERATOR_LEGAL_NAME}, located at ${OPERATOR_MAILING_ADDRESS}, operates RISE and is responsible for the information described here. For privacy questions, access requests, complaints, or deletion help, email ${SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email.`
+          : `RISE operates this beta and is responsible for the information described here. For privacy questions, access requests, complaints, or deletion help, email ${SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email. The operator’s verified legal name and mailing address must be configured before public App Store release.`}
       </Section>
       <Section title="Information kept on your device">
         Guest plans, mission steps, reflections, feedback copies, rewards, queued sync updates, and proof-file references are stored on your device. Proof photos and videos are not uploaded by the RISE beta. Optional faith or belief preferences use protected device storage in the native app and session-only memory on the website.
@@ -40,7 +43,7 @@ export default function PrivacyScreen() {
         Render hosts the account API and database; Resend or a configured authenticated SMTP provider delivers transactional account and feedback email; Vercel hosts the public website; Expo/EAS provides app builds and updates; and Apple provides TestFlight and App Store distribution. These providers may process service data and technical records in countries outside your province or country under their own infrastructure and contractual safeguards. YouTube, Google Maps, and other resources open outside RISE and follow their own privacy policies. RISE does not sell personal information, share it for cross-context behavioral advertising, or use an advertising SDK in this beta.
       </Section>
       <Section title="Security and retention">
-        RISE uses short-lived access tokens, revocable refresh sessions, protected password hashes, input limits, and encrypted HTTPS connections in production. No service can promise absolute security. Account, progress, and submitted feedback records are kept while the account is active. Verification links expire after 24 hours, password-reset links after 30 minutes, access tokens within 15 minutes, and refresh sessions after the configured period of no more than 90 days. In-app account deletion removes the active account and associated active-service records. Provider logs and backups may persist for their configured cycles; those exact production schedules must be documented before App Store release. A limited record may be retained only where required for security or law.
+        RISE uses short-lived access tokens, revocable refresh sessions, protected password hashes, input limits, and encrypted HTTPS connections in production. No service can promise absolute security. Account, progress, and submitted feedback records are kept while the account is active. Verification links expire after 24 hours, password-reset links after 30 minutes, access tokens within 15 minutes, and refresh sessions after the configured period of no more than 90 days. In-app account deletion removes the active account and associated active-service records. Infrastructure logs and encrypted backups may remain until each provider’s normal retention cycle completes. A limited record may be retained only where required for security or law.
       </Section>
       <Section title="Your choices">
         Settings lets you export local and synced account information, turn optional analytics and comparison on or off, delete local data, and delete your account. You may contact support to request access, correction, deletion, portability help, consent withdrawal, or to challenge RISE’s handling of your information. Withdrawing an optional choice does not block the core app. Rights vary by location and RISE will not discriminate for using a legal privacy right.
