@@ -1,13 +1,13 @@
 # RISE Python backend
 
-FastAPI service for beta accounts, founding-member entitlements, skill selection, and measurable progress.
+FastAPI service for RISE accounts, founding-member entitlements, skill selection, and measurable progress.
 
 ## Local setup
 
 ```powershell
 cd backend
 py -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
+.\.venv\Scripts\python -m pip install -r requirements-dev.txt
 Copy-Item .env.example .env
 .\.venv\Scripts\python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -35,7 +35,7 @@ The command refuses to create more than 60 total invitations. Each code is rando
 
 The current entitlement records one free year from code activation. Billing is not implemented; any future billing service must honor `founding_expires_at` and must not charge founding members before that date.
 
-## Private beta analytics and optional comparison
+## Private improvement analytics and optional comparison
 
 Set a separate, random `RISE_ADMIN_API_KEY` (at least 32 characters). The private `/admin/analytics` endpoint returns aggregate member activity plus up to 100 ID-only member summaries. It includes signups, active members, completed missions, focused minutes, estimated signup time, and time from account creation to the first mission. Signup timing is client-reported, so treat it as directional rather than audited. Proof files and reflection text are not included. Never put the admin key in an `EXPO_PUBLIC_` variable or the app bundle.
 
@@ -45,4 +45,4 @@ Community comparison is opt-in. It shows a member only their own mission-count r
 
 ## Founding-member launch switch
 
-Keep `RISE_FOUNDING_REDEMPTION_ENABLED=false` through TestFlight. After the public App Store release is live and the waitlist invitations have been delivered, set it to `true` on the server and restart the API. The app reads `/config/public` and reveals the claim UI at that point. A person who created a TestFlight account can claim later with the email-bound code; the free year starts on successful claim, not during the beta. Do not enable this switch merely because the TestFlight build passed review.
+Keep `RISE_FOUNDING_REDEMPTION_ENABLED=false` through TestFlight. After the public App Store release is live and the waitlist invitations have been delivered, set it to `true` on the server and restart the API. The app reads `/config/public` and reveals the claim UI at that point. A person who created an earlier account can claim later with the email-bound code; the free year starts on successful claim, not during TestFlight. Do not enable this switch merely because the TestFlight build passed review.

@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { hasCompletedRequiredTour } from "../../services/tourState";
 import { useRiseAppearance } from "../../services/appearance";
+import { consentRepository } from "../../services/consentRepository";
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
@@ -12,8 +13,12 @@ export default function TabsLayout() {
 
   useEffect(() => {
     let active = true;
-    void hasCompletedRequiredTour().then((complete) => {
+    void Promise.all([consentRepository.hasCurrentConsent(), hasCompletedRequiredTour()]).then(([hasCurrentConsent, complete]) => {
       if (!active) return;
+      if (!hasCurrentConsent) {
+        router.replace({ pathname: "/onboarding", params: { next: "today", reacknowledge: "1" } } as never);
+        return;
+      }
       if (!complete) {
         router.replace({ pathname: "/tour", params: { required: "1" } } as never);
         return;

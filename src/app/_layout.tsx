@@ -13,6 +13,13 @@ const ANALYTICS_FLUSH_INTERVAL_MS = 5 * 60 * 1000;
 
 function ScreenErrorBoundary({ retry }: ErrorBoundaryProps) {
   const { theme } = useRiseAppearance();
+  const returnToSafeScreen = async () => {
+    try {
+      router.replace((await hasSavedProfile()) ? "/(tabs)/today" as never : "/" as never);
+    } catch {
+      router.replace("/" as never);
+    }
+  };
   return <View style={[styles.errorScreen, { backgroundColor: theme.background }]}>
     <Text style={[styles.errorEyebrow, { color: theme.accent }]}>YOUR PROGRESS IS SAFE</Text>
     <Text style={[styles.errorTitle, { color: theme.text }]}>This screen needs another try.</Text>
@@ -20,8 +27,8 @@ function ScreenErrorBoundary({ retry }: ErrorBoundaryProps) {
     <Pressable accessibilityRole="button" onPress={() => void retry()} style={[styles.errorButton, { backgroundColor: theme.accent }]}>
       <Text style={[styles.errorButtonText, { color: theme.background }]}>Try again</Text>
     </Pressable>
-    <Pressable accessibilityRole="button" onPress={() => router.replace("/(tabs)/today" as never)}>
-      <Text style={[styles.errorLink, { color: theme.accent }]}>Return to Today</Text>
+    <Pressable accessibilityRole="button" onPress={() => void returnToSafeScreen()}>
+      <Text style={[styles.errorLink, { color: theme.accent }]}>Return to RISE</Text>
     </Pressable>
   </View>;
 }

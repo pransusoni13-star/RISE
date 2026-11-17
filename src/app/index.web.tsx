@@ -49,7 +49,7 @@ const examples = [
 const faqs = [
   {
     question: "Does RISE require payment or an account?",
-    answer: "No. The beta is free and collects no payment. You can start a guest plan on this device; an optional account syncs goals and progress. Proof photos and videos remain on your device.",
+    answer: "No. RISE is currently free and collects no payment. You can start a guest plan on this device; an optional account syncs goals and progress. Proof photos and videos remain on your device.",
   },
   {
     question: "Does RISE guarantee that submitted proof is authentic?",
@@ -154,7 +154,7 @@ export default function WebHomeScreen() {
 
         <View style={[styles.hero, compact && styles.heroCompact]}>
           <View style={[styles.heroCopy, compact && styles.heroCopyCompact]}>
-            <View style={styles.betaPill}><View style={styles.betaDot} /><Text style={styles.betaText}>FREE BETA · PRIVATE PROOF · NO CREDIT CARD</Text></View>
+            <View style={styles.betaPill}><View style={styles.betaDot} /><Text style={styles.betaText}>FREE TO START · PRIVATE PROOF · NO CREDIT CARD</Text></View>
             <Text accessibilityRole="header" style={[styles.heroTitle, compact && styles.heroTitleCompact]}>
               One small win, every day.
             </Text>
@@ -165,7 +165,7 @@ export default function WebHomeScreen() {
               <ActionButton label="Build my free plan →" onPress={() => router.push("/account" as never)} />
               <ActionButton label="Explore the experience" secondary onPress={() => router.push("/(tabs)/today" as never)} />
             </View>
-            <Text style={styles.microcopy}>Free during beta · No credit card · Your pace</Text>
+            <Text style={styles.microcopy}>Free to start · No credit card · Your pace</Text>
           </View>
 
           <View style={[styles.productFrame, compact && styles.productFrameCompact]} accessibilityLabel="Example personalized RISE mission">

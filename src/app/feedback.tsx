@@ -96,7 +96,7 @@ export default function FeedbackScreen() {
   };
 
   const openEmailDraft = async () => {
-    const subject = encodeURIComponent("RISE beta feedback");
+    const subject = encodeURIComponent("RISE app feedback");
     const feedbackText = message.trim() || lastSubmittedMessage;
     const body = encodeURIComponent(feedbackText ? `Feedback for RISE:\n\n${feedbackText}` : "Feedback for RISE:\n\n");
     const url = `mailto:rise.app13@gmail.com?subject=${subject}&body=${body}`;

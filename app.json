@@ -20,8 +20,13 @@
       "appleTeamId": "C428XF4X3T",
       "bundleIdentifier": "com.riseapp13.riseapp",
       "icon": "./assets/images/rise-icon.png",
-      "buildNumber": "22",
+      "buildNumber": "23",
       "supportsTablet": false,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false
+        }
+      },
       "config": {
         "usesNonExemptEncryption": false
       }

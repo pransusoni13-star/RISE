@@ -165,9 +165,39 @@ def test_founding_registration_and_progress_are_idempotent(monkeypatch) -> None:
         export = client.get("/users/me/export", headers=headers)
         assert export.status_code == 200
         assert export.json()["account"]["email"] == "founder@example.com"
+        assert export.json()["format_version"] == 2
+        assert export.json()["founding_invites"] == [
+            {
+                "id": export.json()["founding_invites"][0]["id"],
+                "email": "founder@example.com",
+                "created_at": export.json()["founding_invites"][0]["created_at"],
+                "claimed_at": export.json()["founding_invites"][0]["claimed_at"],
+                "claimed_by_user_id": session["user"]["id"],
+            }
+        ]
+        assert "code_hash" not in export.json()["founding_invites"][0]
         assert len(export.json()["progress_events"]) == 2
         assert client.delete("/users/me", headers=headers).status_code == 204
         assert client.get("/users/me", headers=headers).status_code == 401
+        with SessionLocal() as db:
+            assert db.query(FoundingInvite).filter(FoundingInvite.email == "founder@example.com").one_or_none() is None
+
+
+def test_account_deletion_removes_an_unclaimed_email_bound_invite() -> None:
+    with TestClient(app) as client:
+        response = client.post("/auth/register", json={"email": "founder@example.com", "password": "very-secure-password", "display_name": "Unclaimed Founder"})
+        assert response.status_code == 201
+        headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+        exported = client.get("/users/me/export", headers=headers).json()
+        assert exported["founding_invites"][0]["email"] == "founder@example.com"
+        assert exported["founding_invites"][0]["claimed_at"] is None
+        assert exported["founding_invites"][0]["claimed_by_user_id"] is None
+        assert "code_hash" not in exported["founding_invites"][0]
+
+        assert client.delete("/users/me", headers=headers).status_code == 204
+        with SessionLocal() as db:
+            assert db.query(FoundingInvite).filter(FoundingInvite.email == "founder@example.com").one_or_none() is None
 
 
 def test_leaderboard_counts_only_current_month_missions() -> None:
@@ -312,9 +342,52 @@ def test_production_settings_reject_resend_testing_sender() -> None:
         assert "testing-only" in str(error)
 
 
+def test_production_settings_validate_the_selected_provider_sender() -> None:
+    common = {
+        "env": "production",
+        "jwt_secret": "a-strong-production-secret-at-least-32",
+        "database_url": "postgresql+psycopg://rise:password@db/rise",
+        "allowed_origins": "https://rise.example",
+        "admin_api_key": "test-admin-key-long-enough-for-a-test-123",
+        "public_app_url": "https://rise.example",
+    }
+
+    Settings(
+        **common,
+        email_provider="resend",
+        resend_api_key="re_test_key",
+        resend_from_email="RISE <hello@rise.example>",
+    ).validate_for_startup()
+
+    try:
+        Settings(
+            **common,
+            email_provider="resend",
+            resend_api_key="re_test_key",
+            email_from="RISE <hello@rise.example>",
+            resend_from_email="RISE <onboarding@resend.dev>",
+        ).validate_for_startup()
+        assert False, "the selected Resend sender should be validated instead of the fallback sender"
+    except RuntimeError as error:
+        assert "testing-only" in str(error)
+
+    try:
+        Settings(
+            **common,
+            email_provider="smtp",
+            smtp_host="smtp.example",
+            smtp_username="rise",
+            smtp_password="private-test-password",
+        ).validate_for_startup()
+        assert False, "SMTP should not send from the shared Resend testing identity"
+    except RuntimeError as error:
+        assert "testing-only" in str(error)
+
+
 def test_email_delivery_readiness_rejects_shared_sender_and_accepts_authenticated_sender() -> None:
     assert Settings(resend_api_key="re_test_key").email_delivery_ready is False
     assert Settings(resend_api_key="re_test_key", resend_from_email="RISE <hello@rise.example>").email_delivery_ready is True
+    assert Settings(email_provider="smtp", smtp_host="smtp.example", smtp_username="rise", smtp_password="private-test-password").email_delivery_ready is False
     assert Settings(email_provider="smtp", smtp_host="smtp.example", smtp_username="rise", smtp_password="private-test-password", email_from="RISE <hello@rise.example>").email_delivery_ready is True
 
 

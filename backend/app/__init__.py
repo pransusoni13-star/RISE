@@ -1,1 +1,1 @@
-"""RISE beta API."""
+"""RISE application API."""

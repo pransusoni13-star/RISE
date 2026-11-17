@@ -203,7 +203,7 @@ def test_feedback_uses_dedicated_resend_https_sender_when_smtp_is_selected(monke
     assert isinstance(payload, dict)
     assert payload["from"] == "RISE Feedback <onboarding@resend.dev>"
     assert payload["to"] == ["rise.app13@gmail.com"]
-    assert payload["subject"] == "[RISE beta feedback] Bug · 2/5"
+    assert payload["subject"] == "[RISE app feedback] Bug · 2/5"
 
 
 def test_feedback_falls_back_to_smtp_when_dedicated_resend_sender_fails(monkeypatch) -> None:

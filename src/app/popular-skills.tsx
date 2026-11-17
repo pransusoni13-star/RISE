@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getPopularSkills, PopularSkill, recordProgressEvent } from "../services/auth";
+import { consentRepository } from "../services/consentRepository";
 import { updateProfile } from "../services/personalization";
 
 export default function PopularSkillsScreen() {
@@ -12,7 +13,23 @@ export default function PopularSkillsScreen() {
   const [customHovered, setCustomHovered] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
-  useEffect(() => { void getPopularSkills().then(setSkills).finally(() => setLoading(false)); }, []);
+  useEffect(() => {
+    let active = true;
+    void consentRepository.hasCurrentConsent().then(async (hasCurrentConsent) => {
+      if (!active) return;
+      if (!hasCurrentConsent) {
+        router.replace({ pathname: "/onboarding", params: { next: "popular-skills", reacknowledge: "1" } } as never);
+        return;
+      }
+      const nextSkills = await getPopularSkills();
+      if (active) setSkills(nextSkills);
+    }).catch(() => {
+      if (active) router.replace({ pathname: "/onboarding", params: { next: "popular-skills", reacknowledge: "1" } } as never);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   const startSkill = async (skill: PopularSkill) => {
     if (starting) return;
@@ -51,7 +68,7 @@ export default function PopularSkillsScreen() {
     <Text style={styles.note}>Nothing is permanent. You can adjust your goal, pace, and skill mix whenever life changes.</Text>
   </ScrollView><SafeAreaView edges={["bottom"]} style={styles.footer}><View style={styles.footerInner}>
     <Text style={styles.footerHint}>Have something else in mind?</Text>
-    <Pressable accessibilityRole="button" onHoverIn={() => setCustomHovered(true)} onHoverOut={() => setCustomHovered(false)} onFocus={() => setCustomHovered(true)} onBlur={() => setCustomHovered(false)} onPress={() => router.replace("/onboarding" as never)} style={({ pressed }) => [styles.customButton, customHovered && styles.customButtonHovered, pressed && styles.pressed]}><Text style={[styles.customText, customHovered && styles.customTextHovered]}>Build my own plan →</Text></Pressable>
+    <Pressable accessibilityRole="button" onHoverIn={() => setCustomHovered(true)} onHoverOut={() => setCustomHovered(false)} onFocus={() => setCustomHovered(true)} onBlur={() => setCustomHovered(false)} onPress={() => router.replace("/goals" as never)} style={({ pressed }) => [styles.customButton, customHovered && styles.customButtonHovered, pressed && styles.pressed]}><Text style={[styles.customText, customHovered && styles.customTextHovered]}>Build my own plan →</Text></Pressable>
   </View></SafeAreaView></View>;
 }
 

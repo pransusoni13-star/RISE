@@ -104,9 +104,9 @@ def send_product_feedback_notification(
     submitted_at: str,
 ) -> None:
     """Send a privacy-minimized copy of explicitly submitted product feedback."""
-    subject = f"[RISE beta feedback] {category.title()} · {rating}/5"
+    subject = f"[RISE app feedback] {category.title()} · {rating}/5"
     body = (
-        "A signed-in RISE beta member submitted feedback.\n\n"
+        "A signed-in RISE member submitted feedback.\n\n"
         f"Category: {category}\n"
         f"Rating: {rating}/5\n"
         f"App version: {app_version}\n"
@@ -120,7 +120,7 @@ def send_product_feedback_notification(
     )
     html = "".join(
         [
-            "<p>A signed-in RISE beta member submitted feedback.</p>",
+            "<p>A signed-in RISE member submitted feedback.</p>",
             f"<p><strong>Category:</strong> {escape(category)}<br><strong>Rating:</strong> {rating}/5<br><strong>App version:</strong> {escape(app_version)}<br><strong>Submitted:</strong> {escape(submitted_at)}<br><strong>Feedback ID:</strong> {escape(feedback_id)}<br><strong>Member email:</strong> {escape(member_email)}</p>",
             f"<p><strong>Feedback</strong></p><p>{escape(message).replace(chr(10), '<br>')}</p>",
             "<p>This message does not include proof files, reflections, passwords, or analytics. Handle the member's email and note as private support data.</p>",

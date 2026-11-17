@@ -15,7 +15,7 @@ engine_options: dict = {"pool_pre_ping": True}
 if settings.database_url.startswith("sqlite"):
     engine_options["connect_args"] = {"check_same_thread": False}
 else:
-    # Keep a conservative, reusable connection pool for the beta API. This is
+    # Keep a conservative, reusable connection pool for the production API. This is
     # enough concurrency for hundreds of members without exhausting a small
     # managed Postgres plan during traffic spikes.
     engine_options.update(

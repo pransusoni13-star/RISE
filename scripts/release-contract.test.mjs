@@ -24,6 +24,7 @@ test("the safely patchable node-forge advisory stays overridden", () => {
 
 test("public App Store release has an automated legal and service gate", () => {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const appJson = JSON.parse(readFileSync(join(root, "app.json"), "utf8"));
   const preflight = readFileSync(join(root, "scripts", "app-store-preflight.mjs"), "utf8");
   const legal = readFileSync(join(root, "src", "constants", "legal.ts"), "utf8");
   assert.equal(packageJson.scripts?.["appstore:preflight"], "node scripts/app-store-preflight.mjs");
@@ -31,6 +32,8 @@ test("public App Store release has an automated legal and service gate", () => {
     assert.match(preflight, new RegExp(name));
     assert.match(legal, new RegExp(name));
   }
+  assert.equal(appJson.expo?.ios?.infoPlist?.NSAppTransportSecurity?.NSAllowsArbitraryLoads, false);
+  assert.match(preflight, /NSAllowsArbitraryLoads/);
 });
 
 test("installed builds can safely check, download, and apply an OTA update", () => {

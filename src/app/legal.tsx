@@ -5,18 +5,20 @@ import { deleteAllRiseData } from "../services/localData";
 import { cancelDailyReminder } from "../services/reminders";
 import { LAUNCH_JURISDICTION, LEGAL_IDENTITY_READY, OPERATOR_LEGAL_NAME, OPERATOR_MAILING_ADDRESS } from "../constants/legal";
 import { SUPPORT_EMAIL } from "../constants/support";
+import { logout } from "../services/auth";
 
 export default function LegalScreen() {
   const deleteLocalData = () => Alert.alert(
     "Delete all RISE data?",
-    "This permanently removes your goals, missions, proof references, XP, coins, and preferences from this device.",
+    "This permanently removes your goals, missions, proof references, XP, coins, and preferences from this device and signs out this device. A server account, if any, remains until you choose Delete Account Everywhere in Settings.",
     [
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: async () => {
         try {
           await cancelDailyReminder();
           await deleteAllRiseData();
-          Alert.alert("Local data deleted", "RISE has removed its saved data from this device.", [{ text: "Start over", onPress: () => router.replace("/" as any) }]);
+          await logout();
+          Alert.alert("Local data deleted", "RISE removed its saved data and signed out this device. A server account, if any, still exists.", [{ text: "Start over", onPress: () => router.replace("/" as any) }]);
         } catch {
           Alert.alert("Could not finish deleting data", "Some local records may remain. Restart RISE, try deletion again, and verify that onboarding starts cleanly.");
         }
@@ -28,16 +30,16 @@ export default function LegalScreen() {
     <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
     <Text style={styles.eyebrow}>RISE • SAFETY DISCLOSURE</Text>
     <Text style={styles.title}>Use RISE safely.</Text>
-    <Text style={styles.updated}>Beta disclosure version 2026-10-23 • this supplements, but does not replace, the Privacy Policy and Terms of Use</Text>
+    <Text style={styles.updated}>Safety disclosure version November 16, 2026 • this supplements, but does not replace, the Privacy Policy and Terms of Use</Text>
 
     <Section title="What RISE stores">
-      RISE stores your plan, mission state, reflections, rewards, and proof references on this device. If you create an account, the service also stores your email, display name, protected password hash, selected goals and skills, mission and quiz events, focused minutes, and founding-member status so progress can sync. RISE does not upload the attached proof photo or video in this beta.
+      RISE stores your plan, mission state, reflections, rewards, and proof references on this device. If you create an account, the service also stores your email, display name, protected password hash, selected goals and skills, mission and quiz events, focused minutes, and founding-member status so progress can sync. RISE does not upload the attached proof photo or video in this release.
     </Section>
     <Section title="Photos, camera, and video">
       RISE asks for access only after you choose an upload or camera action. The selected local file URI and proof type are stored so the app can remember completion. Do not attach private information you do not want retained on this device.
     </Section>
     <Section title="Daily reminders">
-      Phone reminders are optional and scheduled on your device after you choose a time and grant notification permission. Their text does not reveal your goal or proof. You can turn them off in Settings. Browser beta check-ins appear only while using the website; RISE does not send remote push notifications in this beta.
+      Phone reminders are optional and scheduled on your device after you choose a time and grant notification permission. Their text does not reveal your goal or proof. You can turn them off in Settings. Browser check-ins appear only while using the website; RISE does not send remote push notifications in this release.
     </Section>
     <Section title="What proof review means">
       RISE checks attachment metadata, reflection quality, your mission-specific explanation, and your ownership confirmation before unlocking progress. These local consistency checks do not authenticate an image, identify who created it, detect every edited or unrelated file, or replace human review. Do not describe a proof as independently verified.
@@ -60,7 +62,7 @@ export default function LegalScreen() {
     <Section title="Rewards and results">
       XP and RISE Coins are in-app progress markers with no cash value. RISE cannot promise employment, income, grades, health outcomes, audience growth, or any other specific result.
     </Section>
-    <Section title="Beta usage and optional comparison">
+    <Section title="Account usage and optional comparison">
       If you create an account, RISE records chosen skills, mission and quiz events, and focused minutes so your own progress can sync. Sharing that activity with the operator’s improvement report, plus signup time and approximate foreground app-use duration, is optional and off by default. You can turn it off in Settings; you leave operator reports and past timing records are removed, while your own mission history remains. Reports never include proof files or reflection text. Community ranking is separately off by default and compares self-reported mission counts among members who opt in. You can leave it in Your Progress.
     </Section>
     <Section title="Feedback and offline sync">
@@ -88,8 +90,8 @@ export default function LegalScreen() {
     <Pressable accessibilityRole="link" style={styles.policyButton} onPress={() => router.push("/privacy" as any)}><Text style={styles.policyText}>Read the Privacy Policy →</Text></Pressable>
     <Pressable accessibilityRole="link" style={styles.policyButton} onPress={() => router.push("/terms" as any)}><Text style={styles.policyText}>Read the Terms of Use →</Text></Pressable>
     {!LEGAL_IDENTITY_READY ? <View style={styles.notice}>
-      <Text style={styles.noticeTitle}>Beta disclosure</Text>
-      <Text style={styles.noticeText}>The operator identity and launch jurisdiction are not configured in this beta. Public App Store submission is blocked until they are supplied and the final policies are reviewed for the launch countries and audience.</Text>
+      <Text style={styles.noticeTitle}>Release readiness notice</Text>
+      <Text style={styles.noticeText}>The operator identity and launch jurisdiction are not configured. Public App Store submission is blocked until they are supplied and the final policies are reviewed for the launch countries and audience.</Text>
     </View> : null}
   </ScrollView>;
 }

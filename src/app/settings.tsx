@@ -69,7 +69,7 @@ export default function SettingsScreen() {
     try {
       const result = await checkAndDownloadRiseUpdate();
       if (result.status === "unavailable") {
-        setUpdateMessage("Manual update checks work in the installed TestFlight app. Development and web previews update through their normal refresh.");
+        setUpdateMessage("Manual update checks work in an installed App Store or TestFlight build. Development and web previews update through their normal refresh.");
       } else if (result.status === "current") {
         setUpdateMessage("You already have the newest compatible RISE update.");
       } else {
@@ -115,16 +115,18 @@ export default function SettingsScreen() {
   };
 
   const deleteLocalAccount = () => Alert.alert(
-    "Delete your RISE profile?",
-    "This permanently removes every RISE goal, mission, proof reference, reflection, badge, coin, preference, consent, and saved feedback item from this device.",
+    "Delete local RISE data?",
+    `This permanently removes every RISE goal, mission, proof reference, reflection, badge, coin, preference, consent, and saved feedback item from this device.${user ? " You will also be signed out here. Your server account and synced records will remain unless you choose Delete Account Everywhere." : ""}`,
     [
       { text: "Cancel", style: "cancel" },
       { text: "Delete Everything", style: "destructive", onPress: async () => {
         try {
           await cancelDailyReminder();
           await deleteAllRiseData();
+          if (user) await logout();
           setProfile(null);
-          Alert.alert("RISE data deleted", "Your on-device profile and progress were removed.", [{ text: "Start Over", onPress: () => router.replace("/" as never) }]);
+          setUser(null);
+          Alert.alert("Local RISE data deleted", user ? "Your on-device data was removed and you were signed out. Your server account still exists." : "Your on-device profile and progress were removed.", [{ text: "Start Over", onPress: () => router.replace("/" as never) }]);
         } catch {
           Alert.alert("Could not finish deleting data", "Some local records may remain. Restart RISE, use Delete My RISE Data again, and verify that onboarding starts cleanly.");
         }
@@ -192,7 +194,7 @@ export default function SettingsScreen() {
     <Row title="Take the RISE Tour" text="See where everything is and jump directly to each feature" onPress={() => router.push("/tour" as any)} />
     <View style={[styles.planCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <Text style={[styles.cardTitle, { color: theme.text }]}>Daily check-in</Text>
-      <Text style={[styles.cardText, { color: theme.muted }]}>{reminder.permission === "unavailable" ? "On the web beta, check in on Today. Phone reminders are available in the iOS and Android app." : reminder.enabled ? `On at ${reminder.times.join(", ")}. Tap a notification to open Today's mission.` : "Off. Choose a time and turn on a gentle phone reminder."}</Text>
+      <Text style={[styles.cardText, { color: theme.muted }]}>{reminder.permission === "unavailable" ? "On the web, check in on Today. Phone reminders are available in the iOS and Android app." : reminder.enabled ? `On at ${reminder.times.join(", ")}. Tap a notification to open Today's mission.` : "Off. Choose a time and turn on a gentle phone reminder."}</Text>
       {reminder.permission !== "unavailable" ? <>
         <View style={styles.timeRow}>{(["08:00", "12:00", "18:00", "20:00"] as ReminderTime[]).map((time) => { const selected = selectedReminderTimes.includes(time); const atLimit = !selected && selectedReminderTimes.length >= 3; return <Pressable key={time} accessibilityRole="checkbox" accessibilityState={{ checked: selected, disabled: reminderBusy || atLimit }} accessibilityLabel={atLimit ? `Maximum three reminders selected; ${time} is unavailable` : `${selected ? "Remove" : "Add"} ${time} reminder`} onPress={() => toggleReminderTime(time)} disabled={reminderBusy || atLimit} style={[styles.timeChoice, { borderColor: theme.border }, selected && { backgroundColor: theme.accent, borderColor: theme.accent }, atLimit && styles.disabledButton]}><Text style={[styles.timeText, { color: selected ? theme.accentInk : theme.text }]}>{time}</Text></Pressable>; })}</View>
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: reminderBusy || selectedReminderTimes.length === 0 }} disabled={reminderBusy || selectedReminderTimes.length === 0} onPress={() => void saveReminders(true)} style={[styles.primaryButton, { backgroundColor: theme.accent }, (reminderBusy || selectedReminderTimes.length === 0) && styles.disabledButton]}><Text style={[styles.primaryButtonText, { color: theme.accentInk }]}>{reminderBusy ? "Saving…" : reminder.enabled ? "Save reminder times" : "Turn reminders on"}</Text></Pressable>
@@ -202,21 +204,21 @@ export default function SettingsScreen() {
       <Text style={[styles.cardText, { color: theme.muted }]}>Choose one to three times, then save. Focus modes and phone settings can delay or silence reminders.</Text>
     </View>
     {user ? <Row title={`Share improvement analytics: ${usageAnalyticsOptIn ? "On" : "Off"}`} text="Optional. Turning off excludes you from operator reports and deletes past usage-time and signup-time records; your own mission progress stays." onPress={() => void toggleUsageAnalytics()} /> : null}
-    {user ? <><Row title="Synced Improvement" text="Quiz baselines, completed missions, and focused minutes" onPress={() => router.push("/account-progress" as any)} /><Row title="Sign Out" text={`Signed in as ${user.email}`} onPress={() => void logout().then(() => router.replace("/account" as never))} /></> : <Row title="Create or Sign In" text="Sync skills and improvement across the beta" onPress={() => router.push("/account" as any)} />}
+    {user ? <><Row title="Synced Improvement" text="Quiz baselines, completed missions, and focused minutes" onPress={() => router.push("/account-progress" as any)} /><Row title="Sign Out" text={`Signed in as ${user.email}`} onPress={() => void logout().then(() => router.replace("/account" as never))} /></> : <Row title="Create or Sign In" text="Sync skills and improvement across devices" onPress={() => router.push("/account" as any)} />}
     <Row title="Popular Skill Quick Starts" text="Begin a proven starter path in one tap" onPress={() => router.push("/popular-skills" as any)} />
     <Row title="RISE Rewards" text="See your coin balance and honest reward rules" onPress={() => router.push("/rewards" as any)} />
     <Row title="Feedback & Improvements" text="Send a private bug report, idea, or confusing moment to RISE" onPress={() => router.push("/feedback" as any)} />
-    <Row title="Invite Someone to RISE" text="Share only the public TestFlight link—never your goal, proof, or progress" onPress={() => void inviteSomeone()} />
+    <Row title="Invite Someone to RISE" text="Share only the public RISE page—never your goal, proof, or progress" onPress={() => void inviteSomeone()} />
     <Row title="Export My RISE Data" text="Review or save a portable copy through an app you choose" onPress={() => void exportLocalData()} />
     <Row title="Help Center" text="Proof, safety, privacy, and trusted resources" onPress={() => router.push("/help" as any)} />
     <Row title="Privacy Policy" text="What RISE collects, why, providers, retention, and your rights" onPress={() => router.push("/privacy" as any)} />
     <Row title="Privacy Choices" text="Export, delete, opt out, permissions, and privacy support" onPress={() => router.push("/privacy-choices" as any)} />
-    <Row title="Terms of Use" text="Beta rules, ownership, acceptable use, and service limits" onPress={() => router.push("/terms" as any)} />
+    <Row title="Terms of Use" text="Service rules, ownership, acceptable use, and limits" onPress={() => router.push("/terms" as any)} />
     <Row title="Safety Disclosure" text="Proof limits, professional-advice limits, and safe use" onPress={() => router.push("/legal" as any)} />
     <Pressable accessibilityRole="button" accessibilityLabel="Delete all RISE data" onPress={deleteLocalAccount} style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}><View style={styles.body}><Text style={styles.deleteTitle}>Delete My RISE Data</Text><Text style={styles.cardText}>Permanently erase this on-device profile and start over</Text></View><Text style={styles.deleteArrow}>›</Text></Pressable>
-    {user ? <Pressable accessibilityRole="button" accessibilityLabel="Delete RISE account and data" onPress={deleteEverywhere} style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}><View style={styles.body}><Text style={styles.deleteTitle}>Delete Account Everywhere</Text><Text style={styles.cardText}>Remove the beta account and local RISE data</Text></View><Text style={styles.deleteArrow}>›</Text></Pressable> : null}
+    {user ? <Pressable accessibilityRole="button" accessibilityLabel="Delete RISE account and data" onPress={deleteEverywhere} style={({ pressed }) => [styles.deleteRow, pressed && { opacity: 0.7 }]}><View style={styles.body}><Text style={styles.deleteTitle}>Delete Account Everywhere</Text><Text style={styles.cardText}>Remove the server account and local RISE data</Text></View><Text style={styles.deleteArrow}>›</Text></Pressable> : null}
 
-    <View style={styles.note}><Text style={styles.noteTitle}>Your proof stays yours</Text><Text style={styles.noteText}>Account sync sends progress metadata—not attached proof files. Exporting or inviting opens your device share sheet; RISE does not choose or contact a recipient. The invite contains only the public beta link. No paid subscription is active in this beta.</Text></View>
+    <View style={styles.note}><Text style={styles.noteTitle}>Your proof stays yours</Text><Text style={styles.noteText}>Account sync sends progress metadata—not attached proof files. Exporting or inviting opens your device share sheet; RISE does not choose or contact a recipient. The invite contains only the public RISE page. No paid subscription is active in this release.</Text></View>
   </ScrollView>;
 }
 

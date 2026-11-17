@@ -1,6 +1,6 @@
-const DEFAULT_PUBLIC_BETA_URL = "https://testflight.apple.com/join/gwYy6GNr";
+const DEFAULT_PUBLIC_RISE_URL = "https://rise-daily-skill-missions.vercel.app";
 
-function validPublicBetaUrl(value: string | undefined): string | null {
+function validPublicRiseUrl(value: string | undefined): string | null {
   if (!value) return null;
   try {
     const url = new URL(value.trim());
@@ -10,8 +10,8 @@ function validPublicBetaUrl(value: string | undefined): string | null {
   }
 }
 
-export const RISE_PUBLIC_BETA_URL = validPublicBetaUrl(process.env.EXPO_PUBLIC_TESTFLIGHT_URL) || DEFAULT_PUBLIC_BETA_URL;
+export const RISE_PUBLIC_URL = validPublicRiseUrl(process.env.EXPO_PUBLIC_SHARE_URL) || DEFAULT_PUBLIC_RISE_URL;
 
-export function buildRiseInviteMessage(url = RISE_PUBLIC_BETA_URL): string {
-  return `Build one skill at a time with a focused daily mission. Join the free RISE TestFlight beta: ${url}`;
+export function buildRiseInviteMessage(url = RISE_PUBLIC_URL): string {
+  return `Build one skill at a time with a focused daily mission. Try RISE free: ${url}`;
 }

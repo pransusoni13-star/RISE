@@ -42,7 +42,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="RISE Beta API", version=API_VERSION, docs_url="/docs" if settings.env != "production" else None, lifespan=lifespan)
+app = FastAPI(title="RISE API", version=API_VERSION, docs_url="/docs" if settings.env != "production" else None, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=False, allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Authorization", "Content-Type"])
 bearer = HTTPBearer(auto_error=False)
 attempts: dict[str, deque[float]] = defaultdict(deque)
@@ -345,7 +345,7 @@ def claim_founding(payload: FoundingClaimRequest, request: Request, user: User =
 
 @app.delete("/users/me", status_code=204)
 def delete_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Response:
-    db.execute(update(FoundingInvite).where(FoundingInvite.claimed_by_user_id == user.id).values(claimed_by_user_id=None))
+    db.execute(delete(FoundingInvite).where(or_(FoundingInvite.claimed_by_user_id == user.id, FoundingInvite.email == user.email)))
     db.execute(delete(RefreshSession).where(RefreshSession.user_id == user.id))
     db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
     db.execute(delete(EmailVerification).where(EmailVerification.user_id == user.id))
@@ -366,10 +366,12 @@ def export_me(user: User = Depends(get_current_user), db: Session = Depends(get_
     skills = list(db.scalars(select(UserSkill).where(UserSkill.user_id == user.id)))
     events = list(db.scalars(select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)))
     feedback = list(db.scalars(select(ProductFeedback).where(ProductFeedback.user_id == user.id).order_by(ProductFeedback.created_at)))
+    founding_invites = list(db.scalars(select(FoundingInvite).where(or_(FoundingInvite.claimed_by_user_id == user.id, FoundingInvite.email == user.email)).order_by(FoundingInvite.created_at)))
     return {
         "exported_at": now_utc().isoformat(),
-        "format_version": 1,
+        "format_version": 2,
         "account": {"id": user.id, "email": user.email, "display_name": user.display_name, "is_founding_member": user.is_founding_member, "founding_expires_at": user.founding_expires_at},
+        "founding_invites": [{"id": item.id, "email": item.email, "created_at": item.created_at, "claimed_at": item.claimed_at, "claimed_by_user_id": item.claimed_by_user_id} for item in founding_invites],
         "profile": None if not profile else {"selected_goals": profile.selected_goals, "custom_goal": profile.custom_goal, "weekly_skill": profile.weekly_skill, "focus_skills": profile.focus_skills, "commitment": profile.commitment, "available_time": profile.available_time, "experience": profile.experience, "updated_at": profile.updated_at},
         "skills": [{"skill_slug": item.skill_slug, "selected_at": item.selected_at, "baseline_score": item.baseline_score, "latest_score": item.latest_score, "missions_completed": item.missions_completed, "minutes_logged": item.minutes_logged} for item in skills],
         "progress_events": [{"client_event_id": item.client_event_id, "event_type": item.event_type, "skill_slug": item.skill_slug, "value": item.value, "minutes": item.minutes, "metadata": item.event_metadata, "created_at": item.created_at} for item in events],

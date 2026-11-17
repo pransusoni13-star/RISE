@@ -24,6 +24,9 @@ const app = JSON.parse(readFileSync(new URL("../app.json", import.meta.url), "ut
 if (!/^\d+$/.test(app.ios?.buildNumber || "") || Number(app.ios.buildNumber) <= 22) {
   problems.push("Create a new iOS release candidate with buildNumber higher than the currently uploaded build 22.");
 }
+if (app.ios?.infoPlist?.NSAppTransportSecurity?.NSAllowsArbitraryLoads !== false) {
+  problems.push("Set ios.infoPlist.NSAppTransportSecurity.NSAllowsArbitraryLoads to false for the production release.");
+}
 
 const publicLegalValues = {
   EXPO_PUBLIC_OPERATOR_LEGAL_NAME: process.env.EXPO_PUBLIC_OPERATOR_LEGAL_NAME,

@@ -2,15 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { buildRiseInviteMessage, RISE_PUBLIC_BETA_URL } from "../src/services/shareRise.ts";
+import { buildRiseInviteMessage, RISE_PUBLIC_URL } from "../src/services/shareRise.ts";
 
 const root = process.cwd();
 
 test("the invite shares one public link without private progress", () => {
   const message = buildRiseInviteMessage();
   assert.equal((message.match(/https:\/\//g) || []).length, 1);
-  assert.match(RISE_PUBLIC_BETA_URL, /^https:\/\//);
-  assert.match(message, /free RISE TestFlight beta/i);
+  assert.match(RISE_PUBLIC_URL, /^https:\/\//);
+  assert.match(message, /try RISE free/i);
   assert.doesNotMatch(message, /proof|coin|quiz score|mission completed|goal:/i);
 });
 

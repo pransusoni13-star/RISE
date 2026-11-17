@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { consentRepository } from "../services/consentRepository";
 
 export default function OnboardingScreen() {
+  const params = useLocalSearchParams<{ next?: string; reacknowledge?: string }>();
+  const reacknowledging = params.reacknowledge === "1";
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [limitsConfirmed, setLimitsConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -14,16 +16,23 @@ export default function OnboardingScreen() {
     setSaving(true);
     try {
       await consentRepository.save();
-      router.push("/goals" as any);
+      const nextRoute = params.next === "popular-skills"
+        ? "/popular-skills"
+        : params.next === "today"
+          ? "/(tabs)/today"
+          : params.next === "plan"
+            ? "/plan"
+            : "/goals";
+      router.replace(nextRoute as never);
     } finally { setSaving(false); }
   };
 
   return <View style={styles.page}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.top}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>FREE BETA</Text></View>
-      <Text style={styles.eyebrow}>ONE DIRECTION. ONE DAILY WIN.</Text>
-      <Text style={styles.title}>Start with what matters now.</Text>
-      <Text style={styles.subtitle}>Choose one area to improve. RISE turns it into a focused mission you can finish today.</Text>
+      <View style={styles.top}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>FREE TO START</Text></View>
+      <Text style={styles.eyebrow}>{reacknowledging ? "A QUICK PRIVACY CHECK" : "ONE DIRECTION. ONE DAILY WIN."}</Text>
+      <Text style={styles.title}>{reacknowledging ? "Review the current terms." : "Start with what matters now."}</Text>
+      <Text style={styles.subtitle}>{reacknowledging ? "RISE updated its Privacy Policy and Terms. Review and confirm them to continue with your saved plan." : "Choose one area to improve. RISE turns it into a focused mission you can finish today."}</Text>
 
       <View style={styles.path}>
         <Path number="1" title="Choose" text="What matters now." />
@@ -44,7 +53,7 @@ export default function OnboardingScreen() {
         <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as any)} style={styles.policyLink}><Text style={styles.policyText}>Safety</Text></Pressable>
       </View>
     </ScrollView>
-    <View style={styles.footer}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || saving }} disabled={!valid || saving} onPress={continueNext} style={[styles.button, (!valid || saving) && styles.disabled]}><Text style={styles.buttonText}>{saving ? "Saving..." : "Personalize My RISE →"}</Text></Pressable></View>
+    <View style={styles.footer}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || saving }} disabled={!valid || saving} onPress={continueNext} style={[styles.button, (!valid || saving) && styles.disabled]}><Text style={styles.buttonText}>{saving ? "Saving..." : reacknowledging ? "Agree and continue →" : "Personalize My RISE →"}</Text></Pressable></View>
   </View>;
 }
 

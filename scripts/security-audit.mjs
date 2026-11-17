@@ -6,9 +6,14 @@ const temporaryExpo57Allowlist = new Set([
   "@expo/metro",
   "@expo/metro-config",
   "@expo/metro-file-map",
+  "@react-native/babel-plugin-codegen",
+  "@react-native/babel-preset",
+  "@react-native/codegen",
   "@react-native/community-cli-plugin",
+  "@react-native/metro-babel-transformer",
   "@react-native/metro-config",
   "@react-native/virtualized-lists",
+  "babel-preset-expo",
   "braces",
   // Expo Router 57.0.29 pins query-string 7.1.3, which pins the affected
   // decode-uri-component release. The fixed query-string release is a major
@@ -18,23 +23,32 @@ const temporaryExpo57Allowlist = new Set([
   "expo",
   "expo-router",
   "expo-updates",
+  "fdir",
+  "jest-util",
+  "jest-worker",
   "metro",
   "metro-config",
   "metro-file-map",
   "metro-transform-worker",
   "micromatch",
   "node-forge",
+  // GHSA-fc5q-39xc-vjpf affects picomatch <=4.0.7, which is also the latest
+  // published release. Expo and React Native use it in developer-side Metro
+  // globbing; it is not app business logic. Keep every cascading build-tool
+  // package visible and time-boxed until Expo ships a compatible patched tree.
+  "picomatch",
   "query-string",
   "react-native",
   "react-native-reanimated",
   "react-native-worklets",
+  "tinyglobby",
   // Expo SDK 57's bundled CLI currently pins Zod 3.25.76. The published fix is
   // Zod 4.6.6, which is not a drop-in SDK dependency upgrade. Keep this visible
   // and time-boxed with the rest of the Expo 57 exception instead of forcing an
   // incompatible override into production builds.
   "zod",
 ]);
-const allowlistExpires = new Date("2026-11-15T00:00:00Z");
+const allowlistExpires = new Date("2026-12-15T00:00:00Z");
 
 let report;
 try {

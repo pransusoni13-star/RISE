@@ -5,6 +5,7 @@ import {
   View,
   Pressable,
   Alert,
+  Linking,
   ActivityIndicator,
   Image,
   ScrollView,
@@ -163,7 +164,10 @@ export default function ProofScreen() {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         setPickerError("Photo access is off. Enable it in your phone Settings, then try again.");
-        Alert.alert("Allow photo access", "Open your phone Settings, select RISE, and allow photo access.");
+        Alert.alert("Allow photo access", "Open your phone Settings, select RISE, and allow photo access.", [
+          { text: "Not now", style: "cancel" },
+          { text: "Open Settings", onPress: () => void Linking.openSettings() },
+        ]);
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -194,7 +198,10 @@ export default function ProofScreen() {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
         setPickerError("Camera access is off. Enable it in your phone Settings, then try again.");
-        Alert.alert("Allow camera access", "Open your phone Settings, select RISE, and allow camera access.");
+        Alert.alert("Allow camera access", "Open your phone Settings, select RISE, and allow camera access.", [
+          { text: "Not now", style: "cancel" },
+          { text: "Open Settings", onPress: () => void Linking.openSettings() },
+        ]);
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -484,7 +491,7 @@ export default function ProofScreen() {
                 </Text>
 
                 <Text style={styles.verifiedText}>
-                  File, explanation, self-attestation, and reflection checks passed. RISE does not inspect the image or video itself in this beta.
+                  File, explanation, self-attestation, and reflection checks passed. RISE does not inspect the image or video itself in this release.
                 </Text>
               </View>
             </View>

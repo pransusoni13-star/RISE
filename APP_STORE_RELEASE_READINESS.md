@@ -1,10 +1,10 @@
 # RISE App Store release readiness
 
-Updated: 2026-11-16
+Updated: 2026-11-17
 
 ## Current decision
 
-RISE is **not ready for public App Store submission yet**. TestFlight build 22 is the latest verified uploaded binary. A new binary must use build 23 or higher, but it must not be submitted until the blocking items below are resolved and both automated preflights pass.
+RISE is **not ready for public App Store submission yet**. TestFlight build 22 is the latest verified uploaded binary. The repository now prepares build 23, but it must not be built or submitted until the blocking items below are resolved and both automated preflights pass.
 
 ## Verified complete
 
@@ -20,8 +20,11 @@ RISE is **not ready for public App Store submission yet**. TestFlight build 22 i
 - The app has no purchases, subscriptions, advertising SDK, or third-party analytics SDK.
 - App tracking is not used.
 - Account deletion is available inside the app.
-- `npm audit` and the production security gate currently report zero known vulnerabilities.
-- Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 39 app logic tests pass, and 36 backend tests pass.
+- Updated policy consent is required before a new or returning member can enter a plan; quick-start no longer bypasses age and Terms acknowledgment.
+- Account export and deletion now include email-bound founding invitations, and local-only deletion signs an authenticated member out without misrepresenting server deletion.
+- Public-release copy no longer presents the installed app as an unfinished beta, and invites share the public RISE page rather than a TestFlight link.
+- `npm audit --omit=dev` currently reports 24 high findings cascading from an unpatched `picomatch` advisory through Expo/Metro build tooling. `npm run security:audit` documents a narrow temporary exception through December 15, 2026; it must be reassessed rather than described as zero vulnerabilities or force-fixed across incompatible Expo versions.
+- Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 39 app logic tests pass, and 38 backend tests pass.
 - The App Store preflight prevents a public submission when email delivery, operator identity, jurisdiction, or the release build number is incomplete.
 
 ## Blocking before a new TestFlight binary
@@ -40,7 +43,7 @@ RISE is **not ready for public App Store submission yet**. TestFlight build 22 i
 
 ### App Store Connect metadata
 
-The following gaps were directly observed in App Store Connect on November 4, 2026:
+The app remains `iOS 1.0 · Prepare for Submission`. The following gaps were directly observed in App Store Connect on November 4, 2026 and must be rechecked before submission:
 
 - Subtitle is blank.
 - Primary and secondary categories are blank.
@@ -49,13 +52,15 @@ The following gaps were directly observed in App Store Connect on November 4, 20
 - Accessibility questionnaire has not been completed. This is recommended even where not required.
 - No App Review submission is present.
 
+App Store Connect also showed an active EU Digital Services Act warning on November 17, 2026: an Admin or Account Holder must provide the developer's trader status before distributing this app or an update in the European Union.
+
 Also complete or re-verify:
 
 - Accurate description, keywords, copyright, territories, and age rating.
 - Final iPhone screenshots captured from the exact submitted build (at least one required for each required display size).
 - App Review contact first/last name, phone, and email.
 - A non-expiring reviewer account plus concise login and feature-review instructions.
-- Review notes explaining that proof media stays on device, accounts/progress metadata syncs, and the app is a free educational beta with no purchases.
+- Review notes explaining that proof media stays on device, accounts/progress metadata syncs, and the app is a free educational service with no purchases.
 - Select the final processed build only after internal upgrade/data-retention testing.
 
 ## Required physical-device verification

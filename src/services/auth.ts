@@ -121,7 +121,7 @@ class ApiError extends Error {
 async function rawRequest<T>(path: string, init: RequestInit = {}, accessToken?: string | null): Promise<T> {
   if (!isApiConfigured()) throw new Error("RISE account service needs a public HTTPS API for this build.");
   const controller = new AbortController();
-  // Give a sleeping beta host time to wake, but fail a warm request quickly
+  // Give a sleeping low-cost host time to wake, but fail a warm request quickly
   // enough for the member to retry instead of staring at a frozen screen.
   const isRecentlyWarm = Date.now() - lastSuccessfulApiRequestAt < API_WARM_WINDOW_MS;
   const timeout = setTimeout(() => controller.abort(), isRecentlyWarm ? WARM_REQUEST_TIMEOUT_MS : COLD_START_TIMEOUT_MS);

@@ -16,16 +16,16 @@ export default function PrivacyScreen() {
       <Text accessibilityRole="header" style={styles.title}>Privacy in plain language.</Text>
       <Text style={styles.updated}>Effective and last updated {UPDATED}</Text>
       <Text style={styles.intro}>
-        This policy explains how RISE: Daily Skill Missions handles information in the beta. It applies to the RISE mobile app, website, and account service.
+        This policy explains how RISE: Daily Skill Missions handles information. It applies to the RISE mobile app, website, and account service.
       </Text>
 
       <Section title="Who is responsible">
         {LEGAL_IDENTITY_READY
           ? `${OPERATOR_LEGAL_NAME}, located at ${OPERATOR_MAILING_ADDRESS}, operates RISE and is responsible for the information described here. For privacy questions, access requests, complaints, or deletion help, email ${SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email.`
-          : `RISE operates this beta and is responsible for the information described here. For privacy questions, access requests, complaints, or deletion help, email ${SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email. The operator’s verified legal name and mailing address must be configured before public App Store release.`}
+          : `RISE is responsible for the information described here. For privacy questions, access requests, complaints, or deletion help, email ${SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email. The operator’s verified legal name and mailing address must be configured before public App Store release.`}
       </Section>
       <Section title="Information kept on your device">
-        Guest plans, mission steps, reflections, feedback copies, rewards, queued sync updates, and proof-file references are stored on your device. Proof photos and videos are not uploaded by the RISE beta. Optional faith or belief preferences use protected device storage in the native app and session-only memory on the website.
+        Guest plans, mission steps, reflections, feedback copies, rewards, queued sync updates, and proof-file references are stored on your device. Proof photos and videos are not uploaded by RISE. Optional faith or belief preferences use protected device storage in the native app and session-only memory on the website.
       </Section>
       <Section title="Information processed for an account">
         If you create an account, RISE processes your email address, display name, a protected password hash, email-verification status, selected goals and skills, schedule preferences, mission and quiz activity, focused minutes, progress scores, membership status, and feedback you explicitly submit. This information is used to provide sign-in, account recovery, progress syncing, personalization, and support. If the service is temporarily unavailable, eligible profile and progress updates remain queued on your device and retry later.
@@ -40,7 +40,7 @@ export default function PrivacyScreen() {
         RISE requests photo, camera, microphone, or notification access only when you use a related feature. You can deny or change these permissions in device settings. Notifications are optional on-device reminders and are not guaranteed to arrive.
       </Section>
       <Section title="Service providers and external links">
-        Render hosts the account API and database; Resend or a configured authenticated SMTP provider delivers transactional account and feedback email; Vercel hosts the public website; Expo/EAS provides app builds and updates; and Apple provides TestFlight and App Store distribution. These providers may process service data and technical records in countries outside your province or country under their own infrastructure and contractual safeguards. YouTube, Google Maps, and other resources open outside RISE and follow their own privacy policies. RISE does not sell personal information, share it for cross-context behavioral advertising, or use an advertising SDK in this beta.
+        Render hosts the account API and database; Resend or a configured authenticated SMTP provider delivers transactional account and feedback email; Vercel hosts the public website; Expo/EAS provides app builds and updates; and Apple provides TestFlight and App Store distribution. These providers may process service data and technical records in countries outside your province or country under their own infrastructure and contractual safeguards. YouTube, Google Maps, and other resources open outside RISE and follow their own privacy policies. RISE does not sell personal information, share it for cross-context behavioral advertising, or use an advertising SDK in this release.
       </Section>
       <Section title="Security and retention">
         RISE uses short-lived access tokens, revocable refresh sessions, protected password hashes, input limits, and encrypted HTTPS connections in production. No service can promise absolute security. Account, progress, and submitted feedback records are kept while the account is active. Verification links expire after 24 hours, password-reset links after 30 minutes, access tokens within 15 minutes, and refresh sessions after the configured period of no more than 90 days. In-app account deletion removes the active account and associated active-service records. Infrastructure logs and encrypted backups may remain until each provider’s normal retention cycle completes. A limited record may be retained only where required for security or law.

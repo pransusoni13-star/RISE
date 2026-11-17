@@ -55,7 +55,8 @@ class Settings(BaseSettings):
             sender = (self.resend_from_email or self.email_from).lower()
             return bool(self.resend_api_key and sender and "@resend.dev" not in sender)
         if provider == "smtp":
-            return all((self.smtp_host, self.smtp_username, self.smtp_password, self.email_from))
+            sender = self.email_from.lower()
+            return bool(all((self.smtp_host, self.smtp_username, self.smtp_password, sender)) and "@resend.dev" not in sender)
         return False
 
     def validate_for_startup(self) -> None:
@@ -78,12 +79,17 @@ class Settings(BaseSettings):
             raise RuntimeError("Production requires either RISE_RESEND_API_KEY or complete SMTP delivery settings")
         if self.env.lower() == "production" and provider == "resend" and not self.resend_api_key:
             raise RuntimeError("RISE_EMAIL_PROVIDER=resend requires RISE_RESEND_API_KEY")
-        if self.env.lower() == "production" and provider == "resend" and not (self.resend_from_email or self.email_from):
-            raise RuntimeError("RISE_EMAIL_PROVIDER=resend requires RISE_RESEND_FROM_EMAIL or RISE_EMAIL_FROM")
-        if self.env.lower() == "production" and provider == "smtp" and not all((self.smtp_host, self.smtp_username, self.smtp_password)):
-            raise RuntimeError("RISE_EMAIL_PROVIDER=smtp requires complete SMTP delivery settings")
-        if self.env.lower() == "production" and "@resend.dev" in self.email_from.lower():
-            raise RuntimeError("Production RISE_EMAIL_FROM must use an authenticated sender; onboarding@resend.dev is testing-only")
+        if self.env.lower() == "production" and provider == "resend":
+            sender = self.resend_from_email or self.email_from
+            if not sender:
+                raise RuntimeError("RISE_EMAIL_PROVIDER=resend requires RISE_RESEND_FROM_EMAIL or RISE_EMAIL_FROM")
+            if "@resend.dev" in sender.lower():
+                raise RuntimeError("Production Resend delivery must use an authenticated sender; resend.dev is testing-only")
+        if self.env.lower() == "production" and provider == "smtp":
+            if not all((self.smtp_host, self.smtp_username, self.smtp_password, self.email_from)):
+                raise RuntimeError("RISE_EMAIL_PROVIDER=smtp requires complete SMTP delivery settings")
+            if "@resend.dev" in self.email_from.lower():
+                raise RuntimeError("Production SMTP delivery must use an authenticated sender; resend.dev is testing-only")
 
 
 @lru_cache

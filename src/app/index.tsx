@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { consentRepository } from "../services/consentRepository";
 import { hasSavedProfile } from "../services/personalization";
 
 export default function HomeScreen() {
@@ -9,10 +10,14 @@ export default function HomeScreen() {
 
   useEffect(() => {
     let active = true;
-    void hasSavedProfile()
-      .then((hasPlan) => {
+    void Promise.all([hasSavedProfile(), consentRepository.hasCurrentConsent()])
+      .then(([hasPlan, hasCurrentConsent]) => {
         if (!active) return;
         if (hasPlan) {
+          if (!hasCurrentConsent) {
+            router.replace({ pathname: "/onboarding", params: { next: "today", reacknowledge: "1" } } as never);
+            return;
+          }
           router.replace("/(tabs)/today" as never);
           return;
         }
@@ -30,7 +35,7 @@ export default function HomeScreen() {
 
   return <SafeAreaView style={styles.page}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.brandRow}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>PUBLIC BETA</Text></View>
+      <View style={styles.brandRow}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>DAILY MISSIONS</Text></View>
       <View style={styles.card}>
         <Text style={styles.eyebrow}>YOUR NEXT WIN STARTS NOW</Text>
         <Text accessibilityRole="header" style={styles.title}>One mission. Real progress.</Text>
@@ -40,9 +45,9 @@ export default function HomeScreen() {
           <Text style={styles.valueTitle}>Pick a direction → get today’s mission</Text>
           <Text style={styles.valueText}>No long setup. No crowded dashboard. Just the clearest next step.</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Get my first RISE mission" onPress={() => router.push("/popular-skills" as never)} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryText}>Get my first mission</Text><Text style={styles.arrow}>→</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Get my first RISE mission" onPress={() => router.push({ pathname: "/onboarding", params: { next: "popular-skills" } } as never)} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}><Text style={styles.primaryText}>Get my first mission</Text><Text style={styles.arrow}>→</Text></Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.push("/account" as never)} style={({ pressed }) => [styles.signIn, pressed && styles.pressed]}><Text style={styles.signInText}>Already started? <Text style={styles.signInStrong}>Sign in</Text></Text></Pressable>
-        <Text style={styles.promise}>Free during beta · No account required to start</Text>
+        <Text style={styles.promise}>Free to start · No account required</Text>
       </View>
       <View style={styles.links}>
         <Pressable accessibilityRole="link" onPress={() => router.push("/feedback" as never)}><Text style={styles.link}>Feedback</Text></Pressable><Text style={styles.linkDot}>·</Text>

@@ -8,12 +8,12 @@ export default function PrivacyChoicesScreen() {
     <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
     <Text style={styles.eyebrow}>YOUR PRIVACY CHOICES</Text>
     <Text accessibilityRole="header" style={styles.title}>You stay in control.</Text>
-    <Text style={styles.intro}>These controls are available in the beta. Core missions still work when optional analytics, comparison, camera, photos, microphone, and notifications are off.</Text>
+    <Text style={styles.intro}>These controls are available throughout RISE. Core missions still work when optional analytics, comparison, camera, photos, microphone, and notifications are off.</Text>
 
     <Choice number="1" title="Export your information" text="Open Settings → Export My RISE Data to create a readable copy of local and synced account records through your device share sheet." />
     <Choice number="2" title="Delete local or account data" text="Open Settings → Delete My RISE Data to erase this device. Signed-in members can choose Delete Account Everywhere to delete the active server account and associated records." />
     <Choice number="3" title="Turn optional sharing off" text="Usage analytics and community comparison are separate and off by default. Signed-in members can change them in Settings and Your Progress. Turning analytics off removes past usage-time and signup-time events." />
-    <Choice number="4" title="Control phone permissions" text="RISE asks only when a related feature is used. Change camera, photos, microphone, or notification access in phone Settings. Proof attachments and reflections remain on this device in the beta." />
+    <Choice number="4" title="Control phone permissions" text="RISE asks only when a related feature is used. Change camera, photos, microphone, or notification access in phone Settings. Proof attachments and reflections remain on this device." />
     <Choice number="5" title="Access, correct, or challenge" text="Use export and plan controls for common requests. Contact privacy support for access, correction, deletion help, consent withdrawal, or a complaint. Never email passwords, tokens, or proof files." />
 
     <Pressable accessibilityRole="button" onPress={() => router.push("/settings" as never)} style={styles.primaryButton}><Text style={styles.primaryText}>Open RISE Settings</Text></Pressable>
