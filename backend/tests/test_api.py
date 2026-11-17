@@ -244,8 +244,9 @@ def test_refresh_rotation_removes_revoked_session_rows() -> None:
 def test_rate_limit_bucket_storage_prunes_stale_addresses(monkeypatch) -> None:
     monkeypatch.setattr(main_module, "RATE_LIMIT_MAX_BUCKETS", 3)
     monkeypatch.setattr(main_module, "last_rate_limit_cleanup", 0.0)
+    stale_timestamp = main_module.monotonic() - main_module.RATE_LIMIT_MAX_WINDOW_SECONDS - 1
     with attempt_lock:
-        attempts.update({f"login:stale-{index}": deque([0.0]) for index in range(3)})
+        attempts.update({f"login:stale-{index}": deque([stale_timestamp]) for index in range(3)})
     with TestClient(app) as client:
         response = client.post("/auth/login", json={"email": "unknown@example.com", "password": "incorrect-password"})
         assert response.status_code == 401
