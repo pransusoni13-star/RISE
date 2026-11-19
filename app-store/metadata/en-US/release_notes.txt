@@ -1,0 +1,1 @@
+Welcome to RISE. Build a focused growth plan, complete clear daily missions, learn through practical examples and quizzes, attach private on-device proof, reflect on your work, and track visible progress. This release also includes configurable reminders, light and dark appearance, a five-step tour, data export, and in-app account deletion.

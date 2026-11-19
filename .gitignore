@@ -49,6 +49,10 @@ yarn-error.*
 .env.*
 !.env.example
 
+# Local App Store release state contains reviewer contact details and manual
+# attestations. Commit only the redacted example template.
+app-store/submission-state.json
+
 # typescript
 *.tsbuildinfo
 

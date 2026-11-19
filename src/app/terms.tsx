@@ -3,16 +3,18 @@ import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LAUNCH_JURISDICTION, LEGAL_IDENTITY_READY, OPERATOR_LEGAL_NAME, OPERATOR_MAILING_ADDRESS } from "../constants/legal";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/support";
+import { useRiseAppearance } from "../services/appearance";
 
 const UPDATED = "November 16, 2026";
 
 export default function TermsScreen() {
-  return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
-    <Text style={styles.eyebrow}>RISE TERMS OF USE</Text>
-    <Text accessibilityRole="header" style={styles.title}>Clear rules for using RISE.</Text>
-    <Text style={styles.updated}>Effective and last updated {UPDATED}</Text>
-    <Text style={styles.intro}>These Terms govern use of RISE: Daily Skill Missions. By creating a plan or account, you agree to these Terms and acknowledge the Privacy Policy and Safety Disclosure.</Text>
+  const { theme } = useRiseAppearance();
+  return <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={[styles.back, { borderColor: theme.border }]}><Text style={[styles.backText, { color: theme.accent }]}>‹</Text></Pressable>
+    <Text style={[styles.eyebrow, { color: theme.accent }]}>RISE TERMS OF USE</Text>
+    <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>Clear rules for using RISE.</Text>
+    <Text style={[styles.updated, { color: theme.muted }]}>Effective and last updated {UPDATED}</Text>
+    <Text style={[styles.intro, { color: theme.text }]}>These Terms govern use of RISE: Daily Skill Missions. By creating a plan or account, you agree to these Terms and acknowledge the Privacy Policy and Safety Disclosure.</Text>
 
     <Section title="Eligibility and accounts">You must be at least 13 and legally able to agree to these Terms. If local law requires parental permission at your age, a parent or guardian must provide it. Give accurate account information, protect your password and sign-in links, and tell support promptly about suspected unauthorized access.</Section>
     <Section title="What RISE provides">RISE is an educational self-improvement and planning tool. It suggests missions, quizzes, projects, reminders, and progress markers. It is not medical, mental-health, legal, financial, religious, employment, or other professional advice. Use qualified professionals for high-stakes decisions and stop any activity that is unsafe for you.</Section>
@@ -30,14 +32,15 @@ export default function TermsScreen() {
       : "Material changes will be identified in the app or through another appropriate notice before they take effect. Mandatory consumer and privacy protections in your location continue to apply. The verified operator identity, mailing address, and launch jurisdiction must be configured before public App Store release."}</Section>
     <Section title="Contact">Questions about these Terms can be sent to {SUPPORT_EMAIL}. Never email a password, verification token, or private proof file.</Section>
 
-    <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)} style={styles.secondaryButton}><Text style={styles.secondaryText}>Read the Privacy Policy</Text></Pressable>
-    <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as never)} style={styles.secondaryButton}><Text style={styles.secondaryText}>Read the Safety Disclosure</Text></Pressable>
-    <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(SUPPORT_MAILTO)} style={styles.contactButton}><Text style={styles.contactText}>Contact support</Text></Pressable>
+    <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)} style={[styles.secondaryButton, { borderColor: theme.border }]}><Text style={[styles.secondaryText, { color: theme.text }]}>Read the Privacy Policy</Text></Pressable>
+    <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as never)} style={[styles.secondaryButton, { borderColor: theme.border }]}><Text style={[styles.secondaryText, { color: theme.text }]}>Read the Safety Disclosure</Text></Pressable>
+    <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(SUPPORT_MAILTO)} style={[styles.contactButton, { backgroundColor: theme.accent }]}><Text style={[styles.contactText, { color: theme.accentInk }]}>Contact support</Text></Pressable>
   </ScrollView>;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return <View style={styles.card}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.cardText}>{children}</Text></View>;
+  const { theme } = useRiseAppearance();
+  return <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}><Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.cardText, { color: theme.muted }]}>{children}</Text></View>;
 }
 
 const styles = StyleSheet.create({

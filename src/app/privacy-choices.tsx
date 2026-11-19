@@ -2,13 +2,15 @@ import { router } from "expo-router";
 import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SUPPORT_MAILTO } from "../constants/support";
+import { useRiseAppearance } from "../services/appearance";
 
 export default function PrivacyChoicesScreen() {
-  return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
-    <Text style={styles.eyebrow}>YOUR PRIVACY CHOICES</Text>
-    <Text accessibilityRole="header" style={styles.title}>You stay in control.</Text>
-    <Text style={styles.intro}>These controls are available throughout RISE. Core missions still work when optional analytics, comparison, camera, photos, microphone, and notifications are off.</Text>
+  const { theme } = useRiseAppearance();
+  return <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={[styles.back, { borderColor: theme.border }]}><Text style={[styles.backText, { color: theme.accent }]}>‹</Text></Pressable>
+    <Text style={[styles.eyebrow, { color: theme.accent }]}>YOUR PRIVACY CHOICES</Text>
+    <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>You stay in control.</Text>
+    <Text style={[styles.intro, { color: theme.muted }]}>These controls are available throughout RISE. Core missions still work when optional analytics, comparison, camera, photos, microphone, and notifications are off.</Text>
 
     <Choice number="1" title="Export your information" text="Open Settings → Export My RISE Data to create a readable copy of local and synced account records through your device share sheet." />
     <Choice number="2" title="Delete local or account data" text="Open Settings → Delete My RISE Data to erase this device. Signed-in members can choose Delete Account Everywhere to delete the active server account and associated records." />
@@ -16,15 +18,16 @@ export default function PrivacyChoicesScreen() {
     <Choice number="4" title="Control phone permissions" text="RISE asks only when a related feature is used. Change camera, photos, microphone, or notification access in phone Settings. Proof attachments and reflections remain on this device." />
     <Choice number="5" title="Access, correct, or challenge" text="Use export and plan controls for common requests. Contact privacy support for access, correction, deletion help, consent withdrawal, or a complaint. Never email passwords, tokens, or proof files." />
 
-    <Pressable accessibilityRole="button" onPress={() => router.push("/settings" as never)} style={styles.primaryButton}><Text style={styles.primaryText}>Open RISE Settings</Text></Pressable>
-    <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()} style={styles.secondaryButton}><Text style={styles.secondaryText}>Open phone permissions</Text></Pressable>
-    <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(SUPPORT_MAILTO)} style={styles.secondaryButton}><Text style={styles.secondaryText}>Contact privacy support</Text></Pressable>
-    <View style={styles.links}><Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)}><Text style={styles.link}>Privacy Policy</Text></Pressable><Text style={styles.dot}>·</Text><Pressable accessibilityRole="link" onPress={() => router.push("/terms" as never)}><Text style={styles.link}>Terms of Use</Text></Pressable></View>
+    <Pressable accessibilityRole="button" onPress={() => router.push("/settings" as never)} style={[styles.primaryButton, { backgroundColor: theme.accent }]}><Text style={[styles.primaryText, { color: theme.accentInk }]}>Open RISE Settings</Text></Pressable>
+    <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()} style={[styles.secondaryButton, { borderColor: theme.border }]}><Text style={[styles.secondaryText, { color: theme.text }]}>Open phone permissions</Text></Pressable>
+    <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(SUPPORT_MAILTO)} style={[styles.secondaryButton, { borderColor: theme.border }]}><Text style={[styles.secondaryText, { color: theme.text }]}>Contact privacy support</Text></Pressable>
+    <View style={styles.links}><Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as never)}><Text style={[styles.link, { color: theme.accent }]}>Privacy Policy</Text></Pressable><Text style={[styles.dot, { color: theme.muted }]}>·</Text><Pressable accessibilityRole="link" onPress={() => router.push("/terms" as never)}><Text style={[styles.link, { color: theme.accent }]}>Terms of Use</Text></Pressable></View>
   </ScrollView>;
 }
 
 function Choice({ number, title, text }: { number: string; title: string; text: string }) {
-  return <View style={styles.card}><View style={styles.number}><Text style={styles.numberText}>{number}</Text></View><View style={styles.body}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.cardText}>{text}</Text></View></View>;
+  const { theme } = useRiseAppearance();
+  return <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}><View style={[styles.number, { backgroundColor: theme.surfaceStrong }]}><Text style={[styles.numberText, { color: theme.accent }]}>{number}</Text></View><View style={styles.body}><Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.cardText, { color: theme.muted }]}>{text}</Text></View></View>;
 }
 
 const styles = StyleSheet.create({

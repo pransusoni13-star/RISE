@@ -97,6 +97,10 @@ function ThemedRootLayout() {
 
       <Stack.Screen name="account" />
 
+      <Stack.Screen name="recover" />
+
+      <Stack.Screen name="verify-email" />
+
       <Stack.Screen name="popular-skills" />
 
       <Stack.Screen name="account-progress" />

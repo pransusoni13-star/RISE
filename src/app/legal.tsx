@@ -6,8 +6,10 @@ import { cancelDailyReminder } from "../services/reminders";
 import { LAUNCH_JURISDICTION, LEGAL_IDENTITY_READY, OPERATOR_LEGAL_NAME, OPERATOR_MAILING_ADDRESS } from "../constants/legal";
 import { SUPPORT_EMAIL } from "../constants/support";
 import { logout } from "../services/auth";
+import { useRiseAppearance } from "../services/appearance";
 
 export default function LegalScreen() {
+  const { theme } = useRiseAppearance();
   const deleteLocalData = () => Alert.alert(
     "Delete all RISE data?",
     "This permanently removes your goals, missions, proof references, XP, coins, and preferences from this device and signs out this device. A server account, if any, remains until you choose Delete Account Everywhere in Settings.",
@@ -26,11 +28,11 @@ export default function LegalScreen() {
     ]
   );
 
-  return <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Text style={styles.backText}>‹</Text></Pressable>
-    <Text style={styles.eyebrow}>RISE • SAFETY DISCLOSURE</Text>
-    <Text style={styles.title}>Use RISE safely.</Text>
-    <Text style={styles.updated}>Safety disclosure version November 16, 2026 • this supplements, but does not replace, the Privacy Policy and Terms of Use</Text>
+  return <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={[styles.back, { borderColor: theme.border }]}><Text style={[styles.backText, { color: theme.accent }]}>‹</Text></Pressable>
+    <Text style={[styles.eyebrow, { color: theme.accent }]}>RISE • SAFETY DISCLOSURE</Text>
+    <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>Use RISE safely.</Text>
+    <Text style={[styles.updated, { color: theme.muted }]}>Safety disclosure version November 16, 2026 • this supplements, but does not replace, the Privacy Policy and Terms of Use</Text>
 
     <Section title="What RISE stores">
       RISE stores your plan, mission state, reflections, rewards, and proof references on this device. If you create an account, the service also stores your email, display name, protected password hash, selected goals and skills, mission and quiz events, focused minutes, and founding-member status so progress can sync. RISE does not upload the attached proof photo or video in this release.
@@ -85,19 +87,20 @@ export default function LegalScreen() {
     <Section title="Your choices">
       You can deny camera or photo permission and change it in device Settings. Settings lets you export a readable copy of local and synced records through your device share sheet. You can delete local data, and signed-in users can delete their server account and local data from Settings without contacting support. Email-verification links are single-use and expire after 24 hours. Password-reset links are single-use, expire after 30 minutes, and revoke refresh sessions when used. Existing access tokens expire within 15 minutes.
     </Section>
-    <Pressable accessibilityRole="button" style={styles.deleteButton} onPress={deleteLocalData}><Text style={styles.deleteText}>Delete all local RISE data</Text></Pressable>
-    <Pressable accessibilityRole="button" style={styles.helpButton} onPress={() => router.push("/help" as any)}><Text style={styles.helpText}>Open Help Center →</Text></Pressable>
-    <Pressable accessibilityRole="link" style={styles.policyButton} onPress={() => router.push("/privacy" as any)}><Text style={styles.policyText}>Read the Privacy Policy →</Text></Pressable>
-    <Pressable accessibilityRole="link" style={styles.policyButton} onPress={() => router.push("/terms" as any)}><Text style={styles.policyText}>Read the Terms of Use →</Text></Pressable>
-    {!LEGAL_IDENTITY_READY ? <View style={styles.notice}>
-      <Text style={styles.noticeTitle}>Release readiness notice</Text>
-      <Text style={styles.noticeText}>The operator identity and launch jurisdiction are not configured. Public App Store submission is blocked until they are supplied and the final policies are reviewed for the launch countries and audience.</Text>
+    <Pressable accessibilityRole="button" style={[styles.deleteButton, { borderColor: theme.mode === "dark" ? "#8B4D49" : "#B9564D" }]} onPress={deleteLocalData}><Text style={[styles.deleteText, { color: theme.mode === "dark" ? "#FFB4A8" : "#8F221B" }]}>Delete all local RISE data</Text></Pressable>
+    <Pressable accessibilityRole="button" style={[styles.helpButton, { backgroundColor: theme.surfaceStrong }]} onPress={() => router.push("/help" as any)}><Text style={[styles.helpText, { color: theme.accent }]}>Open Help Center →</Text></Pressable>
+    <Pressable accessibilityRole="link" style={[styles.policyButton, { borderColor: theme.border }]} onPress={() => router.push("/privacy" as any)}><Text style={[styles.policyText, { color: theme.text }]}>Read the Privacy Policy →</Text></Pressable>
+    <Pressable accessibilityRole="link" style={[styles.policyButton, { borderColor: theme.border }]} onPress={() => router.push("/terms" as any)}><Text style={[styles.policyText, { color: theme.text }]}>Read the Terms of Use →</Text></Pressable>
+    {!LEGAL_IDENTITY_READY ? <View style={[styles.notice, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
+      <Text style={[styles.noticeTitle, { color: theme.accent }]}>Release readiness notice</Text>
+      <Text style={[styles.noticeText, { color: theme.text }]}>The operator identity and launch jurisdiction are not configured. Public App Store submission is blocked until they are supplied and the final policies are reviewed for the launch countries and audience.</Text>
     </View> : null}
   </ScrollView>;
 }
 
 function Section({ title, children }: { title: string; children: string }) {
-  return <View style={styles.card}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.cardText}>{children}</Text></View>;
+  const { theme } = useRiseAppearance();
+  return <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}><Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.cardText, { color: theme.muted }]}>{children}</Text></View>;
 }
 
 const styles = StyleSheet.create({

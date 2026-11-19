@@ -1,0 +1,10 @@
+{
+  "buildNumber": "23",
+  "capturedFromExactBuild": false,
+  "sets": [
+    {
+      "displaySize": "required iPhone display size from App Store Connect",
+      "files": []
+    }
+  ]
+}

@@ -3,19 +3,21 @@ import React from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LEGAL_IDENTITY_READY, OPERATOR_LEGAL_NAME, OPERATOR_MAILING_ADDRESS } from "../constants/legal";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/support";
+import { useRiseAppearance } from "../services/appearance";
 
 const UPDATED = "November 16, 2026";
 
 export default function PrivacyScreen() {
+  const { theme } = useRiseAppearance();
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>‹</Text>
+    <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={[styles.back, { borderColor: theme.border }]}>
+        <Text style={[styles.backText, { color: theme.accent }]}>‹</Text>
       </Pressable>
-      <Text style={styles.eyebrow}>RISE PRIVACY POLICY</Text>
-      <Text accessibilityRole="header" style={styles.title}>Privacy in plain language.</Text>
-      <Text style={styles.updated}>Effective and last updated {UPDATED}</Text>
-      <Text style={styles.intro}>
+      <Text style={[styles.eyebrow, { color: theme.accent }]}>RISE PRIVACY POLICY</Text>
+      <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>Privacy in plain language.</Text>
+      <Text style={[styles.updated, { color: theme.muted }]}>Effective and last updated {UPDATED}</Text>
+      <Text style={[styles.intro, { color: theme.text }]}>
         This policy explains how RISE: Daily Skill Missions handles information. It applies to the RISE mobile app, website, and account service.
       </Text>
 
@@ -58,24 +60,25 @@ export default function PrivacyScreen() {
         RISE may update this policy when features, providers, or laws change. The effective date above will change, and material changes will be explained in the app or through another appropriate notice before they take effect.
       </Section>
 
-      <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(SUPPORT_MAILTO)} style={styles.contactButton}>
-        <Text style={styles.contactText}>Contact privacy support</Text>
+      <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(SUPPORT_MAILTO)} style={[styles.contactButton, { backgroundColor: theme.accent }]}>
+        <Text style={[styles.contactText, { color: theme.accentInk }]}>Contact privacy support</Text>
       </Pressable>
-      <Pressable accessibilityRole="link" onPress={() => router.push("/privacy-choices" as never)} style={styles.secondaryButton}>
-        <Text style={styles.secondaryText}>Open Privacy Choices</Text>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/privacy-choices" as never)} style={[styles.secondaryButton, { borderColor: theme.border }]}>
+        <Text style={[styles.secondaryText, { color: theme.text }]}>Open Privacy Choices</Text>
       </Pressable>
-      <Pressable accessibilityRole="link" onPress={() => router.push("/terms" as never)} style={styles.secondaryButton}>
-        <Text style={styles.secondaryText}>Read the Terms of Use</Text>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/terms" as never)} style={[styles.secondaryButton, { borderColor: theme.border }]}>
+        <Text style={[styles.secondaryText, { color: theme.text }]}>Read the Terms of Use</Text>
       </Pressable>
-      <Pressable accessibilityRole="link" onPress={() => router.push("/support" as never)} style={styles.secondaryButton}>
-        <Text style={styles.secondaryText}>Open Support Center</Text>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/support" as never)} style={[styles.secondaryButton, { borderColor: theme.border }]}>
+        <Text style={[styles.secondaryText, { color: theme.text }]}>Open Support Center</Text>
       </Pressable>
     </ScrollView>
   );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return <View style={styles.card}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.cardText}>{children}</Text></View>;
+  const { theme } = useRiseAppearance();
+  return <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}><Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.cardText, { color: theme.muted }]}>{children}</Text></View>;
 }
 
 const styles = StyleSheet.create({

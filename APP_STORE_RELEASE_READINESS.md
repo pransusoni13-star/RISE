@@ -1,6 +1,6 @@
 # RISE App Store release readiness
 
-Updated: 2026-11-17
+Updated: 2026-11-18
 
 ## Current decision
 
@@ -23,9 +23,11 @@ RISE is **not ready for public App Store submission yet**. TestFlight build 22 i
 - Updated policy consent is required before a new or returning member can enter a plan; quick-start no longer bypasses age and Terms acknowledgment.
 - Account export and deletion now include email-bound founding invitations, and local-only deletion signs an authenticated member out without misrepresenting server deletion.
 - Public-release copy no longer presents the installed app as an unfinished beta, and invites share the public RISE page rather than a TestFlight link.
-- `npm audit --omit=dev` currently reports 24 high findings cascading from an unpatched `picomatch` advisory through Expo/Metro build tooling. `npm run security:audit` documents a narrow temporary exception through December 15, 2026; it must be reassessed rather than described as zero vulnerabilities or force-fixed across incompatible Expo versions.
-- Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 39 app logic tests pass, and 38 backend tests pass.
-- The App Store preflight prevents a public submission when email delivery, operator identity, jurisdiction, or the release build number is incomplete.
+- The current dependency audit reports zero critical, high, or moderate findings.
+- Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 48 app logic tests pass, and 38 backend tests pass.
+- Recovery, verification, Privacy, Privacy Choices, Terms, and Safety screens honor the shared light/dark appearance and expose improved accessibility state.
+- `app-store/` contains validated English metadata, conservative privacy/age-rating guidance, final review notes, and an exact-Build-23 screenshot plan.
+- The fail-closed submission gate validates metadata limits, manual Apple/QA attestations, reviewer contact, EAS build-number availability, screenshot formats/dimensions/transparency, and the required current iPhone screenshot size before build/upload.
 
 ## Blocking before a new TestFlight binary
 
@@ -97,9 +99,11 @@ npm run check
 npm run test:logic
 npm run testflight:preflight
 npm run appstore:preflight
+npm run appstore:submission:preflight
 npm run security:audit
 npx expo-doctor
-npx eas-cli build --profile testflight --platform ios --auto-submit --non-interactive
+npm run appstore:build-upload
+npm run appstore:build-upload -- --execute
 ```
 
-Public App Store submission is a separate decision after TestFlight processing and physical-device QA. Do not submit the public version merely because the binary processed successfully.
+`appstore:build-upload` is a dry run unless `--execute` is supplied, and even the execute path refuses to start until every automated and manually attested gate passes. Public App Store submission is a separate decision after TestFlight processing and physical-device QA. Do not submit the public version merely because the binary processed successfully.

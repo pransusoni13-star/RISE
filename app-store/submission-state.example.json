@@ -1,0 +1,37 @@
+{
+  "buildNumber": "23",
+  "listing": {
+    "primaryCategory": "Education",
+    "secondaryCategory": "Productivity",
+    "metadataEnteredInAppStoreConnect": false,
+    "territoriesReviewed": false,
+    "contentRightsConfirmed": false
+  },
+  "reviewContact": {
+    "firstName": "",
+    "lastName": "",
+    "email": "",
+    "phone": ""
+  },
+  "reviewAccount": {
+    "configuredInAppStoreConnect": false,
+    "instructionsReviewed": false
+  },
+  "appStoreConnect": {
+    "privacyCompleted": false,
+    "ageRatingCompleted": false,
+    "accessibilityCompleted": false,
+    "privacyChoicesUrlEntered": false,
+    "agreementsCurrent": false,
+    "dsaTraderStatusCompletedOrNotDistributingInEU": false
+  },
+  "qa": {
+    "physicalIPhoneCompleted": false,
+    "upgradeRetentionCompleted": false,
+    "emailTwoProviderCompleted": false,
+    "permissionsNotificationsOfflineAccessibilityCompleted": false
+  },
+  "screenshots": {
+    "manifest": "app-store/screenshots/manifest.json"
+  }
+}
