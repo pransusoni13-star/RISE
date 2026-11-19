@@ -109,10 +109,10 @@ Before uploading Build 23:
 1. Deploy the current backend commit and confirm `/config/public` reports `email_delivery_ready: true`.
 2. Verify a RISE-owned email domain with SPF, DKIM, and DMARC; test verification and password-reset delivery with at least two non-owner email providers.
 3. Add the three verified public legal values to the EAS production environment.
-4. Run `npm run testflight:preflight` and `npm run appstore:preflight` until both pass without bypasses.
-5. Run the automated test/security/export suite documented in `APP_STORE_RELEASE_READINESS.md`.
-6. Build and auto-submit Build 23 to TestFlight.
-7. Install the processed build over Build 22 and complete the physical-iPhone upgrade and feature checklist.
-8. Capture final screenshots from Build 23, complete every truthful App Store Connect questionnaire, select Build 23, and submit for App Review.
+4. Run `npm run testflight:preflight` until it passes without bypasses, then run the automated checks documented in `APP_STORE_RELEASE_READINESS.md`.
+5. Run `npm run testflight:build-upload -- --execute` to build and upload Build 23 to TestFlight only.
+6. Install the processed build over Build 22 and complete the physical-iPhone upgrade and feature checklist.
+7. Capture final screenshots from Build 23, complete every truthful App Store Connect questionnaire, and run `npm run appstore:preflight` plus `npm run appstore:submission:preflight`.
+8. Select Build 23 in App Store Connect and submit it for App Review only after every public-release gate passes.
 
 Do not submit merely because the binary processed successfully.

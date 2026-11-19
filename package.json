@@ -56,6 +56,7 @@
     "test:logic": "node --experimental-strip-types --test scripts/app-store-submission-gate.test.mjs scripts/cycle-quiz.test.mjs scripts/day-unlock.test.mjs scripts/growth-loop.test.mjs scripts/mission-progress.test.mjs scripts/navigation-contract.test.mjs scripts/project-ideas.test.mjs scripts/proof-validation.test.mjs scripts/release-contract.test.mjs scripts/serialized-mutations.test.mjs",
     "check": "npm run typecheck && npm run lint && expo install --check",
     "testflight:preflight": "node scripts/testflight-preflight.mjs",
+    "testflight:build-upload": "node scripts/testflight-build-upload.mjs",
     "appstore:preflight": "node scripts/app-store-preflight.mjs",
     "appstore:submission:preflight": "node scripts/app-store-submission-gate.mjs",
     "appstore:build-upload": "node scripts/app-store-build-upload.mjs",

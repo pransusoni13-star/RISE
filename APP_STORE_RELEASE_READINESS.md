@@ -4,7 +4,7 @@ Updated: 2026-11-18
 
 ## Current decision
 
-RISE is **not ready for public App Store submission yet**. TestFlight build 22 is the latest verified uploaded binary. The repository now prepares build 23, but it must not be built or submitted until the blocking items below are resolved and both automated preflights pass.
+RISE is **not ready for public App Store submission yet**. TestFlight build 22 is the latest uploaded binary, and build 23 is configured locally but has not been built or uploaded. TestFlight beta upload and public App Store submission use separate gates: TestFlight can proceed once the live API and TestFlight preflight are healthy; exact-build screenshots, device QA, and App Store Connect attestations are completed after the beta binary exists and before public review.
 
 ## Verified complete
 
@@ -27,13 +27,13 @@ RISE is **not ready for public App Store submission yet**. TestFlight build 22 i
 - Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 48 app logic tests pass, and 38 backend tests pass.
 - Recovery, verification, Privacy, Privacy Choices, Terms, and Safety screens honor the shared light/dark appearance and expose improved accessibility state.
 - `app-store/` contains validated English metadata, conservative privacy/age-rating guidance, final review notes, and an exact-Build-23 screenshot plan.
-- The fail-closed submission gate validates metadata limits, manual Apple/QA attestations, reviewer contact, EAS build-number availability, screenshot formats/dimensions/transparency, and the required current iPhone screenshot size before build/upload.
+- The fail-closed App Store submission gate validates metadata limits, manual Apple/QA attestations, reviewer contact, EAS build-number availability, screenshot formats/dimensions/transparency, and the required current iPhone screenshot size before public App Store review.
 
 ## Blocking before a new TestFlight binary
 
 1. **Transactional email:** public API configuration currently reports `email_delivery_ready: false`. Supply a RISE-owned domain, verify it in Resend with SPF, DKIM, and DMARC, then set Render's `RISE_EMAIL_FROM` and `RISE_RESEND_API_KEY`. A personal Gmail address or `onboarding@resend.dev` is not a production sender.
 2. Run `npm run testflight:preflight` until it passes. Do not bypass its email-delivery check.
-3. Complete the physical-iPhone QA checklist below on the exact release candidate.
+3. Build and upload the beta candidate with `npm run testflight:build-upload -- --execute`; then complete the physical-iPhone QA checklist below on that exact binary.
 
 ## Blocking before public App Store review
 
@@ -92,18 +92,16 @@ Reconfirm this against the final production build before answering Apple's quest
 
 ## Release commands
 
-Only after the blockers are cleared:
+Use the TestFlight commands to create and upload a beta binary. Run the App Store gates after the exact build exists and the device QA, screenshots, legal facts, and App Store Connect questionnaires have been completed:
 
 ```text
 npm run check
 npm run test:logic
 npm run testflight:preflight
-npm run appstore:preflight
-npm run appstore:submission:preflight
 npm run security:audit
 npx expo-doctor
-npm run appstore:build-upload
-npm run appstore:build-upload -- --execute
+npm run testflight:build-upload
+npm run testflight:build-upload -- --execute
 ```
 
-`appstore:build-upload` is a dry run unless `--execute` is supplied, and even the execute path refuses to start until every automated and manually attested gate passes. Public App Store submission is a separate decision after TestFlight processing and physical-device QA. Do not submit the public version merely because the binary processed successfully.
+After the beta is processed and device QA/screenshots are complete, run `npm run appstore:preflight` and `npm run appstore:submission:preflight`. Those App Store gates are intentionally separate from TestFlight upload because exact-build screenshots and physical-device attestations cannot exist before the build. TestFlight upload does not submit the app for public App Store review; do not submit the public version merely because the binary processed successfully.
