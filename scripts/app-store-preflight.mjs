@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { validatePublicLegalIdentity } from "./release-identity.mjs";
 
 try {
   const localEnv = readFileSync(new URL("../.env", import.meta.url), "utf8");
@@ -33,11 +34,7 @@ const publicLegalValues = {
   EXPO_PUBLIC_OPERATOR_MAILING_ADDRESS: process.env.EXPO_PUBLIC_OPERATOR_MAILING_ADDRESS,
   EXPO_PUBLIC_LAUNCH_JURISDICTION: process.env.EXPO_PUBLIC_LAUNCH_JURISDICTION,
 };
-const placeholder = /^(your|todo|tbd|placeholder|example)/i;
-for (const [name, rawValue] of Object.entries(publicLegalValues)) {
-  const value = rawValue?.trim() || "";
-  if (!value || placeholder.test(value)) problems.push(`Set ${name} to verified public information and add the same value to the EAS production environment.`);
-}
+problems.push(...validatePublicLegalIdentity(publicLegalValues));
 
 if (problems.length) {
   process.stderr.write(`App Store preflight: ${problems.length} blocking item(s):\n${problems.map((item) => `- ${item}`).join("\n")}\n`);

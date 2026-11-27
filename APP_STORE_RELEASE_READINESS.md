@@ -38,7 +38,7 @@ RISE is **not ready for a new public submission**. Expo confirms iOS Build 23 fi
 - Account export and deletion now include email-bound founding invitations, and local-only deletion signs an authenticated member out without misrepresenting server deletion.
 - Public-release copy no longer presents the installed app as an unfinished beta, and invites share the public RISE page rather than a TestFlight link.
 - The current dependency audit reports zero critical, high, or moderate findings.
-- Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 65 app logic tests pass, and 38 backend tests pass.
+- Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 68 app logic tests pass, and 38 backend tests pass.
 - Recovery, verification, Privacy, Privacy Choices, Terms, and Safety screens honor the shared light/dark appearance and expose improved accessibility state.
 - `app-store/` contains validated English metadata, conservative privacy/age-rating guidance, final review notes, and an exact-Build-24 screenshot plan.
 - The fail-closed App Store submission gate validates metadata limits, manual Apple/QA attestations, reviewer contact, the existing finished EAS candidate, screenshot formats/dimensions/transparency, and the required current iPhone screenshot size before public App Store review.
@@ -130,3 +130,14 @@ After the beta is processed and device QA/screenshots are complete, run `npm run
 ## Build 25 upload result
 
 EAS build 511e4f28-004a-48c1-a6bc-273f72536a1e finished and EAS submission 6d411024-f37f-4645-bd38-bcecdaeb237f successfully uploaded version 1.0.0 (25) to App Store Connect. Native build logs confirm Xcode 27.2. Apple processing, tester-group availability, and public App Review state have not been verified through the blocked Apple browser. The Build 24 screenshot remains valid only for Build 24; final Build 25 captures and exact-build device attestations are pending. The public operator mailing address remains unresolved.
+
+
+## Final follow-up while owner is away
+
+- Build 25 remains FINISHED in EAS and was successfully uploaded to Apple; no redundant binary was created.
+- Corrected the listing description and review notes: photo/video proof is required to finish a mission, rather than optional. All metadata files pass local length/URL checks.
+- Public-release identity validation now rejects email contacts as physical addresses and requires Canadian postal-code syntax for the stated jurisdiction. This is a syntax check, not independent factual verification of an address.
+- 68 app logic tests now pass. The latest runtime verification remains 45 backend tests, 21 Expo Doctor checks, successful native iOS 27.2 compilation, clean dependency audits, and live API health/streamed-body protection.
+- User again supplied rise.app13@gmail.com as a mailing address and referred to phone testing of Build 5. Neither statement supplies a physical postal address or verifies Build 25 device QA. No missing attestation was marked complete.
+- Apple guideline 2.3.3 calls for screenshots showing the app in use; the single welcome image alone does not establish an adequate final screenshot set. The supplied image remains recorded as Build 24.
+- Public submission could not be performed: saved Apple browser denial persists, the physical address is missing, and final screenshots/device checks/reviewer setup/Apple declarations remain unverified.
