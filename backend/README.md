@@ -29,8 +29,8 @@ The command refuses to create more than 60 total invitations. Each code is rando
 - Use managed PostgreSQL by setting `RISE_DATABASE_URL`.
 - Set `RISE_ENV=production` and a unique `RISE_JWT_SECRET` of at least 32 characters.
 - Set `RISE_ALLOWED_ORIGINS` to the exact HTTPS website origin.
-- Run behind an HTTPS reverse proxy and replace the in-memory login throttle with a shared Redis or gateway limiter before running multiple API instances.
-- Add schema migrations and managed backups before real customer data is collected.
+- Run behind an HTTPS reverse proxy. Shared PostgreSQL auth/read/write/mail budgets supplement the process-local limiter across workers; review gateway controls separately.
+- Startup applies Alembic migrations and verifies private-table ACL/RLS protections. Require database TLS and narrow network access. Configure and test backups; the current Supabase Free plan does not include scheduled project backups. See [production operations](OPERATIONS.md).
 - Set the mobile build variable `EXPO_PUBLIC_API_URL` to the production HTTPS API URL.
 
 The current entitlement records one free year from code activation. Billing is not implemented; any future billing service must honor `founding_expires_at` and must not charge founding members before that date.
@@ -41,7 +41,7 @@ Set a separate, random `RISE_ADMIN_API_KEY` (at least 32 characters). The privat
 
 Set `RISE_API_URL` and `RISE_ADMIN_API_KEY` in your operator terminal, then run `py scripts/analytics_report.py`. For a local-only check, `RISE_API_URL` can be `http://127.0.0.1:8000`; deployed use requires HTTPS.
 
-Community comparison is opt-in. It shows a member only their own mission-count rank among other opted-in members. No public names, email addresses, or proof are exposed, and members can leave at any time.
+Progress is self-reported. Competitive rankings and new leaderboard enrollment are disabled; previously enrolled members can remove their consent. Do not represent client-reported mission counts or minutes as independently verified activity.
 
 ## Founding-member launch switch
 

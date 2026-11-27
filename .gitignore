@@ -67,3 +67,6 @@ example
 # Local owner-provided exact-build captures and provenance
 app-store/screenshots/build-*/
 app-store/screenshots/manifest.json
+
+# Local release verification exports
+/dist-release-*/

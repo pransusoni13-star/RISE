@@ -6,7 +6,7 @@ import ts from "typescript";
 import { createSessionBoundary } from "../src/services/sessionBoundary.ts";
 import { createSerializedMutationQueue } from "../src/services/serializedMutations.ts";
 
-function harness() {
+function harness({ exportPages = [], failExportPage = null } = {}) {
   const local = new Map();
   const secure = new Map();
   let profileExpired = false;
@@ -19,6 +19,12 @@ function harness() {
   const reply = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
   const fetch = async (url, init) => {
     const path = new URL(url).pathname;
+    if (path === "/users/me/export") {
+      const page = Number(new URL(url).searchParams.get("page"));
+      return page === failExportPage
+        ? reply({ detail: "Cloud export unavailable" }, 503)
+        : reply(exportPages[page]);
+    }
     if (path === "/auth/login") return reply(session(JSON.parse(init.body).email.split("@")[0]));
     if (path === "/auth/logout") return reply(null, 204);
     if (path === "/auth/refresh") { refreshStarted(); return refresh; }
@@ -77,4 +83,23 @@ test("a different account cannot silently inherit or erase retained records", as
   assert.equal(h.local.get("RISE_LOCAL_OWNER"), "alice");
   assert.equal(h.local.get("RISE_MISSION_RECORDS"), "private reflection");
   assert.equal(h.secure.has("RISE_AUTH_USER"), false);
+});
+
+test("the client combines every export page instead of returning only the first", async () => {
+  const h = harness({exportPages:[
+    {user:{id:'alice'},skills:[{id:'skill-a'}],progress_events:[{id:'event-a'}],product_feedback:[],pagination:{more:true}},
+    {skills:[],progress_events:[{id:'event-b'}],product_feedback:[{id:'feedback-b'}],pagination:{more:false}},
+  ]});
+  await h.auth.login('alice@example.com', 'password');
+  const archive = await h.auth.getCloudDataExport();
+  assert.equal(archive.user.id, 'alice');
+  assert.equal(archive.progress_events.map(event => event.id).join(','), 'event-a,event-b');
+  assert.equal(archive.product_feedback[0].id, 'feedback-b');
+  assert.equal('pagination' in archive, false);
+});
+
+test("a failed later export page rejects the export without returning a partial archive", async () => {
+  const h = harness({exportPages:[{skills:[],progress_events:[{id:'event-a'}],product_feedback:[],pagination:{more:true}}],failExportPage:1});
+  await h.auth.login('alice@example.com', 'password');
+  await assert.rejects(h.auth.getCloudDataExport(), /Cloud export unavailable/);
 });
