@@ -26,6 +26,7 @@ from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, 
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
 from .request_limits import RequestBodyLimitMiddleware
 from .budgets import enforce_budgets
+from .database_privacy import database_privacy_ready
 
 
 settings = get_settings()
@@ -39,6 +40,8 @@ DUMMY_PASSWORD_HASH = hash_password(str(uuid4()))
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     with Session(engine) as db:
+        if settings.env.lower() == "production" and not database_privacy_ready(db):
+            raise RuntimeError("Private database table protections must be applied before production startup")
         for rank, (slug, name, category, description, goal) in enumerate(POPULAR_SKILLS, start=1):
             if not db.get(SkillCatalog, slug):
                 db.add(SkillCatalog(slug=slug, name=name, category=category, description=description, default_goal=goal, popularity_rank=rank))
@@ -210,12 +213,13 @@ def health() -> dict[str, str]:
 
 
 @app.get("/config/public")
-def public_config() -> dict[str, bool | str]:
+def public_config(db: Session = Depends(get_db)) -> dict[str, bool | str]:
     return {
         "api_version": API_VERSION,
         "release_commit": os.getenv("RENDER_GIT_COMMIT", "local")[:12],
         "founding_redemption_enabled": settings.founding_redemption_enabled,
         "email_delivery_ready": settings.email_delivery_ready,
+        "database_privacy_ready": database_privacy_ready(db),
     }
 
 
