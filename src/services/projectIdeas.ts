@@ -9,6 +9,12 @@ export type ProjectIdeaLevel = {
 type IdeaSet = Record<ProjectDifficulty, ProjectIdeaLevel>;
 
 const namedIdeas: Record<string, [string[], string[], string[], string[]]> = {
+  beyblade: [
+    ["Create a ten-launch Beyblade baseline log", "Compare two safe launch angles in an enclosed stadium", "Make an equipment-check and launch-routine card"],
+    ["Compare two legal Beyblade setups across ten controlled trials", "Review five practice battles and classify each finish", "Track launch consistency across seven practice sessions"],
+    ["Build a Beyblade matchup notebook with repeatable tests", "Create a launch-technique comparison with before-and-after logs", "Analyse twenty consent-based practice battles for recurring mistakes"],
+    ["Run a month-long Beyblade practice experiment and report limitations", "Prepare a competition-readiness portfolio using the event's current rules", "Create and test a safe Beyblade practice guide with a willing training partner"],
+  ],
   "software-engineer": [
     ["A responsive tip calculator", "A study timer that saves sessions", "A personal portfolio contact form"],
     ["A habit tracker with local storage", "A weather dashboard with loading and error states", "A searchable notes app"],
@@ -63,9 +69,10 @@ function labelFor(goal: string) {
   return goal.split("-").filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ") || "Personal Growth";
 }
 
-export function getProjectIdeaLevels(goal: string, focusSkill?: string): IdeaSet {
-  const normalized = goal.trim().toLowerCase();
-  const label = labelFor(normalized);
+export function getProjectIdeaLevels(goal: string, focusSkill?: string, customGoal = ""): IdeaSet {
+  const isCustom = /^(custom-|personal$)/.test(goal);
+  const normalized = isCustom && /beyblad/i.test(customGoal) ? "beyblade" : goal.trim().toLowerCase();
+  const label = isCustom && normalized !== "beyblade" ? focusSkill?.trim() || "Your goal" : labelFor(normalized);
   const skill = focusSkill?.trim() || label;
   const ideas = namedIdeas[normalized] || [
     [`Create a one-page ${skill} field guide`, `Complete a 30-minute ${skill} before-and-after challenge`, `Make three examples that demonstrate ${skill}`],

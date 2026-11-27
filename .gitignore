@@ -63,3 +63,7 @@ example
 /android
 
 .vercel
+
+# Local owner-provided exact-build captures and provenance
+app-store/screenshots/build-*/
+app-store/screenshots/manifest.json

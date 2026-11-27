@@ -1,10 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BuilderHeader } from "../components/builder-ui";
 import { useRiseAppearance } from "../services/appearance";
-import { RiseProfile, saveProfile } from "../services/personalization";
 
 const careerGoals = [
   ["software-engineer", "SE", "Software Engineer"], ["ai-engineer", "AI", "AI Engineer"],
@@ -65,7 +64,7 @@ export default function GoalsScreen() {
     setter((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
   };
 
-  const continueNext = async () => {
+  const continueNext = () => {
     if (!growthPath || saving) return;
     if (growthPath === "both" && activeDirection === "career") {
       if (validCareer) setActiveDirection("life");
@@ -77,9 +76,7 @@ export default function GoalsScreen() {
     const activeLifeIds = needsLife ? lifeIds : [];
     const selectedGoals = [...activeCareerIds, ...activeLifeIds];
     const combinedGoal = [...(needsCareer ? careerLabels : []), ...(needsLife ? lifeLabels : [])].join(" + ");
-    const profile: RiseProfile = { selectedGoals, customGoal: combinedGoal };
     try {
-      await saveProfile(profile);
       router.push({
         pathname: "/focus",
         params: {
@@ -91,6 +88,8 @@ export default function GoalsScreen() {
           customGoal: combinedGoal,
         },
       } as any);
+    } catch {
+      Alert.alert("Couldn’t save your goal", "Your choices are still here. Please try again.");
     } finally {
       setSaving(false);
     }

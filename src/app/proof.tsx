@@ -762,7 +762,7 @@ export default function ProofScreen() {
           <TextInput
             value={proofDescription}
             onChangeText={setProofDescription}
-            placeholder="Example: This screenshot shows the working React Native form and the error state I added."
+            placeholder={`Describe what your attachment shows for “${taskTitle}”, including the result you recorded.`}
             placeholderTextColor="#668577"
             multiline
             maxLength={500}

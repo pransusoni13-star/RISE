@@ -1,6 +1,6 @@
 # RISE App Store Connect submission pack
 
-Updated: 2026-11-18
+Updated: 2026-11-26
 
 This pack contains final-quality copy based on features verified in the repository. It is not proof that Apple will approve the app, and it does not replace exact-build device testing, truthful App Store Connect answers, or qualified legal review.
 
@@ -47,7 +47,7 @@ Answer Apple's current questionnaire literally. If the final build, links, or co
 
 ## Accessibility questionnaire baseline
 
-The code provides accessibility roles and labels on key controls, system light/dark appearance, and ordinary React Native text scaling. Do not claim full support until the exact Build 23 binary passes the physical-device checks below:
+The code provides accessibility roles and labels on key controls, system light/dark appearance, and ordinary React Native text scaling. Do not claim full support until the exact Build 25 binary passes the physical-device checks below:
 
 - VoiceOver focus order, names, values, hints, and modal behavior on every primary flow.
 - Dynamic Type at the largest accessibility sizes without clipped controls or unreachable actions.
@@ -64,15 +64,15 @@ Copy `app-store/metadata/en-US/review_notes.txt` into Review Notes. Enter the re
 
 Required App Review contact fields:
 
-- First name: **OWNER MUST SUPPLY**
-- Last name: **OWNER MUST SUPPLY**
-- Monitored email: **OWNER MUST CONFIRM**
+- First name: **Aayush**
+- Last name: **Soni**
+- Monitored email: **rise.app13@gmail.com (owner confirmed)**
 - Reachable phone number: **OWNER MUST SUPPLY**
 - Non-expiring reviewer account: **OWNER MUST CREATE AND TEST**
 
 ## Screenshot capture plan
 
-Screenshots must come from the exact processed Build 23 binary on the required iPhone display sizes shown by App Store Connect. Do not use a design mock, web build, Build 22, placeholder legal text, developer menus, or personally identifying test data.
+Screenshots must come from the exact processed Build 25 binary on the required iPhone display sizes shown by App Store Connect. Do not use a design mock, web build, Build 23, placeholder legal text, developer menus, or personally identifying test data.
 
 Recommended sequence:
 
@@ -104,15 +104,15 @@ Never replace these with a brand name, guessed address, timezone-derived jurisdi
 
 ## Release gates
 
-Before uploading Build 23:
+Before uploading Build 25:
 
-1. Deploy the current backend commit and confirm `/config/public` reports `email_delivery_ready: true`.
-2. Verify a RISE-owned email domain with SPF, DKIM, and DMARC; test verification and password-reset delivery with at least two non-owner email providers.
+1. Confirm `/config/public` reports `email_delivery_ready: true` (passed on November 26). The connected Render workspace does not expose the RISE service, so deployment control still needs the correct account/workspace.
+2. Verify actual signup and password-reset delivery with at least two non-owner email providers. The API readiness flag passes, but successful delivery and sender-domain ownership have not been demonstrated in this audit.
 3. Add the three verified public legal values to the EAS production environment.
 4. Run `npm run testflight:preflight` until it passes without bypasses, then run the automated checks documented in `APP_STORE_RELEASE_READINESS.md`.
-5. Run `npm run testflight:build-upload -- --execute` to build and upload Build 23 to TestFlight only.
-6. Install the processed build over Build 22 and complete the physical-iPhone upgrade and feature checklist.
-7. Capture final screenshots from Build 23, complete every truthful App Store Connect questionnaire, and run `npm run appstore:preflight` plus `npm run appstore:submission:preflight`.
-8. Select Build 23 in App Store Connect and submit it for App Review only after every public-release gate passes.
+5. Run `npm run testflight:build-upload -- --execute` to build and upload Build 25 to TestFlight only.
+6. Install the processed build over Build 24 and complete the physical-iPhone upgrade and feature checklist.
+7. Capture final screenshots from Build 25, complete every truthful App Store Connect questionnaire, and run `npm run appstore:preflight` plus `npm run appstore:submission:preflight`.
+8. Select Build 25 in App Store Connect and submit it for App Review only after every public-release gate passes.
 
 Do not submit merely because the binary processed successfully.

@@ -20,7 +20,7 @@
       "appleTeamId": "C428XF4X3T",
       "bundleIdentifier": "com.riseapp13.riseapp",
       "icon": "./assets/images/rise-icon.png",
-      "buildNumber": "23",
+      "buildNumber": "25",
       "supportsTablet": false,
       "infoPlist": {
         "NSAppTransportSecurity": {
@@ -75,7 +75,15 @@
         }
       ],
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

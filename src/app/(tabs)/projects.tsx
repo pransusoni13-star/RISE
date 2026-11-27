@@ -12,7 +12,7 @@ export default function ProjectsTabScreen() {
   const storedGoals = profile?.selectedGoals?.length ? profile.selectedGoals : ["personal"];
   const primaryGoal = storedGoals[0];
   const focusSkill = profile?.weeklySkill || profile?.focusSkills?.[0];
-  const levels = useMemo(() => getProjectIdeaLevels(primaryGoal, focusSkill), [primaryGoal, focusSkill]);
+  const levels = useMemo(() => getProjectIdeaLevels(primaryGoal, focusSkill, profile?.customGoal), [primaryGoal, focusSkill, profile?.customGoal]);
 
   const projects = useMemo(
     () => (["Easy", "Medium", "Hard", "Insane"] as ProjectDifficulty[]).map((difficulty, index) => ({

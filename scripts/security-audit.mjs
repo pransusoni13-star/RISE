@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { validateAuditReport } from "./audit-report.mjs";
 
 const temporaryExpo57Allowlist = new Set([
   "@expo/cli",
@@ -63,7 +64,8 @@ try {
   report = JSON.parse(output);
 }
 
-const vulnerabilities = Object.entries(report.vulnerabilities || {});
+validateAuditReport(report);
+const vulnerabilities = Object.entries(report.vulnerabilities);
 const critical = vulnerabilities.filter(([, item]) => item.severity === "critical");
 const high = vulnerabilities.filter(([, item]) => item.severity === "high");
 const unknownHigh = high.filter(([name]) => !temporaryExpo57Allowlist.has(name));

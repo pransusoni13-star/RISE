@@ -1,10 +1,24 @@
 # RISE App Store release readiness
 
-Updated: 2026-11-18
+Updated: 2026-11-26
 
 ## Current decision
 
-RISE is **not ready for public App Store submission yet**. TestFlight build 22 is the latest uploaded binary, and build 23 is configured locally but has not been built or uploaded. TestFlight beta upload and public App Store submission use separate gates: TestFlight can proceed once the live API and TestFlight preflight are healthy; exact-build screenshots, device QA, and App Store Connect attestations are completed after the beta binary exists and before public review.
+RISE is **not ready for a new public submission**. Expo confirms iOS Build 23 finished on November 24 from commit `07ba798`. That does not establish its App Store Connect review status. Build 24 finished and uploaded to App Store Connect via EAS (build b83cbed6-974a-4661-813a-2b930772fe87, submission 04de1ec2-47ab-406c-b45d-3038603f69b4). Build 25 is the new candidate requested for the iOS 27 SDK: scene support is enabled and Xcode 27.2 is pinned. Final Build 25 screenshots and device QA remain required.
+
+## November 26 audit
+
+- Fixed custom-goal context being ignored, selected focus skills being replaced, software goals using engineering templates, and mixed tracks skipping their first lesson.
+- Added measurable Beyblade launch/matchup practice, corresponding project ideas, and concrete tasks for other advertised goal categories. Unrecognized goals use a general practice framework; this is a local template planner, not an external AI model.
+- Plan reads the persisted profile, preventing partial navigation data from replacing its focus or cycle start. Goal selection no longer overwrites a saved plan before focus confirmation. Legacy mission IDs are retained for existing plans.
+- Invalid mission links now recover to Plan instead of inventing a generic Day 1 task. Custom skill text is excluded from external searches.
+- Fixed the binary/review gate deadlock: a new build requires an unused number; public review requires the existing finished candidate, exact-build screenshots, and verified manual gates.
+- Fixed audit errors being accepted as clean dependency reports and concurrent Windows tests sharing a database.
+- Verified TypeScript/lint, automated app logic, backend tests, SDK checks, dependency audit, and iOS Hermes bundle export; see command outcomes in this chat. The owner reports phone testing and confirmed the supplied welcome screenshot came from Build 24; this does not attest to Build 25 upgrade, accessibility, or two-provider email testing.
+- Live TestFlight preflight passes, including API version 1.2.0, email readiness, and policy/support pages. Actual two-provider email delivery remains unverified.
+- Operator legal name is Aayush Soni; recorded locally and in the Expo production environment. Support inbox was confirmed as rise.app13@gmail.com. Launch jurisdiction is Ontario, Canada and is configured locally and in Expo production. The App Review phone is recorded in ignored local state. The physical mailing address remains missing.
+- Connected Render workspace `tea-d6cipd7gi27c7381mmng` returns 404 for RISE service `srv-daurrt7pn0mc738t94jg`; its unrelated services were not changed.
+- App Store Connect remains blocked by a saved browser permission, including after the owner explicitly approved access. No current review status, rejection, questionnaires, screenshots, or Apple agreements were verified or changed.
 
 ## Verified complete
 
@@ -24,28 +38,26 @@ RISE is **not ready for public App Store submission yet**. TestFlight build 22 i
 - Account export and deletion now include email-bound founding invitations, and local-only deletion signs an authenticated member out without misrepresenting server deletion.
 - Public-release copy no longer presents the installed app as an unfinished beta, and invites share the public RISE page rather than a TestFlight link.
 - The current dependency audit reports zero critical, high, or moderate findings.
-- Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 48 app logic tests pass, and 38 backend tests pass.
+- Expo Doctor passes all 21 checks, the iOS production bundle exports successfully, 65 app logic tests pass, and 38 backend tests pass.
 - Recovery, verification, Privacy, Privacy Choices, Terms, and Safety screens honor the shared light/dark appearance and expose improved accessibility state.
-- `app-store/` contains validated English metadata, conservative privacy/age-rating guidance, final review notes, and an exact-Build-23 screenshot plan.
-- The fail-closed App Store submission gate validates metadata limits, manual Apple/QA attestations, reviewer contact, EAS build-number availability, screenshot formats/dimensions/transparency, and the required current iPhone screenshot size before public App Store review.
+- `app-store/` contains validated English metadata, conservative privacy/age-rating guidance, final review notes, and an exact-Build-24 screenshot plan.
+- The fail-closed App Store submission gate validates metadata limits, manual Apple/QA attestations, reviewer contact, the existing finished EAS candidate, screenshot formats/dimensions/transparency, and the required current iPhone screenshot size before public App Store review.
 
-## Blocking before a new TestFlight binary
+## Before a new binary
 
-1. **Transactional email:** public API configuration currently reports `email_delivery_ready: false`. Supply a RISE-owned domain, verify it in Resend with SPF, DKIM, and DMARC, then set Render's `RISE_EMAIL_FROM` and `RISE_RESEND_API_KEY`. A personal Gmail address or `onboarding@resend.dev` is not a production sender.
-2. Run `npm run testflight:preflight` until it passes. Do not bypass its email-delivery check.
-3. Build and upload the beta candidate with `npm run testflight:build-upload -- --execute`; then complete the physical-iPhone QA checklist below on that exact binary.
+Live TestFlight configuration passes. To make Build 24 a public-release candidate, first supply the verified operator mailing address and launch jurisdiction locally and in Expo production. `npm run appstore:build-upload` enforces this. Then build/upload the candidate, perform physical-iPhone QA, and capture screenshots from that exact build. Do not mark unperformed checks complete.
 
 ## Blocking before public App Store review
 
 ### Founder/legal information
 
-1. Set `EXPO_PUBLIC_OPERATOR_LEGAL_NAME`, `EXPO_PUBLIC_OPERATOR_MAILING_ADDRESS`, and `EXPO_PUBLIC_LAUNCH_JURISDICTION` to verified public facts in the EAS production environment. The in-app Privacy Policy, Terms, and Safety Disclosure now read these values and the App Store preflight rejects missing or placeholder values. Have qualified counsel review the final documents; this repository cannot provide a guarantee against legal claims.
+1. `EXPO_PUBLIC_OPERATOR_LEGAL_NAME` is set to Aayush Soni. Set `EXPO_PUBLIC_OPERATOR_MAILING_ADDRESS` and `EXPO_PUBLIC_LAUNCH_JURISDICTION` to verified public facts in the EAS production environment. The in-app Privacy Policy, Terms, and Safety Disclosure now read these values and the App Store preflight rejects missing or placeholder values. Have qualified counsel review the final documents; this repository cannot provide a guarantee against legal claims.
 2. Confirm the monitored support contact and a deletion-request contact/process.
 3. Confirm the minimum audience age and complete the age-rating questionnaire truthfully. If RISE will knowingly serve children under 13, obtain a specific COPPA review before launch.
 
 ### App Store Connect metadata
 
-The app remains `iOS 1.0 · Prepare for Submission`. The following gaps were directly observed in App Store Connect on November 4, 2026 and must be rechecked before submission:
+Historical status was `iOS 1.0 · Prepare for Submission`; current status could not be rechecked because browser access was declined. The following gaps were directly observed in App Store Connect on November 4, 2026 and must be rechecked before submission:
 
 - Subtitle is blank.
 - Primary and secondary categories are blank.
@@ -105,3 +117,11 @@ npm run testflight:build-upload -- --execute
 ```
 
 After the beta is processed and device QA/screenshots are complete, run `npm run appstore:preflight` and `npm run appstore:submission:preflight`. Those App Store gates are intentionally separate from TestFlight upload because exact-build screenshots and physical-device attestations cannot exist before the build. TestFlight upload does not submit the app for public App Store review; do not submit the public version merely because the binary processed successfully.
+
+
+## Follow-up release verification
+
+- Backend commit f420455d79f90209d5d3b1aa4294063f9af104f3 is live on Render (deployment dep-dc4d63uc6qcc73d762ig). Health returned 200, API 1.2.0 and email readiness passed, and a bounded oversized streamed request returned 413.
+- 45 backend tests passed after atomic refresh/reset/verification token consumption, streamed-body limits, input limits, and FastAPI 0.165.0 / Starlette 1.10.0 upgrades. Python requirements audit reports no known vulnerabilities; npm audit reports no critical/high/moderate findings.
+- Build 24 was compiled using Xcode 26.6. Build 25 intentionally opts SDK 57 into the UIKit scene lifecycle and pins macos-tahoe-26.6-xcode-27.2. Expo introspection confirms an UIApplicationSceneManifest with EXExpoAppSceneDelegate.
+- The original Build 24 welcome screenshot is 1179 x 2556 JPEG with no alpha and passes file validation. Its manifest stays marked Build 24; it must not be relabelled as Build 25.

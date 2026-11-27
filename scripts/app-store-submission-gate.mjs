@@ -271,6 +271,17 @@ export function loadReleaseEnvironment(root) {
   }
 }
 
+export function interpretSubmissionBuild(stdout, buildNumber, bundleIdentifier, problems = []) {
+  let builds;
+  try { builds = JSON.parse(stdout); } catch { problems.push("Unable to parse the EAS submission build inventory."); return null; }
+  if (!Array.isArray(builds)) { problems.push("EAS submission build inventory must be a JSON array."); return null; }
+  const candidate = builds.find((build) => String(build.appBuildVersion) === String(buildNumber));
+  if (!candidate) { problems.push(`Build ${buildNumber} must be built and uploaded to TestFlight before exact-build QA and App Store review.`); return null; }
+  if (candidate.status !== "FINISHED") problems.push(`Build ${buildNumber} must finish successfully before App Store review (status: ${candidate.status}).`);
+  if (candidate.appIdentifier !== bundleIdentifier) problems.push(`Build ${buildNumber} does not match this app's bundle identifier.`);
+  return candidate;
+}
+
 export function runSubmissionGate({ root = fileURLToPath(new URL("..", import.meta.url)), checkRemote = true } = {}) {
   loadReleaseEnvironment(root);
   const problems = [];
@@ -285,7 +296,7 @@ export function runSubmissionGate({ root = fileURLToPath(new URL("..", import.me
   });
   if (automated.stdout) process.stdout.write(automated.stdout);
   if (automated.stderr) process.stderr.write(automated.stderr);
-  if (automated.status !== 0) problems.push("Automated App Store preflight must pass before build or upload.");
+  if (automated.status !== 0) problems.push("Automated App Store preflight must pass before public review.");
 
   validateMetadataDirectory(join(root, "app-store", "metadata", "en-US"), problems);
   const guidePath = join(root, "app-store", "SUBMISSION_GUIDE.md");
@@ -301,8 +312,8 @@ export function runSubmissionGate({ root = fileURLToPath(new URL("..", import.me
   if (checkRemote && /^\d+$/.test(localBuildNumber || "")) {
     const inventoryCommand = process.platform === "win32" ? process.env.ComSpec || "cmd.exe" : "npx";
     const inventoryArgs = process.platform === "win32"
-      ? ["/d", "/s", "/c", "npx eas-cli build:list --platform ios --limit 1 --json --non-interactive"]
-      : ["eas-cli", "build:list", "--platform", "ios", "--limit", "1", "--json", "--non-interactive"];
+      ? ["/d", "/s", "/c", "npx eas-cli build:list --platform ios --limit 10 --json --non-interactive"]
+      : ["eas-cli", "build:list", "--platform", "ios", "--limit", "10", "--json", "--non-interactive"];
     const inventory = spawnSync(inventoryCommand, inventoryArgs, {
       cwd: root,
       env: process.env,
@@ -312,7 +323,7 @@ export function runSubmissionGate({ root = fileURLToPath(new URL("..", import.me
     if (inventory.error || inventory.status !== 0) {
       problems.push(`Authenticated EAS iOS build inventory is required (${inventory.error?.message || inventory.stderr?.trim() || `exit ${inventory.status}`}).`);
     } else {
-      interpretLatestEasBuild(inventory.stdout, localBuildNumber, problems);
+      interpretSubmissionBuild(inventory.stdout, localBuildNumber, app.ios.bundleIdentifier, problems);
     }
   }
 
@@ -325,6 +336,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.stderr.write(`App Store submission gate: ${result.problems.length} blocking item(s):\n${result.problems.map((item) => `- ${item}`).join("\n")}\n`);
     process.exitCode = 1;
   } else {
-    process.stdout.write(`App Store submission gate passed for iOS build ${result.localBuildNumber}. The binary may now be built and uploaded; final App Review submission remains an explicit Account Holder action.\n`);
+    process.stdout.write(`App Store submission gate passed for existing iOS build ${result.localBuildNumber}. Select that processed build in App Store Connect for App Review.\n`);
   }
 }

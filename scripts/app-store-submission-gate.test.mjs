@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import {
   REQUIRED_METADATA,
   interpretLatestEasBuild,
+  interpretSubmissionBuild,
   readScreenshotImageInfo,
   validateMetadataDirectory,
   validateScreenshotManifest,
@@ -135,4 +136,27 @@ test("empty EAS inventory is treated intentionally as a first build", () => {
   const problems = [];
   assert.deepEqual(interpretLatestEasBuild("[]", "1", problems), { latest: null, isFirstBuild: true });
   assert.deepEqual(problems, []);
+});
+
+test("public review accepts the already-built candidate without requiring a newer build", () => {
+  const candidate = { appBuildVersion: "24", status: "FINISHED", appIdentifier: "com.riseapp13.riseapp" };
+  const problems = [];
+  assert.deepEqual(interpretSubmissionBuild(JSON.stringify([candidate]), "24", candidate.appIdentifier, problems), candidate);
+  assert.deepEqual(problems, []);
+});
+
+test("public review rejects missing, unfinished, or wrong-app binaries", () => {
+  for (const builds of [[], [{ appBuildVersion: "24", status: "ERRORED", appIdentifier: "com.riseapp13.riseapp" }], [{ appBuildVersion: "24", status: "FINISHED", appIdentifier: "com.other.app" }]]) {
+    const problems = [];
+    interpretSubmissionBuild(JSON.stringify(builds), "24", "com.riseapp13.riseapp", problems);
+    assert.ok(problems.length > 0);
+  }
+});
+
+test("public review cannot pass an invalid remote inventory", () => {
+  for (const response of ['broken', '{}', 'null']) {
+    const problems = [];
+    assert.equal(interpretSubmissionBuild(response, "24", "com.riseapp13.riseapp", problems), null);
+    assert.ok(problems.length > 0);
+  }
 });

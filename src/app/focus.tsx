@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BuilderHeader } from "../components/builder-ui";
@@ -36,9 +36,14 @@ export default function FocusScreen() {
   const needsCareer = careerGoals.length > 0;
   const needsLife = lifeGoals.length > 0;
   const isSpiritual = selectedGoals.includes("spirituality") || /faith|spiritual|religion|god|prayer/i.test(customGoal);
-  const careerSkills = useMemo(() => Array.from(new Set(careerGoals.flatMap(getRecommendedSkills))), [careerGoals]);
-  const lifeSkills = useMemo(() => Array.from(new Set(lifeGoals.flatMap(getRecommendedSkills))), [lifeGoals]);
-  const skills = useMemo(() => Array.from(new Set([...careerSkills, ...lifeSkills])), [careerSkills, lifeSkills]);
+  const skillsForGoal = React.useCallback((selectedGoal: string) => {
+    const parts = customGoal.split(" + ");
+    const context = parts.length === selectedGoals.length ? parts[selectedGoals.indexOf(selectedGoal)] : selectedGoals.length === 1 ? customGoal : "";
+    return getRecommendedSkills(selectedGoal, context);
+  }, [customGoal, selectedGoals]);
+  const careerSkills = useMemo(() => Array.from(new Set(careerGoals.flatMap(skillsForGoal))), [careerGoals, skillsForGoal]);
+  const lifeSkills = useMemo(() => Array.from(new Set(lifeGoals.flatMap(skillsForGoal))), [lifeGoals, skillsForGoal]);
+  const skills = useMemo(() => Array.from(new Set([...careerSkills, ...lifeSkills, ...(!needsCareer && !needsLife ? selectedGoals.flatMap(skillsForGoal) : [])])), [careerSkills, lifeSkills, needsCareer, needsLife, selectedGoals, skillsForGoal]);
 
   const [stage, setStage] = useState<"skills" | "rhythm">("skills");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -48,6 +53,8 @@ export default function FocusScreen() {
   const [showPersonalization, setShowPersonalization] = useState(false);
   const [spiritualTradition, setSpiritualTradition] = useState("");
   const [trustedSources, setTrustedSources] = useState("");
+  const [saving, setSaving] = useState(false);
+  const saveLock = React.useRef(false);
 
   const chosenSkills = useMemo(() => [...selectedSkills, ...(customSkill.trim() ? [customSkill.trim()] : [])].slice(0, 3), [selectedSkills, customSkill]);
   const customCoversCareer = Boolean(customSkill.trim()) && needsCareer && !needsLife;
@@ -73,26 +80,37 @@ export default function FocusScreen() {
       if (skillsReady) setStage("rhythm");
       return;
     }
-    if (!valid) return;
-    const skillStartDate = new Date().toISOString();
-    await updateProfile({
-      selectedGoals,
-      weeklySkill: chosenSkills[0],
-      focusSkills: chosenSkills,
-      skillStartDate,
-      commitment: cycle,
-      experience: experience.trim() || undefined,
-      spiritualTradition: isSpiritual ? spiritualTradition || undefined : undefined,
-      trustedSources: isSpiritual ? trustedSources.trim() || undefined : undefined,
-    });
-    router.push({
-      pathname: "/schedule",
-      params: { goal, secondaryGoal, goals: JSON.stringify(selectedGoals), customGoal, weeklySkill: chosenSkills[0], focusSkills: JSON.stringify(chosenSkills), skillStartDate, commitment: cycle, experience, spiritualTradition, trustedSources },
-    } as any);
+    if (!valid || saveLock.current) return;
+    saveLock.current = true;
+    setSaving(true);
+    try {
+      const skillStartDate = new Date().toISOString();
+      await updateProfile({
+        selectedGoals,
+        customGoal,
+        planIdentityVersion: 2,
+        weeklySkill: chosenSkills[0],
+        focusSkills: chosenSkills,
+        skillStartDate,
+        commitment: cycle,
+        experience: experience.trim() || undefined,
+        spiritualTradition: isSpiritual ? spiritualTradition || undefined : undefined,
+        trustedSources: isSpiritual ? trustedSources.trim() || undefined : undefined,
+      });
+      router.push({
+        pathname: "/schedule",
+        params: { goal, secondaryGoal, goals: JSON.stringify(selectedGoals), customGoal, weeklySkill: chosenSkills[0], focusSkills: JSON.stringify(chosenSkills), skillStartDate, commitment: cycle, experience },
+      } as any);
+    } catch {
+      Alert.alert("Couldn’t save your focus", "Your choices are still here. Please try again.");
+    } finally {
+      saveLock.current = false;
+      setSaving(false);
+    }
   };
 
-  const disabled = stage === "skills" ? !skillsReady : !valid;
-  const buttonLabel = stage === "skills"
+  const disabled = saving || (stage === "skills" ? !skillsReady : !valid);
+  const buttonLabel = saving ? "Saving…" : stage === "skills"
     ? skillsReady
       ? "Set my focus"
       : needsCareer && !coversCareer

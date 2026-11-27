@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   createSevenDayPlan,
   loadProfile,
@@ -14,47 +14,15 @@ import { daysUntilMission, getAvailableMissionDay, isMissionAvailable } from "..
 import { useRiseAppearance } from "../services/appearance";
 import { consentRepository } from "../services/consentRepository";
 
-const valueOf = (value: string | string[] | undefined, fallback = "") =>
-  Array.isArray(value) ? value[0] || fallback : value || fallback;
-
 export default function PlanScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useRiseAppearance();
-  const params = useLocalSearchParams();
   const [savedProfile, setSavedProfile] = useState<RiseProfile | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
-  const hasPlanParams = Boolean(params.goals || params.customGoal || params.weeklySkill);
-
-  const paramProfile = useMemo<RiseProfile>(() => {
-    let goals = ["personal"];
-    try {
-      const parsed = JSON.parse(valueOf(params.goals, "[]"));
-      if (Array.isArray(parsed) && parsed.length) goals = parsed.slice(0, 64).map(String);
-    } catch {}
-    let focusSkills: string[] = [];
-    try {
-      const parsed = JSON.parse(valueOf(params.focusSkills, "[]"));
-      if (Array.isArray(parsed)) focusSkills = parsed.slice(0, 3).map(String);
-    } catch {}
-
-    return {
-      selectedGoals: goals,
-      customGoal: valueOf(params.customGoal, "Build a useful skill"),
-      weeklySkill: valueOf(params.weeklySkill, "Foundations"),
-      focusSkills,
-      skillStartDate: valueOf(params.skillStartDate, new Date().toISOString()),
-      currentSituation: valueOf(params.currentSituation) || undefined,
-      experience: valueOf(params.experience) || undefined,
-      availableTime: valueOf(params.availableTime, valueOf(params.time, "30 minutes")),
-      accountability: valueOf(params.accountability) || undefined,
-      commitment: valueOf(params.commitment, "Every 7 days"),
-      spiritualTradition: valueOf(params.spiritualTradition) || undefined,
-      trustedSources: valueOf(params.trustedSources) || undefined,
-    };
-  }, [params]);
-
+  const [loadError, setLoadError] = useState(false);
   useFocusEffect(React.useCallback(() => {
     let active = true;
+    setLoadError(false);
     void Promise.all([loadProfile(), missionRepository.list(), hasCompletedRequiredTour(), consentRepository.hasCurrentConsent()]).then(([storedProfile, records, tourComplete, hasCurrentConsent]) => {
       if (!active) return;
       if (!hasCurrentConsent) {
@@ -67,11 +35,13 @@ export default function PlanScreen() {
       }
       setSavedProfile(storedProfile);
       setCompletedIds(records.filter((record) => record.status === "completed").map((record) => record.missionId));
-    });
+    }).catch(() => { if (active) setLoadError(true); });
     return () => { active = false; };
   }, []));
 
-  const profile = hasPlanParams ? paramProfile : savedProfile;
+  // The persisted plan is authoritative; partial route params must not reset
+  // the cycle date, replace a custom focus, or hide completed missions.
+  const profile = savedProfile;
   const missions = useMemo(() => profile ? createSevenDayPlan(profile) : [], [profile]);
   const completedCount = missions.filter((mission) => completedIds.includes(mission.id)).length;
   const completedDays = missions.filter((mission) => completedIds.includes(mission.id)).map((mission) => mission.day);
@@ -109,14 +79,15 @@ export default function PlanScreen() {
     } as any);
   };
 
+  if (loadError) return <View style={[styles.loading, { backgroundColor: theme.background, padding: 24 }]}><Text style={[styles.subtitle, { color: theme.text }]}>Your plan couldn’t load. Your saved progress has not been changed. Return to Today, then reopen Plan to try again.</Text><Pressable accessibilityRole="button" onPress={() => router.replace("/(tabs)/today" as never)} style={[styles.progressButton, { borderColor: theme.accent }]}><Text style={[styles.progressButtonText, { color: theme.accent }]}>Return to Today</Text></Pressable></View>;
   if (!profile) return <View style={[styles.loading, { backgroundColor: theme.background }]}><ActivityIndicator color={theme.accent} /></View>;
 
   return (
     <View style={[styles.page, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.eyebrow, { color: theme.accent }]}>YOUR PERSONAL 1% SYSTEM</Text>
+        <Text style={[styles.eyebrow, { color: theme.accent }]}>YOUR PRACTICE PLAN</Text>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
-          One direction.{"\n"}<Text style={{ color: theme.accent }}>Seven focused wins.</Text>
+          One direction.{"\n"}<Text style={{ color: theme.accent }}>{missions.length} focused missions.</Text>
         </Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>
           RISE turns “{profile.customGoal}” into one guided {profile.weeklySkill} mission per day. Finish today before tomorrow opens.

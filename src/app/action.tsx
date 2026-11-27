@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { loadProfile, PersonalizedMission, RiseProfile } from "../services/personalization";
+import { loadProfile, parseMissionPayload, PersonalizedMission, RiseProfile } from "../services/personalization";
 import { spiritualPractice, spiritualResource, spiritualVideoSearch } from "../services/spiritualResources";
 import { missionRepository, MissionStatus } from "../services/missionRepository";
 import { missionResultQuality } from "../services/missionProgress";
@@ -70,22 +70,8 @@ export default function ActionScreen() {
   const reflectionY = useRef(0);
   const [faithProfile, setFaithProfile] = useState<RiseProfile | null>(null);
 
-  const mission = useMemo(() => {
-    const raw = Array.isArray(params.mission) ? params.mission[0] : params.mission;
-    if (!raw) return fallbackMission;
-    try {
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return fallbackMission;
-      const candidate = { ...fallbackMission, ...parsed };
-      if (![candidate.steps, candidate.skills].every(value => Array.isArray(value) && value.length > 0 && value.length <= 20 && value.every(item => typeof item === "string" && item.length <= 3000))) return fallbackMission;
-      if (!["id", "title", "description", "goal", "skillId", "resourceUrl", "successCriteria", "why", "onePercent", "difficulty", "proof", "resourceLabel"].every(key => typeof candidate[key] === "string")) return fallbackMission;
-      if (!["guideLabel", "guideUrl", "coachTip", "ifStuck", "safetyNote", "sourceNote", "resourceNote", "mapQuery", "reflectionPrompt"].every(key => candidate[key] === undefined || typeof candidate[key] === "string")) return fallbackMission;
-      if (!["day", "duration", "reward", "coinReward"].every(key => Number.isFinite(candidate[key]) && candidate[key] >= 0 && candidate[key] <= 1440)) return fallbackMission;
-      return candidate as PersonalizedMission;
-    } catch {
-      return fallbackMission;
-    }
-  }, [params.mission]);
+  const parsedMission = useMemo(() => parseMissionPayload(Array.isArray(params.mission) ? params.mission[0] : params.mission), [params.mission]);
+  const mission = parsedMission || fallbackMission;
   const reflectionReview = useMemo(() => reflectionQuality(reflection), [reflection]);
   const resultReview = useMemo(() => missionResultQuality(chosenResult), [chosenResult]);
   const isSpiritual = Boolean(mission.sourceNote);
@@ -112,20 +98,26 @@ export default function ActionScreen() {
   }, [isSpiritual]);
 
   useEffect(() => {
+    if (!parsedMission) return;
+    let active = true;
     loadedMissionId.current = null;
     missionStartTracked.current = false;
     missionRepository.get(mission.id).then((record) => {
+      if (!active) return;
       const storedResult = record.chosenResult || "";
       loadedMissionId.current = mission.id;
       setChosenResult(storedResult);
       setCompletedSteps(Array.from(new Set(record.completedSteps.filter((step) => step >= 0 && step < mission.steps.length))));
       setReflection(record.reflection || "");
       setStatus(record.status);
+    }).catch(() => {
+      if (active) Alert.alert("Couldn’t load your mission", "Return to your plan and try again. Your saved work has not been changed.");
     });
-  }, [mission.id, mission.steps.length]);
+    return () => { active = false; };
+  }, [mission.id, mission.steps.length, parsedMission]);
 
   useEffect(() => {
-    if (loadedMissionId.current !== mission.id || status === "completed") return;
+    if (!parsedMission || loadedMissionId.current !== mission.id || status === "completed") return;
     const timer = setTimeout(() => {
       const nextStatus: MissionStatus = !resultReview.passed && completedSteps.length === 0
         ? "not_started"
@@ -150,7 +142,7 @@ export default function ActionScreen() {
       }
     }, 350);
     return () => clearTimeout(timer);
-  }, [chosenResult, completedSteps, mission.day, mission.id, mission.skillId, mission.steps.length, mission.track, resultReview.normalized, resultReview.passed, status]);
+  }, [chosenResult, completedSteps, mission.day, mission.id, mission.skillId, mission.steps.length, mission.track, resultReview.normalized, resultReview.passed, status, parsedMission]);
 
   const toggleStep = async (index: number) => {
     if (status === "completed" || saveLock.current) return;
@@ -216,6 +208,14 @@ export default function ActionScreen() {
     scrollRef.current?.scrollTo({ y: Math.max(0, y - 18), animated: true });
   };
 
+  if (!parsedMission) return (
+    <View style={[styles.page, { backgroundColor: theme.background, justifyContent: "center", padding: 24 }]}>
+      <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>Open your saved mission</Text>
+      <Text style={[styles.description, { color: theme.muted }]}>This mission link is incomplete. Your plan has the current task and saved progress.</Text>
+      <Pressable accessibilityRole="button" onPress={() => router.replace("/plan" as never)} style={[styles.button, { backgroundColor: theme.accent }]}><Text style={[styles.buttonText, { color: theme.accentInk }]}>Return to my plan</Text></Pressable>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={8}>
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: footerHeight + insets.bottom + 28 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
@@ -239,9 +239,9 @@ export default function ActionScreen() {
         <View onLayout={(event) => { resultY.current = event.nativeEvent.layout.y; }} style={[styles.stageCard, { backgroundColor: resultReady ? theme.surfaceStrong : theme.surface, borderColor: resultReady ? theme.accent : theme.border }]}> 
           <View style={styles.stageHeader}>
             <View style={[styles.stageNumber, { backgroundColor: resultReady ? theme.accent : theme.surfaceStrong }]}><Text style={[styles.stageNumberText, { color: resultReady ? theme.accentInk : theme.text }]}>{resultReady ? "✓" : "1"}</Text></View>
-            <View style={styles.stageHeading}><Text style={[styles.stageEyebrow, { color: theme.accent }]}>{resultReady ? "WIN LOCKED" : "FIRST MOVE"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>Choose today’s win</Text></View>
+            <View style={styles.stageHeading}><Text style={[styles.stageEyebrow, { color: theme.accent }]}>{resultReady ? "TARGET SET" : "TODAY'S TARGET"}</Text><Text style={[styles.stageTitle, { color: theme.text }]}>{mission.title}</Text></View>
           </View>
-          <Text style={[styles.stagePrompt, { color: theme.text }]}>What will be finished—not just started?</Text>
+          <Text style={[styles.stagePrompt, { color: theme.text }]}>{mission.successCriteria}</Text>
           <TextInput
             accessibilityLabel="My chosen mission result"
             style={[styles.missionInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}

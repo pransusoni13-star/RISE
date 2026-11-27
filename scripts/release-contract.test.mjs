@@ -36,7 +36,7 @@ test("public App Store release has an automated legal and service gate", () => {
   assert.match(preflight, /NSAllowsArbitraryLoads/);
 });
 
-test("public App Store build and upload require the complete submission gate", () => {
+test("binary creation checks legal readiness before exact-build submission checks", () => {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const submissionGate = readFileSync(join(root, "scripts", "app-store-submission-gate.mjs"), "utf8");
   const buildUpload = readFileSync(join(root, "scripts", "app-store-build-upload.mjs"), "utf8");
@@ -46,7 +46,9 @@ test("public App Store build and upload require the complete submission gate", (
     assert.match(submissionGate, new RegExp(requirement));
   }
   assert.match(buildUpload, /--execute/);
-  assert.match(buildUpload, /--auto-submit/);
+  assert.match(buildUpload, /app-store-preflight\.mjs/);
+  assert.match(buildUpload, /testflight-build-upload\.mjs/);
+  assert.doesNotMatch(buildUpload, /runSubmissionGate\(/);
 });
 
 test("installed builds can safely check, download, and apply an OTA update", () => {

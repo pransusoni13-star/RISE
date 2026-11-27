@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -16,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { reflectionQuality } from "../services/proofValidation";
 import { missionRepository } from "../services/missionRepository";
 import { getProjectIdeaLevels, ProjectDifficulty as Difficulty } from "../services/projectIdeas";
+import { loadProfile, type RiseProfile } from "../services/personalization";
 import { useRiseAppearance } from "../services/appearance";
 
 type Project = {
@@ -28,8 +28,6 @@ type Project = {
   reward: number;
   skillId: string;
 };
-
-const STORAGE_KEY = "RISE_SELECTED_GOALS";
 
 const goalLabels: Record<string, string> = {
   coding: "Coding",
@@ -59,8 +57,8 @@ const goalLabels: Record<string, string> = {
   creativity: "Creativity",
 };
 
-const buildGoalProjectSet = (goal: string): Record<Difficulty, Project> => {
-  const goalLabel = goalLabels[goal] ||
+const buildGoalProjectSet = (goal: string, focusLabel?: string): Record<Difficulty, Project> => {
+  const goalLabel = focusLabel || goalLabels[goal] ||
     goal
       .split("-")
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -552,36 +550,13 @@ export default function ProjectScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useRiseAppearance();
   const params = useLocalSearchParams();
-  const [storedGoals, setStoredGoals] = useState<string[]>([]);
-
+  const [storedProfile, setStoredProfile] = useState<RiseProfile | null>(null);
   useEffect(() => {
-    let isMounted = true;
-
-    const loadGoals = async () => {
-      if (params.goals) {
-        return;
-      }
-
-      try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
-
-        if (!saved || !isMounted) {
-          return;
-        }
-
-        const parsedGoals = JSON.parse(saved) as string[];
-        setStoredGoals(Array.isArray(parsedGoals) ? parsedGoals : []);
-      } catch (error) {
-        console.log("Could not load selected goals:", error);
-      }
-    };
-
-    loadGoals();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [params.goals]);
+    let active = true;
+    void loadProfile().then((profile) => { if (active) setStoredProfile(profile); });
+    return () => { active = false; };
+  }, []);
+  const storedGoals = useMemo(() => storedProfile?.selectedGoals || [], [storedProfile]);
 
   const goals = useMemo<string[]>(() => {
     try {
@@ -594,8 +569,10 @@ export default function ProjectScreen() {
     return ["personal"];
   }, [params.goals, storedGoals]);
 
-  const primaryGoal = String(goals[0] || "coding").toLowerCase();
-  const focusSkill = typeof params.focusSkill === "string" ? params.focusSkill : undefined;
+  const primaryGoal = String(goals[0] || "personal").toLowerCase();
+  const focusSkill = typeof params.focusSkill === "string" ? params.focusSkill : storedProfile?.weeklySkill;
+  const customGoal = storedProfile?.customGoal || "";
+  const isBeyblade = /^(custom-|personal$)/.test(primaryGoal) && /beyblad/i.test(customGoal);
 
   const [difficulty, setDifficulty] = useState<Difficulty>(() =>
     params.difficulty === "Medium" || params.difficulty === "Hard" || params.difficulty === "Insane" ? params.difficulty : "Easy");
@@ -605,14 +582,24 @@ export default function ProjectScreen() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [footerHeight, setFooterHeight] = useState(96);
 
-  const ideaLevel = useMemo(() => getProjectIdeaLevels(primaryGoal, focusSkill)[difficulty], [primaryGoal, focusSkill, difficulty]);
+  const ideaLevel = useMemo(() => getProjectIdeaLevels(primaryGoal, focusSkill, customGoal)[difficulty], [primaryGoal, focusSkill, customGoal, difficulty]);
   const project = useMemo(() => {
     const library =
       projectLibrary[primaryGoal] ||
-      buildGoalProjectSet(primaryGoal);
+      buildGoalProjectSet(primaryGoal, primaryGoal.startsWith("custom-") ? focusSkill : undefined);
 
-    return { ...library[difficulty], title: ideaLevel.title, description: ideaLevel.description };
-  }, [primaryGoal, difficulty, ideaLevel]);
+    return { ...library[difficulty], title: ideaLevel.title, description: ideaLevel.description, ...(isBeyblade ? {
+      skills: ["Launch control", "Matchup testing", "Battle review"],
+      skillId: "launch-control",
+      requirements: [
+        "Choose one of the Beyblade practice ideas below and define the result to measure",
+        "Use compatible, undamaged equipment in an enclosed stadium; keep faces and hands clear until tops stop",
+        "Record equipment, conditions, each trial result, and finish types without changing multiple variables",
+        "Compare results with your baseline and explain one adjustment and one limitation",
+      ],
+      proof: ["Practice log showing trials and results", "Before-and-after comparison", "One next adjustment"],
+    } : {}) };
+  }, [primaryGoal, difficulty, ideaLevel, focusSkill, isBeyblade]);
   const reflectionReview = reflectionQuality(reflection);
   const readyForProof = Boolean(selectedIdea) && reflectionReview.passed && checkedRequirements.length === project.requirements.length;
 

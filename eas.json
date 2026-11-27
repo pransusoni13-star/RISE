@@ -12,13 +12,19 @@
       "distribution": "store",
       "environment": "production",
       "channel": "production",
-      "autoIncrement": false
+      "autoIncrement": false,
+      "ios": {
+        "image": "macos-tahoe-26.6-xcode-27.2"
+      }
     },
     "production": {
       "distribution": "store",
       "environment": "production",
       "channel": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "image": "macos-tahoe-26.6-xcode-27.2"
+      }
     }
   },
   "submit": {

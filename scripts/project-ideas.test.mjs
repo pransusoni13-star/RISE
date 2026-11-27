@@ -17,3 +17,10 @@ test("project choices are personalized to the selected direction", () => {
   assert.match(ai.Medium.examples.join(" "), /document|recommendation|image/i);
   assert.match(fitness.Medium.examples.join(" "), /strength|running|training/i);
 });
+
+test("custom Beyblade projects stay about launch practice and matchups", () => {
+  const levels = getProjectIdeaLevels("custom-life", "Launch control", "Become a Beyblader");
+  assert.match(levels.Easy.examples.join(" "), /launch|stadium/i);
+  assert.match(levels.Hard.examples.join(" "), /matchup|battle/i);
+  assert.doesNotMatch(JSON.stringify(levels), /custom life|coding|TypeScript/i);
+});
