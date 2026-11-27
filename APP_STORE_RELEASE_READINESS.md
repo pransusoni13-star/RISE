@@ -2,6 +2,8 @@
 
 Updated: 2026-11-26
 
+November 27 follow-up: owner supplied a complete Canadian postal address, stored only in ignored release configuration, and reported completing the requested Build 25 phone checks. Recorded the physical-iPhone check as owner-reported; separate upgrade, two-provider email, and accessibility checks remain unverified. Owner identified ChatGPT as the artwork source; see `app-store/CONTENT_RIGHTS_REVIEW.md`. Adjusted ACE links to the homepage expressly covered by its published linking permission. These source/configuration changes postdate Build 25 and are not yet delivered to that installed binary. Historical missing-address entries below are superseded by this update.
+
 ## Current decision
 
 Build 25 is **Testing in the RISE Public Beta TestFlight group**, verified in App Store Connect after browser access was restored. Its binary state is Validated. It is also selected for the public App Store version, which remains Prepare for Submission. Apple's latest Add for Review validation reports only missing Content Rights Information. Final Build 25 screenshots, device QA, public postal identity, and confirmation of rights remain unresolved. Historical browser-denial entries below are superseded by this verification.

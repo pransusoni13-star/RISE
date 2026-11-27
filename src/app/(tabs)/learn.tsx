@@ -99,7 +99,7 @@ function rankedGuides(mission: PersonalizedMission) {
   if (mission.guideUrl) ranked.push({ label: mission.guideLabel || "Mission guide", url: mission.guideUrl, reason: "Best topic match from a named teaching or professional source.", score: 100 });
   const context = `${mission.goal} ${mission.skills.join(" ")}`.toLowerCase();
   if (/code|software|developer|react|web/.test(context) && mission.guideUrl !== "https://developer.mozilla.org/en-US/docs/Learn_web_development") ranked.push({ label: "MDN Web Docs", url: "https://developer.mozilla.org/en-US/docs/Learn_web_development", reason: "Structured beginner lessons from the MDN learning community.", score: 80 });
-  if (/fitness|strength|athlet|mobility/.test(context) && mission.guideUrl !== "https://www.acefitness.org/resources/everyone/exercise-library/") ranked.push({ label: "ACE Exercise Library", url: "https://www.acefitness.org/resources/everyone/exercise-library/", reason: "Exercise descriptions and form guidance; adapt to your ability.", score: 80 });
+  if (/fitness|strength|athlet|mobility/.test(context) && mission.guideUrl !== "https://www.acefitness.org/") ranked.push({ label: "ACE Fitness resources", url: "https://www.acefitness.org/", reason: "Open ACE Fitness and browse its exercise resources; adapt to your ability.", score: 80 });
   return ranked.sort((a, b) => b.score - a.score).slice(0, 2);
 }
 

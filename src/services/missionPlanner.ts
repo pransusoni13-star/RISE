@@ -472,7 +472,7 @@ function trustedResources(goal: string, template: MissionTemplate, title: string
   if (/fitness|athlete|basketball|mobility|wellbeing|nutrition/.test(value)) {
     return /nutrition/.test(value)
       ? { video: `CDC healthy eating ${searchContext}`, guideLabel: "CDC healthy eating guidance", guideUrl: "https://www.cdc.gov/nutrition/features/healthy-eating-tips.html" }
-      : { video: `ACE Fitness official ${searchContext}`, guideLabel: "ACE exercise form library", guideUrl: "https://www.acefitness.org/resources/everyone/exercise-library/" };
+      : { video: `ACE Fitness official ${searchContext}`, guideLabel: "ACE Fitness resources", guideUrl: "https://www.acefitness.org/" };
   }
   if (/barber|hair/.test(value) || template === templates.barbering || template === templates.fades) {
     return { video: `MiladyPro barber education ${searchContext}`, guideLabel: "Official barber health and safety guide", guideUrl: "https://www.barbercosmo.ca.gov/schools/healthsafety_course.shtml" };
