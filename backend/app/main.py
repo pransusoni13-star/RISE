@@ -24,6 +24,7 @@ from .mailer import send_email_verification, send_password_reset, send_product_f
 from .models import EmailVerification, FeedbackSubmissionReceipt, FoundingInvite, LeaderboardConsent, PasswordResetToken, ProductFeedback, ProgressEvent, RefreshSession, SkillCatalog, UsageAnalyticsConsent, User, UserProfile, UserSkill, now_utc
 from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProductFeedbackCreate, ProfileResponse, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
+from .request_limits import RequestBodyLimitMiddleware
 
 
 settings = get_settings()
@@ -44,6 +45,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="RISE API", version=API_VERSION, docs_url="/docs" if settings.env != "production" else None, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=False, allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Authorization", "Content-Type"])
+app.add_middleware(RequestBodyLimitMiddleware)
 bearer = HTTPBearer(auto_error=False)
 attempts: dict[str, deque[float]] = defaultdict(deque)
 attempt_lock = Lock()
@@ -69,7 +71,7 @@ async def security_headers(request: Request, call_next):
     started = perf_counter()
     if request.method in {"POST", "PUT", "PATCH"}:
         content_length = request.headers.get("content-length")
-        if content_length and (not content_length.isdecimal() or int(content_length) > 16384):
+        if content_length and (not content_length.isdecimal() or len(content_length) > 10 or int(content_length) > 16384):
             response = Response(status_code=413, content="Request body too large")
         else:
             response = await call_next(request)

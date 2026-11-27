@@ -3,7 +3,7 @@ from collections import deque
 from datetime import timedelta
 from pathlib import Path
 
-TEST_DB = Path(__file__).with_name("test-rise.db")
+TEST_DB = Path(__file__).with_name(f"test-rise-{os.getpid()}.db")
 os.environ["RISE_DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
 os.environ["RISE_JWT_SECRET"] = "test-secret-that-is-long-enough-for-tests-12345"
 
@@ -38,6 +38,17 @@ def test_registration_rejects_whitespace_display_names() -> None:
         for name in ["   ", " a "]:
             response = client.post("/auth/register", json={"email": "blank@example.com", "password": "very-secure-password", "display_name": name})
             assert response.status_code == 422
+
+
+def test_oversized_names_and_profile_collections_are_rejected() -> None:
+    with TestClient(app) as client:
+        oversized = {"email": "large-name@example.com", "password": "very-secure-password", "display_name": "A" * 1000}
+        assert client.post("/auth/register", json=oversized).status_code == 422
+        created = client.post("/auth/register", json={**oversized, "display_name": "Valid Member"}).json()
+        headers = {"Authorization": f"Bearer {created['access_token']}"}
+        for payload in [{"selected_goals": ["x"] * 1000}, {"selected_goals": ["x" * 101]}, {"focus_skills": ["x" * 101]}, {"focus_skills": ["a", "b", "c", "d"]}]:
+            assert client.put("/profiles/me", json=payload, headers=headers).status_code == 422
+        assert client.get("/profiles/me", headers=headers).json() is None
 
 
 def test_password_reset_is_private_single_use_and_revokes_sessions(monkeypatch) -> None:
