@@ -4,7 +4,17 @@ Updated: 2026-11-26
 
 ## Current decision
 
-RISE is **not ready for a new public submission**. Expo confirms iOS Build 23 finished on November 24 from commit `07ba798`. That does not establish its App Store Connect review status. Build 24 finished and uploaded to App Store Connect via EAS (build b83cbed6-974a-4661-813a-2b930772fe87, submission 04de1ec2-47ab-406c-b45d-3038603f69b4). Build 25 is the new candidate requested for the iOS 27 SDK: scene support is enabled and Xcode 27.2 is pinned. Final Build 25 screenshots and device QA remain required.
+Build 25 is **Testing in the RISE Public Beta TestFlight group**, verified in App Store Connect after browser access was restored. Its binary state is Validated. It is also selected for the public App Store version, which remains Prepare for Submission. Apple's latest Add for Review validation reports only missing Content Rights Information. Final Build 25 screenshots, device QA, public postal identity, and confirmation of rights remain unresolved. Historical browser-denial entries below are superseded by this verification.
+
+## App Store Connect browser verification
+
+- Added Build 25 to RISE Internal Beta (2 testers) and RISE Public Beta (27 testers), entered testing notes, and submitted through the external beta review flow. The public group subsequently showed Build 1.0.0 (25), status Testing. Existing public link: https://testflight.apple.com/join/gwYy6GNr.
+- Replaced Build 23 with Build 25 on the App Store release version. Saved Aayush Soni's copyright and review contact details, corrected the mandatory-proof review instructions, and saved the current repository description. Disabled Game Center, which the app does not implement.
+- Uploaded the owner-authorized, unmodified IMG_3166.jpeg into the required iPhone Dynamic Island medium screenshot slot. Apple shows 1 of 10 App Screenshots and no longer reports a missing screenshot. This is still the owner's Build 24 welcome capture; it is not evidence of Build 25 QA or an adequate app-in-use screenshot set.
+- Verified Education / Productivity categories and the current subtitle. Existing age rating is 13+ in most regions, with regional 12+ ratings. Privacy labels were already published, with Name, Email Address, Customer Support, Other User Content, User ID, and Product Interaction; privacy-policy and privacy-choices URLs are set.
+- Availability is currently all 175 countries/regions, including Canada. This was observed, not changed or independently cleared for every jurisdiction. Mac and Vision Pro availability are enabled in the existing record; compatibility testing was not attested.
+- Content Rights asks whether the app contains, shows, or accesses third-party content and, if yes, whether the necessary rights are held. RISE links to third-party learning resources. Asked the owner to confirm the factual rights basis; neither answer was fabricated. The dialog was cancelled without saving a declaration.
+- Existing review credentials are present in Apple's form, but were not validated against the production account system. No credentials were copied into this report. No legal agreements were accepted, no QA attestations were invented, and public App Review was not submitted.
 
 ## November 26 audit
 
