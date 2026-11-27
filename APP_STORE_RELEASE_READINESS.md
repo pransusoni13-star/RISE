@@ -2,6 +2,12 @@
 
 Updated: 2026-11-27
 
+## Current result — Build 27 supersedes the historical records below
+
+Version 1.0.0 (27) finished and uploaded, is **Testing** in RISE Public Beta, and is selected/saved as the App Store candidate. Public App Review remains **Prepare for Submission**. The additional offline-sync, goal-matching, proof-file and privacy corrections are shipped in 27. The updated website and patched backend are live. Supabase SSL enforcement and a narrow direct-database network allowlist are enabled; API database-backed health and catalog reads pass after the changes. Canada-only App Store availability is saved; Mac/Vision Pro distribution is disabled. The Free Apps Agreement is Active.
+
+See [the seven-area verification report](RELEASE_VERIFICATION_2026-11-27.md) for receipts and boundaries and [remaining owner actions](app-store/OWNER_RELEASE_ACTIONS.md) for the consolidated handoff. Actual Build 27 phone QA/screenshots, reviewer-login validation, rights confirmation, two-provider delivery, Vercel MFA, and backup/restore/alert arrangements remain. Apple's business postal correction is prepared but unsaved after its supplied 2FA code was rejected. No manual check or legal declaration was fabricated.
+
 ## Build 26 release receipt — supersedes historical status below
 
 Build 26 (version 1.0.0) finished and uploaded successfully. Apple received it November 27 at 4:32 PM Toronto. Added RISE Internal Beta and RISE Public Beta, saved testing instructions, submitted the external beta flow, and verified Build 1.0.0 (26) has status **Testing** in the public group. Tester link: https://testflight.apple.com/join/gwYy6GNr . Build 26 is selected and saved for the App Store version, which remains **Prepare for Submission**; public App Review was not submitted.

@@ -71,3 +71,6 @@ app-store/screenshots/manifest.json
 # Private local audit and owner handoff are not needed by the build service.
 CODEX_MASTER_HANDOFF_PROMPT.md
 SECURITY_AUDIT_*.md
+
+# Local release verification exports
+/dist-release-*/

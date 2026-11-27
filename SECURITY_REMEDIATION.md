@@ -1,4 +1,6 @@
-# RISE security remediation and Build 26
+# RISE security remediation and release candidates
+
+Build 27 follow-up: additional offline queue, goal-matching, proof-validation and privacy fixes are shipped. The actual IPA was inspected; full-history secrets and fresh-image scanning are in CI, and a detected OS package advisory was corrected. Website identity is now published; live Supabase table/storage metadata was inspected, SSL enforcement and a direct-database network allowlist were applied, and API health/read checks passed. See RELEASE_VERIFICATION_2026-11-27.md for current receipts and exact remaining boundaries. The Build 26 record below is historical.
 
 November 27, 2026. The owner approved implementation following the local audit. Build 26 has finished, uploaded to Apple, and reached Testing in the RISE Public Beta group. It is selected and saved for the App Store version, which remains Prepare for Submission. Device QA and public App Review submission are not attested.
 
