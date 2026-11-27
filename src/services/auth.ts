@@ -354,13 +354,14 @@ async function performOutboxFlush(): Promise<{ synced: number; pending: number }
         await authenticatedRequest("/progress/events", { method: "POST", body: JSON.stringify(item.payload) });
       }
       assertCurrentSession(generation);
-      await removeSyncOutboxItem(item.id);
+      await removeSyncOutboxItem(item.id, item);
       synced += 1;
     } catch (error) {
       // A terminally invalid event must not block later progress forever. A 403 is
       // expected when optional usage analytics has been disabled.
       if (error instanceof ApiError && item.kind === "event" && (error.status === 422 || (["app_session", "invite_shared"].includes(item.payload.event_type) && error.status === 403))) {
-        await removeSyncOutboxItem(item.id);
+        assertCurrentSession(generation);
+        await removeSyncOutboxItem(item.id, item);
         continue;
       }
       break;

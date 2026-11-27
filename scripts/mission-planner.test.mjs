@@ -34,6 +34,23 @@ test('software engineer selects software missions before the broader engineering
   assert.doesNotMatch(plan[0].title, /real constraint/);
 });
 
+test('custom subjects are retained when a goal also says study or program', () => {
+  const cases = [
+    ['Study piano every day', /passage|rhythm/],
+    ['Study photography', /Photograph one still object/],
+    ['Start a fitness program', /chair sit-to-stands/],
+    ['Study programming', /repeated problem/],
+    ['Become a lawyer', /case summary/],
+    ['Study medicine', /study questions/],
+  ];
+  for (const [customGoal, expected] of cases) {
+    const plan = createSevenDayPlan(profile({customGoal,focusSkills:getRecommendedSkills('custom-life',customGoal)}));
+    assert.match(plan[0].steps[0], expected, customGoal);
+  }
+  const fishing = createSevenDayPlan(profile({customGoal:'Learn to tie fishing hooks',focusSkills:['Knot tying']}));
+  assert.doesNotMatch(fishing[0].steps[0], /video|audience|opening hooks/i);
+});
+
 test('whole-word goal matching avoids unrelated faith, barbering, and creator plans', () => {
   const game = createSevenDayPlan(profile({ customGoal: 'Become a Godot video game developer', focusSkills: ['Game development'] }));
   assert.equal(game[0].title, 'Define one user problem');

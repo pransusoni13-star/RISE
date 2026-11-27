@@ -5,7 +5,7 @@ import { LEGAL_IDENTITY_READY, OPERATOR_LEGAL_NAME, OPERATOR_MAILING_ADDRESS } f
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "../constants/support";
 import { useRiseAppearance } from "../services/appearance";
 
-const UPDATED = "November 16, 2026";
+const UPDATED = "November 27, 2026";
 
 export default function PrivacyScreen() {
   const { theme } = useRiseAppearance();
@@ -33,22 +33,22 @@ export default function PrivacyScreen() {
         If you create an account, RISE processes your email address, display name, a protected password hash, email-verification status, selected goals and skills, schedule preferences, mission and quiz activity, focused minutes, progress scores, membership status, and feedback you explicitly submit. This information is used to provide sign-in, account recovery, progress syncing, personalization, and support. If the service is temporarily unavailable, eligible profile and progress updates remain queued on your device and retry later.
       </Section>
       <Section title="Why RISE processes information">
-        RISE processes required account and progress information to provide the service you request, keep accounts secure, respond to support, and comply with applicable law. Optional usage analytics and community comparison are based on your separate consent and remain off by default. RISE does not use proof files, reflections, or account information for targeted advertising.
+        RISE processes required account and progress information to provide the service you request, keep accounts secure, respond to support, and comply with applicable law. Optional usage analytics requires your separate consent and remains off by default. RISE does not use proof files, reflections, or account information for targeted advertising.
       </Section>
-      <Section title="Optional analytics and comparison">
-        Usage analytics is off by default. If you opt in, RISE records signup duration and approximate foreground-use duration with your progress events so the operator can improve onboarding and missions. Turning it off removes past signup and app-session timing events. Community comparison is separate and off by default; if enabled, RISE calculates your rank from mission counts and focused minutes without publishing your email or proof.
+      <Section title="Optional analytics and personal progress">
+        Usage analytics is off by default. If you opt in, RISE records signup duration and approximate foreground-use duration with your progress events so the operator can improve onboarding and missions. Turning it off removes past signup and app-session timing events. Progress is self-reported; competitive rankings and new leaderboard enrollment are disabled in this release. Members who previously joined can remove that earlier consent in Your Progress.
       </Section>
       <Section title="Permissions">
         RISE requests photo, camera, microphone, or notification access only when you use a related feature. You can deny or change these permissions in device settings. Notifications are optional on-device reminders and are not guaranteed to arrive.
       </Section>
       <Section title="Service providers and external links">
-        Render hosts the account API and database; Resend or a configured authenticated SMTP provider delivers transactional account and feedback email; Vercel hosts the public website; Expo/EAS provides app builds and updates; and Apple provides TestFlight and App Store distribution. These providers may process service data and technical records in countries outside your province or country under their own infrastructure and contractual safeguards. YouTube, Google Maps, and other resources open outside RISE and follow their own privacy policies. RISE does not sell personal information, share it for cross-context behavioral advertising, or use an advertising SDK in this release.
+        Render hosts the account API; a configured PostgreSQL database stores account records; Resend or a configured authenticated SMTP provider delivers transactional account and feedback email; Vercel hosts the public website; Expo/EAS provides app builds and updates; and Apple provides TestFlight and App Store distribution. These providers may process service data and technical records in countries outside your province or country under their own infrastructure and contractual safeguards. YouTube, Google Maps, and other resources open outside RISE and follow their own privacy policies. RISE does not sell personal information, share it for cross-context behavioral advertising, or use an advertising SDK in this release.
       </Section>
       <Section title="Security and retention">
         RISE uses short-lived access tokens, revocable refresh sessions, protected password hashes, input limits, and encrypted HTTPS connections in production. No service can promise absolute security. Account, progress, and submitted feedback records are kept while the account is active. Verification links expire after 24 hours, password-reset links after 30 minutes, access tokens within 15 minutes, and refresh sessions after the configured period of no more than 90 days. In-app account deletion removes the active account and associated active-service records. Infrastructure logs and encrypted backups may remain until each provider’s normal retention cycle completes. A limited record may be retained only where required for security or law.
       </Section>
       <Section title="Your choices">
-        Settings lets you export local and synced account information, turn optional analytics and comparison on or off, delete local data, and delete your account. You may contact support to request access, correction, deletion, portability help, consent withdrawal, or to challenge RISE’s handling of your information. Withdrawing an optional choice does not block the core app. Rights vary by location and RISE will not discriminate for using a legal privacy right.
+        Settings lets you export local and synced account information, turn optional analytics on or off, delete local data, and delete your account. Signing out locks retained member data until the same account signs in again. A different account cannot take over that data; the original owner must sign in and explicitly clear it first. Exports can include private goals and reflections, so share them only with people or apps you trust. You may contact support to request access, correction, deletion, portability help, consent withdrawal, or to challenge RISE’s handling of your information. Withdrawing an optional choice does not block the core app. Rights vary by location and RISE will not discriminate for using a legal privacy right.
       </Section>
       <Section title="Privacy incidents and complaints">
         RISE investigates suspected privacy incidents, limits harm, preserves an incident record where required, and notifies affected people and regulators when applicable law requires it. Contact privacy support if you believe information was lost, accessed, or disclosed improperly. You may also complain to the privacy regulator in your location.

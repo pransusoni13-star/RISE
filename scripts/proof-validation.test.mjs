@@ -30,3 +30,17 @@ test('the same local attachment cannot prove two different missions', () => {
   assert.equal(isProofUriReused(records, 'file:///proof.jpg', 'mission-one'), false);
   assert.equal(isProofUriReused(records, 'file:///new.jpg', 'mission-two'), false);
 });
+
+test('proof rejects unreadable sizes, malformed metadata, and remote URLs', () => {
+  const valid = {type:'photo',uri:'file:///proof.jpg',fileSize:20_000,width:400,height:400};
+  for (const fileSize of [undefined, null, NaN, Infinity, -1, 0, 1.5]) {
+    assert.equal(validateProofAsset({...valid,fileSize}).allowed, false, String(fileSize));
+  }
+  for (const uri of ['https://example.com/tracker.jpg','javascript:alert(1)','']) {
+    assert.equal(validateProofAsset({...valid,uri}).allowed, false);
+  }
+  for (const changes of [{width:NaN},{height:Infinity},{duration:-1}]) {
+    assert.equal(validateProofAsset({...valid,...changes}).allowed, false);
+  }
+  assert.equal(validateProofAsset({...valid,uri:'blob:https://rise.example/owned-file'}).allowed, true);
+});

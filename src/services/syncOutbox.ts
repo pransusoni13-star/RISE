@@ -73,8 +73,12 @@ export async function listSyncOutbox(): Promise<SyncOutboxItem[]> {
   return read();
 }
 
-export async function removeSyncOutboxItem(id: string): Promise<void> {
-  await mutate((items) => items.filter((item) => item.id !== id));
+export async function removeSyncOutboxItem(id: string, expected?: SyncOutboxItem): Promise<void> {
+  // A newer profile can replace profile:latest while its earlier request is in
+  // flight. Only acknowledge the snapshot that the server actually received.
+  await mutate((items) => items.filter((item) => item.id !== id || (
+    expected !== undefined && JSON.stringify(item) !== JSON.stringify(expected)
+  )));
 }
 
 export async function discardQueuedUsageAnalytics(): Promise<void> {

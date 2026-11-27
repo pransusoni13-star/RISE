@@ -403,11 +403,12 @@ function domainTemplate(domain: typeof practiceDomains[string]): MissionTemplate
 const domainTemplates = Object.fromEntries(Object.entries(practiceDomains).map(([key, domain]) => [key, domainTemplate(domain)]));
 const domainAliases: [string, RegExp][] = [
   ["basketball", /\bbasketball\b/], ["photography", /\bphotograph(?:y|er|s)?\b/],
-  ["student", /\bstud(?:y|ent|ying)\b|\bexam\b/], ["music", /\bmusic(?:ian)?\b|\bpiano\b|\bguitar\b|\bdrum(?:s|ming)?\b/],
+  ["music", /\bmusic(?:ian)?\b|\bpiano\b|\bguitar\b|\bdrum(?:s|ming)?\b/],
   ["graphic-design", /graphic design|typography|visual hierarchy/], ["finance", /financial literacy|budget(?:ing)?|spending plan/],
   ["marketing", /\bmarketing\b|\bcopywriting\b/], ["entrepreneur", /\bentrepreneur\b|start a business/],
   ["nutrition", /\bnutrition\b|balanced meals/], ["mobility", /\bmobility\b|\bflexibility\b/],
   ["fitness", /\bfitness\b|strength training/], ["wellbeing", /sleep routine|wind.down|\bwellbeing\b/],
+  ["medicine", /\bmedicine\b|\bmedical student\b/], ["law", /\blawyer\b|\blegal research\b|\blaw school\b/],
 ];
 
 function resolveTemplate(goal: string, customGoal: string): MissionTemplate {
@@ -421,12 +422,13 @@ function resolveTemplate(goal: string, customGoal: string): MissionTemplate {
   if (/\bai\b|artificial intelligence|machine learning|prompt engineering|model evaluation|codex|claude code/.test(combined)) return templates["ai-engineering"];
   if (/react native/.test(combined)) return templates["react-native"];
   if (/thumbnail/.test(combined)) return templates.thumbnails;
-  if (/\bhooks?\b/.test(combined)) return templates.hooks;
+  if (/\bhooks?\b/.test(combined) && /youtube|creator|video|audience|storytelling/.test(combined)) return templates.hooks;
   if (/\bfades?\b|blending|clipper/.test(combined)) return templates.fades;
-  if (/\bcod(?:e|ing)\b|software|developer|program/.test(combined)) return templates.coding;
+  if (/\bcod(?:e|ing)\b|\bsoftware\b|\bdeveloper\b|\bprogramming\b|\bcomputer program\b/.test(combined)) return templates.coding;
   if (/youtube|creator|video edit|video production|channel/.test(combined)) return templates.youtube;
   if (/\b(?:barber(?:ing)?|haircut|fade|hair)\b/.test(combined)) return templates.barbering;
   if (/engineer|engineering|mechanical|electrical|civil|prototype/.test(combined)) return templates.engineering;
+  if (/\bstud(?:y|ent|ying)\b|\bexam\b/.test(combined)) return domainTemplates.student;
   return genericTemplate;
 }
 

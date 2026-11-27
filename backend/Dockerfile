@@ -1,5 +1,11 @@
 FROM python:3.12-slim
 
+# Refresh OS security packages even when the upstream image tag has not yet
+# incorporated the distribution's latest fixes. CI scans the resulting image.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
