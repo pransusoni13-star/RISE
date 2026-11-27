@@ -26,8 +26,8 @@ export type QueuedProgressEvent = {
 };
 
 export type SyncOutboxItem =
-  | { id: "profile:latest"; kind: "profile"; createdAt: string; payload: QueuedProfile }
-  | { id: string; kind: "event"; createdAt: string; payload: QueuedProgressEvent };
+  | { id: "profile:latest"; ownerId?: string; kind: "profile"; createdAt: string; payload: QueuedProfile }
+  | { id: string; ownerId?: string; kind: "event"; createdAt: string; payload: QueuedProgressEvent };
 
 async function read(): Promise<SyncOutboxItem[]> {
   try {
@@ -54,18 +54,18 @@ async function mutate(update: (items: SyncOutboxItem[]) => SyncOutboxItem[]): Pr
   return operation;
 }
 
-export async function queueProfile(payload: QueuedProfile): Promise<void> {
+export async function queueProfile(payload: QueuedProfile, ownerId: string): Promise<void> {
   await mutate((items) => [
     ...items.filter((item) => item.kind !== "profile"),
-    { id: "profile:latest", kind: "profile", createdAt: new Date().toISOString(), payload },
+    { id: "profile:latest", ownerId, kind: "profile", createdAt: new Date().toISOString(), payload },
   ]);
 }
 
-export async function queueProgressEvent(payload: QueuedProgressEvent): Promise<void> {
+export async function queueProgressEvent(payload: QueuedProgressEvent, ownerId: string): Promise<void> {
   const id = `event:${payload.client_event_id}`;
   await mutate((items) => items.some((item) => item.id === id)
     ? items
-    : [...items, { id, kind: "event", createdAt: new Date().toISOString(), payload }]);
+    : [...items, { id, ownerId, kind: "event", createdAt: new Date().toISOString(), payload }]);
 }
 
 export async function listSyncOutbox(): Promise<SyncOutboxItem[]> {

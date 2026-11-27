@@ -11,7 +11,7 @@ class Base(DeclarativeBase):
 
 
 settings = get_settings()
-engine_options: dict = {"pool_pre_ping": True}
+engine_options: dict = {"pool_pre_ping": True, "hide_parameters": True}
 if settings.database_url.startswith("sqlite"):
     engine_options["connect_args"] = {"check_same_thread": False}
 else:

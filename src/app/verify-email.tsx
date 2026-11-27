@@ -12,7 +12,7 @@ export default function VerifyEmailScreen() {
   const [busy, setBusy] = useState(validToken);
   useEffect(() => {
     if (!validToken || typeof token !== "string") return;
-    void confirmEmailVerification(token).then(() => setMessage("Email verified. Your RISE account is ready.")).catch((error) => setMessage(error instanceof Error ? error.message : "This verification link could not be used.")).finally(() => setBusy(false));
+    void confirmEmailVerification(token).then(() => { { setMessage("Email verified. Your RISE account is ready."); router.setParams({ token: undefined }); }; router.setParams({ token: undefined }); }).catch((error) => setMessage(error instanceof Error ? error.message : "This verification link could not be used.")).finally(() => setBusy(false));
   }, [token, validToken]);
   return <View style={[styles.page, { backgroundColor: theme.background }]}><View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}><Text style={[styles.eyebrow, { color: theme.accent }]}>RISE ACCOUNT</Text><Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>Email verification</Text>{busy ? <ActivityIndicator color={theme.accent} style={styles.spinner} /> : null}<Text accessibilityRole="alert" style={[styles.message, { color: theme.muted }]}>{message}</Text><Pressable accessibilityRole="button" onPress={() => router.replace("/account" as never)} style={[styles.button, { backgroundColor: theme.accent }]}><Text style={[styles.buttonText, { color: theme.accentInk }]}>Return to my account</Text></Pressable></View></View>;
 }

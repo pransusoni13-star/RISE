@@ -11,7 +11,7 @@ from time import monotonic, perf_counter
 from uuid import uuid4
 
 import jwt
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import case, delete, func, or_, select, text, update
@@ -25,12 +25,15 @@ from .models import EmailVerification, FeedbackSubmissionReceipt, FoundingInvite
 from .schemas import AuthResponse, DashboardResponse, EmailVerificationConfirm, FoundingClaimRequest, LoginRequest, PasswordResetConfirm, PasswordResetRequest, ProductFeedbackCreate, ProfileResponse, ProfileUpdate, ProgressEventCreate, RefreshRequest, RegisterRequest, SkillProgressResponse, SkillResponse, UserResponse
 from .security import create_access_token, create_refresh_token, decode_access_token, hash_password, hash_token, normalize_email, verify_password
 from .request_limits import RequestBodyLimitMiddleware
+from .budgets import enforce_budgets
 
 
 settings = get_settings()
 settings.validate_for_startup()
 logger = logging.getLogger(__name__)
 API_VERSION = "1.2.0"
+# Equal hashing work for an unknown account; never a usable member credential.
+DUMMY_PASSWORD_HASH = hash_password(str(uuid4()))
 
 
 @asynccontextmanager
@@ -43,7 +46,8 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="RISE API", version=API_VERSION, docs_url="/docs" if settings.env != "production" else None, lifespan=lifespan)
+production = settings.env.lower() == "production"
+app = FastAPI(title="RISE API", version=API_VERSION, docs_url=None if production else "/docs", redoc_url=None if production else "/redoc", openapi_url=None if production else "/openapi.json", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=False, allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Authorization", "Content-Type"])
 app.add_middleware(RequestBodyLimitMiddleware)
 bearer = HTTPBearer(auto_error=False)
@@ -121,34 +125,60 @@ def enforce_rate_limit(request: Request, bucket: str, limit: int = 6, seconds: i
         history.append(now)
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)) -> User:
+def auth_budget(request: Request, db: Session, bucket: str, email: str = "", limit: int = 6, seconds: int = 60) -> None:
+    enforce_rate_limit(request, bucket, limit, seconds)
+    address = request.client.host if request.client else "unknown"
+    global_limit = 200 if bucket in {"register", "password-reset-request", "email-verification", "feedback"} else 5000
+    limits = [(f"auth-global:{bucket}", global_limit, 3600, 1), (f"auth-ip:{bucket}:{address}", limit, seconds, 1)]
+    if email:
+        limits.append((f"auth-account:{bucket}:{normalize_email(email)}", max(limit, 10) if bucket == "login" else limit, seconds, 1))
+    enforce_budgets(db, limits)
+
+
+def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)) -> User:
     if not credentials:
         raise HTTPException(status_code=401, detail="Sign in required")
     try:
-        user_id = decode_access_token(credentials.credentials)
+        claims = decode_access_token(credentials.credentials)
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=401, detail="Session expired") from exc
-    user = db.get(User, user_id)
+    session = db.scalar(select(RefreshSession).where(RefreshSession.id == claims["sid"], RefreshSession.user_id == claims["sub"], RefreshSession.revoked_at.is_(None), RefreshSession.expires_at > now_utc()))
+    user = db.get(User, claims["sub"]) if session else None
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Account unavailable")
+    request.state.auth_time = claims["auth_time"]
+    enforce_budgets(db, [(f"member-requests:{user.id}", 120, 60, 1)])
     return user
 
 
-def issue_session(db: Session, user: User) -> AuthResponse:
+def issue_session(db: Session, user: User, expires_at: datetime | None = None, authenticated_at: datetime | None = None) -> AuthResponse:
     now = now_utc()
+    # Serialize session creation/reset/rotation for this member on PostgreSQL.
+    db.scalar(select(User.id).where(User.id == user.id).with_for_update())
     db.execute(
         delete(RefreshSession).where(
             RefreshSession.user_id == user.id,
             or_(RefreshSession.revoked_at.is_not(None), RefreshSession.expires_at <= now),
         )
     )
+    active = list(db.scalars(select(RefreshSession).where(RefreshSession.user_id == user.id).order_by(RefreshSession.created_at.desc(), RefreshSession.id.desc())))
+    for old in active[9:]:
+        db.delete(old)
     raw_refresh = create_refresh_token()
-    db.add(RefreshSession(user_id=user.id, token_hash=hash_token(raw_refresh), expires_at=now + timedelta(days=settings.refresh_token_days)))
+    session_id = str(uuid4())
+    authenticated_at = authenticated_at or now
+    if authenticated_at.tzinfo is None:
+        authenticated_at = authenticated_at.replace(tzinfo=timezone.utc)
+    db.add(RefreshSession(id=session_id, user_id=user.id, token_hash=hash_token(raw_refresh), created_at=authenticated_at, expires_at=expires_at or now + timedelta(days=settings.refresh_token_days)))
     db.commit()
-    return AuthResponse(access_token=create_access_token(user.id), refresh_token=raw_refresh, user=UserResponse.model_validate(user))
+    return AuthResponse(access_token=create_access_token(user.id, session_id, authenticated_at), refresh_token=raw_refresh, user=UserResponse.model_validate(user))
 
 
 def deliver_email_verification(db: Session, user: User) -> bool:
+    try:
+        enforce_budgets(db, [("outbound-mail-day", 500, 86400, 1), (f"mail-recipient:{user.email}", 4, 3600, 1)])
+    except HTTPException:
+        return False
     raw_token = create_refresh_token()
     record = db.get(EmailVerification, user.id) or EmailVerification(user_id=user.id)
     if record.verified_at:
@@ -161,8 +191,8 @@ def deliver_email_verification(db: Session, user: User) -> bool:
     try:
         send_email_verification(settings, user.email, raw_token)
         return True
-    except Exception:
-        logger.exception("Verification email delivery failed", extra={"user_id": user.id})
+    except Exception as exc:
+        logger.warning("verification_delivery_failed error_type=%s", type(exc).__name__)
         record.token_hash = None
         record.expires_at = None
         db.commit()
@@ -191,7 +221,7 @@ def public_config() -> dict[str, bool | str]:
 
 @app.post("/auth/register", response_model=AuthResponse, status_code=201)
 def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)) -> AuthResponse:
-    enforce_rate_limit(request, "register")
+    auth_budget(request, db, "register", str(payload.email))
     email = normalize_email(str(payload.email))
     if db.scalar(select(User).where(User.email == email)):
         raise HTTPException(status_code=409, detail="An account with this email already exists")
@@ -227,9 +257,10 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
 
 @app.post("/auth/login", response_model=AuthResponse)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)) -> AuthResponse:
-    enforce_rate_limit(request, "login")
-    user = db.scalar(select(User).where(User.email == normalize_email(str(payload.email))))
-    if not user or not verify_password(payload.password, user.password_hash):
+    auth_budget(request, db, "login", str(payload.email))
+    user = db.scalar(select(User).where(User.email == normalize_email(str(payload.email))).with_for_update())
+    password_matches = verify_password(payload.password, user.password_hash if user else DUMMY_PASSWORD_HASH)
+    if not user or not password_matches:
         raise HTTPException(status_code=401, detail="Email or password is incorrect")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is disabled")
@@ -238,22 +269,35 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
 
 @app.post("/auth/refresh", response_model=AuthResponse)
 def refresh(payload: RefreshRequest, request: Request, db: Session = Depends(get_db)) -> AuthResponse:
-    enforce_rate_limit(request, "refresh", limit=30)
+    auth_budget(request, db, "refresh", limit=30)
     token_hash = hash_token(payload.refresh_token)
     claimed_at = now_utc()
-    user_id = db.scalar(update(RefreshSession).where(RefreshSession.token_hash == token_hash, RefreshSession.revoked_at.is_(None), RefreshSession.expires_at > claimed_at).values(revoked_at=claimed_at).returning(RefreshSession.user_id))
+    old = db.scalar(select(RefreshSession).where(RefreshSession.token_hash == token_hash))
+    if not old:
+        raise HTTPException(status_code=401, detail="Refresh session expired")
+    db.scalar(select(User.id).where(User.id == old.user_id).with_for_update())
+    authenticated_at = old.created_at.replace(tzinfo=timezone.utc) if old.created_at.tzinfo is None else old.created_at
+    next_refresh = create_refresh_token()
+    user_id = db.scalar(update(RefreshSession).where(RefreshSession.token_hash == token_hash, RefreshSession.revoked_at.is_(None), RefreshSession.expires_at > claimed_at).values(token_hash=hash_token(next_refresh)).execution_options(synchronize_session=False).returning(RefreshSession.user_id))
     if not user_id:
         raise HTTPException(status_code=401, detail="Refresh session expired")
     user = db.get(User, user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Account unavailable")
     db.commit()
-    return issue_session(db, user)
+    return AuthResponse(access_token=create_access_token(user.id, old.id, authenticated_at), refresh_token=next_refresh, user=UserResponse.model_validate(user))
 
 
 @app.post("/auth/logout", status_code=204)
-def logout(payload: RefreshRequest, db: Session = Depends(get_db)) -> Response:
+def logout(payload: RefreshRequest, request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(bearer), db: Session = Depends(get_db)) -> Response:
+    auth_budget(request, db, "logout", limit=30)
     session = db.scalar(select(RefreshSession).where(RefreshSession.token_hash == hash_token(payload.refresh_token)))
+    if credentials:
+        try:
+            claims = decode_access_token(credentials.credentials)
+            session = db.scalar(select(RefreshSession).where(RefreshSession.id == claims["sid"], RefreshSession.user_id == claims["sub"]))
+        except jwt.InvalidTokenError:
+            pass
     if session and not session.revoked_at:
         session.revoked_at = now_utc()
         db.commit()
@@ -262,9 +306,13 @@ def logout(payload: RefreshRequest, db: Session = Depends(get_db)) -> Response:
 
 @app.post("/auth/password-reset/request", status_code=202)
 def request_password_reset(payload: PasswordResetRequest, request: Request, db: Session = Depends(get_db)) -> dict[str, str]:
-    enforce_rate_limit(request, "password-reset-request", limit=4, seconds=900)
+    auth_budget(request, db, "password-reset-request", str(payload.email), limit=4, seconds=900)
     user = db.scalar(select(User).where(User.email == normalize_email(str(payload.email))))
     if user and user.is_active:
+        try:
+            enforce_budgets(db, [("outbound-mail-day", 500, 86400, 1), (f"mail-recipient:{user.email}", 4, 3600, 1)])
+        except HTTPException:
+            return {"message": "If that address has an active RISE account, reset instructions will be sent."}
         raw_token = create_refresh_token()
         db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None)))
         db.add(PasswordResetToken(user_id=user.id, token_hash=hash_token(raw_token), expires_at=now_utc() + timedelta(minutes=30)))
@@ -280,7 +328,7 @@ def request_password_reset(payload: PasswordResetRequest, request: Request, db: 
 
 @app.post("/auth/password-reset/confirm", status_code=204)
 def confirm_password_reset(payload: PasswordResetConfirm, request: Request, db: Session = Depends(get_db)) -> Response:
-    enforce_rate_limit(request, "password-reset-confirm", limit=8, seconds=900)
+    auth_budget(request, db, "password-reset-confirm", limit=8, seconds=900)
     claimed_at = now_utc()
     user_id = db.scalar(update(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(payload.token), PasswordResetToken.used_at.is_(None), PasswordResetToken.expires_at > claimed_at).values(used_at=claimed_at).returning(PasswordResetToken.user_id))
     if not user_id:
@@ -288,6 +336,7 @@ def confirm_password_reset(payload: PasswordResetConfirm, request: Request, db: 
     user = db.get(User, user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=400, detail="This reset link is invalid or expired")
+    db.scalar(select(User.id).where(User.id == user.id).with_for_update())
     user.password_hash = hash_password(payload.new_password)
     db.execute(update(RefreshSession).where(RefreshSession.user_id == user.id, RefreshSession.revoked_at.is_(None)).values(revoked_at=now_utc()))
     db.commit()
@@ -302,7 +351,7 @@ def email_verification_status(user: User = Depends(get_current_user), db: Sessio
 
 @app.post("/users/me/email-verification", status_code=202)
 def request_email_verification(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, str]:
-    enforce_rate_limit(request, "email-verification", limit=4, seconds=3600)
+    auth_budget(request, db, "email-verification", user.email, limit=4, seconds=3600)
     if not deliver_email_verification(db, user):
         raise HTTPException(status_code=503, detail="RISE could not send the verification email. Please try again shortly or contact support.")
     return {"message": "If verification is still needed, a new link will be sent."}
@@ -310,7 +359,7 @@ def request_email_verification(request: Request, user: User = Depends(get_curren
 
 @app.post("/auth/email-verification/confirm", status_code=204)
 def confirm_email_verification(payload: EmailVerificationConfirm, request: Request, db: Session = Depends(get_db)) -> Response:
-    enforce_rate_limit(request, "email-verification-confirm", limit=8, seconds=900)
+    auth_budget(request, db, "email-verification-confirm", limit=8, seconds=900)
     claimed_at = now_utc()
     user_id = db.scalar(update(EmailVerification).where(EmailVerification.token_hash == hash_token(payload.token), EmailVerification.verified_at.is_(None), EmailVerification.expires_at > claimed_at).values(verified_at=claimed_at, token_hash=None, expires_at=None).returning(EmailVerification.user_id))
     if not user_id:
@@ -343,8 +392,14 @@ def claim_founding(payload: FoundingClaimRequest, request: Request, user: User =
     return user
 
 
+def require_recent_auth(request: Request) -> None:
+    if now_utc().timestamp() - request.state.auth_time > 900:
+        raise HTTPException(428, "For your privacy, sign out and sign in again before exporting or deleting your account.")
+
+
 @app.delete("/users/me", status_code=204)
-def delete_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Response:
+def delete_me(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Response:
+    require_recent_auth(request)
     db.execute(delete(FoundingInvite).where(or_(FoundingInvite.claimed_by_user_id == user.id, FoundingInvite.email == user.email)))
     db.execute(delete(RefreshSession).where(RefreshSession.user_id == user.id))
     db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
@@ -361,15 +416,26 @@ def delete_me(user: User = Depends(get_current_user), db: Session = Depends(get_
 
 
 @app.get("/users/me/export")
-def export_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+def export_me(request: Request, page: int | None = Query(default=None, ge=0, le=10_000), user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    require_recent_auth(request)
+    limits = [(f"export-pages:{user.id}", 120, 3600, 1)]
+    if not page:
+        limits.append((f"export:{user.id}", 6, 3600, 1))
+    enforce_budgets(db, limits)
+    offset = (page or 0) * 500
     profile = db.get(UserProfile, user.id)
-    skills = list(db.scalars(select(UserSkill).where(UserSkill.user_id == user.id)))
-    events = list(db.scalars(select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)))
-    feedback = list(db.scalars(select(ProductFeedback).where(ProductFeedback.user_id == user.id).order_by(ProductFeedback.created_at)))
+    skills = list(db.scalars(select(UserSkill).where(UserSkill.user_id == user.id).order_by(UserSkill.id).offset(offset).limit(501)))
+    events = list(db.scalars(select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at, ProgressEvent.id).offset(offset).limit(501)))
+    feedback = list(db.scalars(select(ProductFeedback).where(ProductFeedback.user_id == user.id).order_by(ProductFeedback.created_at, ProductFeedback.id).offset(offset).limit(501)))
+    more = any(len(items) > 500 for items in (skills, events, feedback))
+    if more and page is None:
+        raise HTTPException(413, "Update RISE to export this larger archive without truncation.")
+    skills, events, feedback = skills[:500], events[:500], feedback[:500]
     founding_invites = list(db.scalars(select(FoundingInvite).where(or_(FoundingInvite.claimed_by_user_id == user.id, FoundingInvite.email == user.email)).order_by(FoundingInvite.created_at)))
     return {
         "exported_at": now_utc().isoformat(),
         "format_version": 2,
+        "pagination": {"page": page or 0, "more": more},
         "account": {"id": user.id, "email": user.email, "display_name": user.display_name, "is_founding_member": user.is_founding_member, "founding_expires_at": user.founding_expires_at},
         "founding_invites": [{"id": item.id, "email": item.email, "created_at": item.created_at, "claimed_at": item.claimed_at, "claimed_by_user_id": item.claimed_by_user_id} for item in founding_invites],
         "profile": None if not profile else {"selected_goals": profile.selected_goals, "custom_goal": profile.custom_goal, "weekly_skill": profile.weekly_skill, "focus_skills": profile.focus_skills, "commitment": profile.commitment, "available_time": profile.available_time, "experience": profile.experience, "updated_at": profile.updated_at},
@@ -381,7 +447,7 @@ def export_me(user: User = Depends(get_current_user), db: Session = Depends(get_
 
 @app.post("/feedback", status_code=201)
 def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict[str, bool]:
-    enforce_rate_limit(request, "feedback", limit=8, seconds=3600)
+    auth_budget(request, db, "feedback", user.email, limit=8, seconds=3600)
     receipt = db.get(FeedbackSubmissionReceipt, payload.client_feedback_id) if payload.client_feedback_id else None
     if receipt and receipt.user_id != user.id:
         raise HTTPException(status_code=409, detail="Feedback request identifier is unavailable")
@@ -391,6 +457,9 @@ def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User
         raise HTTPException(status_code=500, detail="Stored feedback is unavailable")
 
     if not feedback:
+        count = db.scalar(select(func.count()).select_from(ProductFeedback).where(ProductFeedback.user_id == user.id)) or 0
+        if count >= 1000:
+            raise HTTPException(422, "Stored feedback limit reached. Contact support directly.")
         feedback = ProductFeedback(user_id=user.id, **payload.model_dump(exclude={"client_feedback_id"}))
         db.add(feedback)
         db.flush()
@@ -414,6 +483,7 @@ def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User
 
     email_notified = True
     try:
+        enforce_budgets(db, [("outbound-mail-day", 500, 86400, 1)])
         send_product_feedback_notification(
             settings,
             settings.feedback_inbox,
@@ -425,9 +495,9 @@ def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User
             app_version=feedback.app_version,
             submitted_at=feedback.created_at.isoformat(),
         )
-    except Exception:
+    except Exception as exc:
         email_notified = False
-        logger.exception("Feedback was stored but its support email notification failed", extra={"feedback_id": feedback.id})
+        logger.warning("feedback_delivery_failed error_type=%s", type(exc).__name__)
     if receipt and receipt.email_notified != email_notified:
         receipt.email_notified = email_notified
         db.commit()
@@ -436,6 +506,13 @@ def submit_feedback(payload: ProductFeedbackCreate, request: Request, user: User
 
 @app.put("/profiles/me", status_code=204)
 def update_profile(payload: ProfileUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Response:
+    enforce_budgets(db, [(f"profile:{user.id}", 60, 3600, 1)])
+    db.scalar(select(User.id).where(User.id == user.id).with_for_update())
+    if payload.focus_skills:
+        existing_names = set(db.scalars(select(UserSkill.skill_slug).where(UserSkill.user_id == user.id).limit(201)))
+        proposed_names = {"-".join(name.lower().split())[:100] for name in payload.focus_skills}
+        if len(existing_names | proposed_names) > 200:
+            raise HTTPException(422, "Skill history limit reached. Contact support before adding another skill.")
     profile = db.get(UserProfile, user.id) or UserProfile(user_id=user.id)
     for field, value in payload.model_dump().items():
         setattr(profile, field, value)
@@ -464,6 +541,17 @@ def record_progress(payload: ProgressEventCreate, user: User = Depends(get_curre
     existing = db.scalar(select(ProgressEvent).where(ProgressEvent.user_id == user.id, ProgressEvent.client_event_id == payload.client_event_id))
     if existing:
         return {"created": False}
+    limits = [(f"progress-minute:{user.id}", 60, 60, 1), (f"progress-day:{user.id}", 500, 86400, 1), (f"minutes-day:{user.id}", 1440, 86400, payload.minutes)]
+    if payload.event_type == "mission_completed":
+        limits.append((f"completions-day:{user.id}", 24, 86400, 1))
+    enforce_budgets(db, limits)
+    db.scalar(select(User.id).where(User.id == user.id).with_for_update())
+    # Recheck after taking the member lock so simultaneous retries are harmless.
+    if db.scalar(select(ProgressEvent.id).where(ProgressEvent.user_id == user.id, ProgressEvent.client_event_id == payload.client_event_id)):
+        return {"created": False}
+    event_count = db.scalar(select(func.count()).select_from(ProgressEvent).where(ProgressEvent.user_id == user.id)) or 0
+    if event_count >= 10_000:
+        raise HTTPException(422, "Stored activity limit reached. Export your records and contact support.")
     event = ProgressEvent(user_id=user.id, client_event_id=payload.client_event_id, event_type=payload.event_type, skill_slug=payload.skill_slug, value=payload.value, minutes=payload.minutes, event_metadata=payload.metadata)
     if payload.event_type in {"app_session", "invite_shared"}:
         if not db.get(UsageAnalyticsConsent, user.id):
@@ -483,6 +571,9 @@ def record_progress(payload: ProgressEventCreate, user: User = Depends(get_curre
         return {"created": True}
     skill = db.scalar(select(UserSkill).where(UserSkill.user_id == user.id, UserSkill.skill_slug == payload.skill_slug))
     if not skill:
+        skill_count = db.scalar(select(func.count()).select_from(UserSkill).where(UserSkill.user_id == user.id)) or 0
+        if skill_count >= 200:
+            raise HTTPException(422, "Skill history limit reached")
         # SQLAlchemy column defaults are applied during INSERT, so initialize
         # counters explicitly while this new object is still in memory.
         skill = UserSkill(user_id=user.id, skill_slug=payload.skill_slug, missions_completed=0, minutes_logged=0)
@@ -505,7 +596,8 @@ def record_progress(payload: ProgressEventCreate, user: User = Depends(get_curre
 
 @app.get("/users/me/dashboard", response_model=DashboardResponse)
 def dashboard(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> DashboardResponse:
-    skills = list(db.scalars(select(UserSkill).where(UserSkill.user_id == user.id).order_by(UserSkill.selected_at)))
+    enforce_budgets(db, [(f"dashboard:{user.id}", 30, 60, 1)])
+    skills = list(db.scalars(select(UserSkill).where(UserSkill.user_id == user.id).order_by(UserSkill.selected_at).limit(200)))
     progress = [SkillProgressResponse(skill_slug=item.skill_slug, baseline_score=item.baseline_score, latest_score=item.latest_score, improvement_points=(item.latest_score - item.baseline_score) if item.latest_score is not None and item.baseline_score is not None else None, missions_completed=item.missions_completed, minutes_logged=item.minutes_logged) for item in skills]
     total_missions = db.scalar(select(func.count()).select_from(ProgressEvent).where(ProgressEvent.user_id == user.id, ProgressEvent.event_type == "mission_completed")) or 0
     total_minutes = db.scalar(select(func.coalesce(func.sum(ProgressEvent.minutes), 0)).where(ProgressEvent.user_id == user.id)) or 0
@@ -514,27 +606,16 @@ def dashboard(user: User = Depends(get_current_user), db: Session = Depends(get_
 
 def leaderboard_snapshot(db: Session, user: User) -> dict:
     month_start = now_utc().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    rows = db.execute(
-        select(
-            LeaderboardConsent.user_id,
-            func.coalesce(func.sum(case((ProgressEvent.event_type == "mission_completed", 1), else_=0)), 0),
-            func.coalesce(func.sum(ProgressEvent.minutes), 0),
-        )
-        .outerjoin(
-            ProgressEvent,
-            (ProgressEvent.user_id == LeaderboardConsent.user_id)
-            & (ProgressEvent.created_at >= month_start),
-        )
-        .group_by(LeaderboardConsent.user_id)
-    ).all()
-    scores = [(participant_id, int(missions), int(minutes)) for participant_id, missions, minutes in rows]
-    scores.sort(key=lambda item: (-item[1], -item[2], item[0]))
-    rank = next((index for index, item in enumerate(scores, 1) if item[0] == user.id), None)
+    # Local/offline proof is self-reported. Do not rank unverified submissions or
+    # scan every participant for an ordinary member's request.
+    missions = db.scalar(select(func.count()).select_from(ProgressEvent).where(ProgressEvent.user_id == user.id, ProgressEvent.event_type == "mission_completed", ProgressEvent.created_at >= month_start)) or 0
     return {
-        "opted_in": rank is not None,
-        "rank": rank,
-        "participants": len(scores),
-        "missions": scores[rank - 1][1] if rank else 0,
+        "opted_in": db.get(LeaderboardConsent, user.id) is not None,
+        "rank": None,
+        "participants": 0,
+        "ranking_available": False,
+        "self_reported": True,
+        "missions": int(missions),
         "period": "month",
         "period_start": month_start.date().isoformat(),
     }
@@ -568,9 +649,7 @@ def opt_out_usage_analytics(user: User = Depends(get_current_user), db: Session 
 
 @app.put("/users/me/leaderboard")
 def opt_in_leaderboard(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
-    if not db.get(LeaderboardConsent, user.id):
-        db.add(LeaderboardConsent(user_id=user.id))
-        db.commit()
+    # Compatibility response for older clients; do not enroll new comparisons.
     return leaderboard_snapshot(db, user)
 
 

@@ -21,7 +21,8 @@ export default function RecoverScreen() {
       if (resetting) {
         if (password.length < 10) throw new Error("Use at least 10 characters for your new password.");
         await confirmPasswordReset(token, password);
-        setMessage("Password changed. Refresh sessions are revoked; already-open sessions expire within 15 minutes. Sign in with your new password.");
+        setPassword(""); setToken(""); router.setParams({ token: undefined });
+        setMessage("Password changed. Existing sessions are revoked. Sign in with your new password.");
       } else {
         if (!/.+@.+\..+/.test(email.trim())) throw new Error("Enter a valid email address.");
         setMessage(await requestPasswordReset(email));
@@ -33,7 +34,7 @@ export default function RecoverScreen() {
   return <KeyboardAvoidingView style={[styles.page, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
     <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={[styles.back, { borderColor: theme.border }]}><Text style={[styles.backText, { color: theme.accent }]}>‹</Text></Pressable>
     <Text style={[styles.eyebrow, { color: theme.accent }]}>ACCOUNT RECOVERY</Text><Text style={[styles.title, { color: theme.text }]}>{resetting ? "Choose a new password." : "Get back into RISE."}</Text>
-    <Text style={[styles.subtitle, { color: theme.muted }]}>{resetting ? "This one-time link expires after 30 minutes. Resetting revokes refresh sessions; already-open sessions expire within 15 minutes." : "Enter your account email. For privacy, RISE gives the same response whether an account exists or not."}</Text>
+    <Text style={[styles.subtitle, { color: theme.muted }]}>{resetting ? "This one-time link expires after 30 minutes. Resetting revokes your existing sessions." : "Enter your account email. For privacy, RISE gives the same response whether an account exists or not."}</Text>
     {!resetting ? <Field label="EMAIL" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" /> : <><Field label="RESET CODE" value={token} onChangeText={setToken} autoCapitalize="none" /><Field label="NEW PASSWORD" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoComplete="new-password" /></>}
     {message ? <View accessibilityRole="alert" style={[styles.notice, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}><Text style={[styles.noticeText, { color: theme.text }]}>{message}</Text></View> : null}
     <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy }} disabled={busy} onPress={() => void submit()} style={[styles.button, { backgroundColor: theme.accent }, busy && {opacity:.5}]}><Text style={[styles.buttonText, { color: theme.accentInk }]}>{busy ? "Please wait…" : resetting ? "Reset password" : "Send reset instructions"}</Text></Pressable>

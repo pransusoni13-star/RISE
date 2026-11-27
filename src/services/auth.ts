@@ -1,8 +1,9 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { deleteAllRiseData } from "./localData";
 import { discardQueuedUsageAnalytics, getPendingSyncCount, listSyncOutbox, queueProfile, queueProgressEvent, removeSyncOutboxItem } from "./syncOutbox";
+import { createSessionBoundary } from "./sessionBoundary";
+import { createSerializedMutationQueue } from "./serializedMutations";
 
 const API_URL = (process.env.EXPO_PUBLIC_API_URL || "").replace(/\/$/, "");
 export const EXPECTED_API_VERSION = "1.2.0";
@@ -58,6 +59,23 @@ export type ProgressDashboard = {
 export type LeaderboardSnapshot = { opted_in: boolean; rank: number | null; participants: number; missions: number; period: "month"; period_start: string };
 
 let webSession: AuthResponse | null = null;
+let sessionSuspended = false;
+const sessionBoundary = createSessionBoundary();
+const serializeSession = createSerializedMutationQueue();
+const sessionListeners = new Set<() => void>();
+const activeRequests = new Set<AbortController>();
+export function subscribeSessionChanges(listener: () => void) { sessionListeners.add(listener); return () => { sessionListeners.delete(listener); }; }
+function notifySessionChanges() { for (const listener of sessionListeners) listener(); }
+function invalidateSessionWork() { sessionSuspended = true; sessionBoundary.invalidate(); for (const controller of activeRequests) controller.abort(); notifySessionChanges(); }
+function assertCurrentSession(generation: number) { if (!sessionBoundary.isCurrent(generation)) throw new Error("Your session changed. Please try again after signing in."); }
+
+export async function isMemberDataLocked(): Promise<boolean> {
+  const owner = await AsyncStorage.getItem(LOCAL_OWNER_KEY);
+  if (!owner) return false;
+  if (sessionSuspended) return true;
+  const stored = await getStored(USER_KEY);
+  try { return !stored || JSON.parse(stored).id !== owner; } catch { return true; }
+}
 let usageAnalyticsConsent = false;
 let usageAnalyticsEnabledAt = 0;
 let lastSuccessfulApiRequestAt = 0;
@@ -86,14 +104,19 @@ async function getStored(key: string): Promise<string | null> {
   return SecureStore.getItemAsync(key);
 }
 
-async function storeSession(session: AuthResponse | null): Promise<void> {
+async function storeSession(session: AuthResponse | null, generation = sessionBoundary.capture()): Promise<void> {
+  return serializeSession(async () => {
+  assertCurrentSession(generation);
   if (!session) { usageAnalyticsConsent = false; usageAnalyticsEnabledAt = 0; }
   if (Platform.OS === "web") {
     webSession = session;
+    sessionSuspended = !session;
+    notifySessionChanges();
     return;
   }
   if (!session) {
     await Promise.all([SecureStore.deleteItemAsync(ACCESS_KEY), SecureStore.deleteItemAsync(REFRESH_KEY), SecureStore.deleteItemAsync(USER_KEY)]);
+    notifySessionChanges();
     return;
   }
   await Promise.all([
@@ -101,11 +124,13 @@ async function storeSession(session: AuthResponse | null): Promise<void> {
     SecureStore.setItemAsync(REFRESH_KEY, session.refresh_token),
     SecureStore.setItemAsync(USER_KEY, JSON.stringify(session.user)),
   ]);
+  if (sessionBoundary.isCurrent(generation)) { sessionSuspended = false; notifySessionChanges(); }
+  });
 }
 
 async function claimLocalDataForUser(userId: string): Promise<void> {
   const currentOwner = await AsyncStorage.getItem(LOCAL_OWNER_KEY);
-  if (currentOwner && currentOwner !== userId) await deleteAllRiseData();
+  if (currentOwner && currentOwner !== userId) throw new Error("Private data belongs to another account on this device. Sign in to that account and clear its local data in Settings before switching. Your reflections and proof have not been removed.");
   await AsyncStorage.setItem(LOCAL_OWNER_KEY, userId);
 }
 
@@ -121,6 +146,7 @@ class ApiError extends Error {
 async function rawRequest<T>(path: string, init: RequestInit = {}, accessToken?: string | null): Promise<T> {
   if (!isApiConfigured()) throw new Error("RISE account service needs a public HTTPS API for this build.");
   const controller = new AbortController();
+  activeRequests.add(controller);
   // Give a sleeping low-cost host time to wake, but fail a warm request quickly
   // enough for the member to retry instead of staring at a frozen screen.
   const isRecentlyWarm = Date.now() - lastSuccessfulApiRequestAt < API_WARM_WINDOW_MS;
@@ -141,6 +167,7 @@ async function rawRequest<T>(path: string, init: RequestInit = {}, accessToken?:
     throw error;
   } finally {
     clearTimeout(timeout);
+    activeRequests.delete(controller);
   }
 }
 
@@ -148,22 +175,25 @@ let pendingRefresh: Promise<AuthResponse | null> | null = null;
 
 async function refreshSession(): Promise<AuthResponse | null> {
   if (pendingRefresh) return pendingRefresh;
-  pendingRefresh = performRefresh();
-  try { return await pendingRefresh; }
-  finally { pendingRefresh = null; }
+  const operation = performRefresh();
+  pendingRefresh = operation;
+  try { return await operation; }
+  finally { if (pendingRefresh === operation) pendingRefresh = null; }
 }
 
 async function performRefresh(): Promise<AuthResponse | null> {
+  const generation = sessionBoundary.capture();
   const refreshToken = await getStored(REFRESH_KEY);
   if (!refreshToken) return null;
   try {
     const session = await rawRequest<AuthResponse>("/auth/refresh", { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) });
-    await storeSession(session);
+    assertCurrentSession(generation);
+    await storeSession(session, generation);
     return session;
   } catch (error) {
     // Temporary network failures must not erase a recoverable session.
     if (error instanceof ApiError && error.status === 401) {
-      await storeSession(null);
+      if (sessionBoundary.isCurrent(generation)) await storeSession(null, generation);
       return null;
     }
     throw error;
@@ -171,34 +201,46 @@ async function performRefresh(): Promise<AuthResponse | null> {
 }
 
 async function authenticatedRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const generation = sessionBoundary.capture();
   let accessToken = await getStored(ACCESS_KEY);
+  assertCurrentSession(generation);
   if (!accessToken) throw new Error("Sign in to sync your RISE progress.");
   try {
-    return await rawRequest<T>(path, init, accessToken);
+    const result = await rawRequest<T>(path, init, accessToken);
+    assertCurrentSession(generation);
+    return result;
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 401) throw error;
+    assertCurrentSession(generation);
     const session = await refreshSession();
     if (!session) throw new ApiError("Your session expired. Sign in again.", 401);
     accessToken = session.access_token;
+    assertCurrentSession(generation);
     return rawRequest<T>(path, init, accessToken);
   }
 }
 
 export async function register(input: { email: string; password: string; displayName: string; foundingCode?: string; signupElapsedSeconds?: number; usageAnalyticsOptIn?: boolean }): Promise<RegistrationResult> {
+  invalidateSessionWork();
+  const generation = sessionBoundary.capture();
   const session = await rawRequest<AuthResponse>("/auth/register", { method: "POST", body: JSON.stringify({ email: input.email.trim().toLowerCase(), password: input.password, display_name: input.displayName.trim(), founding_code: input.foundingCode?.trim() || null, signup_elapsed_seconds: input.usageAnalyticsOptIn ? input.signupElapsedSeconds ?? null : null, usage_analytics_opt_in: input.usageAnalyticsOptIn ?? false }) });
-  await claimLocalDataForUser(session.user.id);
-  await storeSession(session);
+  assertCurrentSession(generation);
+  await serializeSession(async () => { assertCurrentSession(generation); await claimLocalDataForUser(session.user.id); });
+  await storeSession(session, generation);
   usageAnalyticsConsent = Boolean(input.usageAnalyticsOptIn);
   usageAnalyticsEnabledAt = usageAnalyticsConsent ? Date.now() : 0;
   return { user: session.user, verificationEmailSent: session.verification_email_sent === true };
 }
 
 export async function login(email: string, password: string): Promise<RiseUser> {
+  invalidateSessionWork();
+  const generation = sessionBoundary.capture();
   const session = await rawRequest<AuthResponse>("/auth/login", { method: "POST", body: JSON.stringify({ email: email.trim().toLowerCase(), password }) });
   usageAnalyticsConsent = false;
   usageAnalyticsEnabledAt = 0;
-  await claimLocalDataForUser(session.user.id);
-  await storeSession(session);
+  assertCurrentSession(generation);
+  await serializeSession(async () => { assertCurrentSession(generation); await claimLocalDataForUser(session.user.id); });
+  await storeSession(session, generation);
   void getUsageAnalyticsConsent();
   return session.user;
 }
@@ -227,33 +269,46 @@ export async function confirmEmailVerification(token: string): Promise<void> {
 }
 
 export async function getCurrentUser(): Promise<RiseUser | null> {
+  const generation = sessionBoundary.capture();
   const stored = await getStored(USER_KEY);
+  if (!sessionBoundary.isCurrent(generation)) return null;
   if (!stored) return null;
   try {
     const user = await authenticatedRequest<RiseUser>("/users/me");
     return user;
   } catch (error) {
+    if (!sessionBoundary.isCurrent(generation)) return null;
     if (error instanceof ApiError && error.status === 401) return null;
     try { return JSON.parse(stored) as RiseUser; } catch { return null; }
   }
 }
 
 export async function logout(): Promise<void> {
+  invalidateSessionWork();
+  pendingRefresh = null;
+  const generation = sessionBoundary.capture();
   const refreshToken = await getStored(REFRESH_KEY);
+  const accessToken = await getStored(ACCESS_KEY);
+  await storeSession(null, generation);
   if (refreshToken && API_URL) {
-    await rawRequest("/auth/logout", { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) }).catch(() => undefined);
+    await rawRequest("/auth/logout", { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) }, accessToken).catch(() => undefined);
   }
-  await storeSession(null);
 }
 
 export async function deleteCloudAccount(): Promise<void> {
   await authenticatedRequest("/users/me", { method: "DELETE" });
+  invalidateSessionWork();
   await storeSession(null);
 }
 
 export async function syncUserProfile(profile: { selectedGoals: string[]; customGoal: string; weeklySkill?: string; focusSkills?: string[]; commitment?: string; availableTime?: string; experience?: string }): Promise<void> {
+  const generation = sessionBoundary.capture();
   if (!API_URL || !(await getStored(ACCESS_KEY))) return;
-  await queueProfile({ selected_goals: profile.selectedGoals.slice(0, 64), custom_goal: profile.customGoal.slice(0, 200), weekly_skill: (profile.weeklySkill || "").slice(0, 100), focus_skills: (profile.focusSkills || []).slice(0, 3), commitment: profile.commitment || "Every 7 days", available_time: profile.availableTime || "30 minutes", experience: (profile.experience || "").slice(0, 160) });
+  const owner = await AsyncStorage.getItem(LOCAL_OWNER_KEY);
+  assertCurrentSession(generation);
+  if (!owner) return;
+  await queueProfile({ selected_goals: profile.selectedGoals.slice(0, 64), custom_goal: profile.customGoal.slice(0, 200), weekly_skill: (profile.weeklySkill || "").slice(0, 100), focus_skills: (profile.focusSkills || []).slice(0, 3), commitment: profile.commitment || "Every 7 days", available_time: profile.availableTime || "30 minutes", experience: (profile.experience || "").slice(0, 160) }, owner);
+  assertCurrentSession(generation);
   await flushCloudSyncQueue();
 }
 
@@ -263,8 +318,13 @@ export async function getCloudProfile(): Promise<CloudProfile | null> {
 }
 
 export async function recordProgressEvent(event: { clientEventId: string; eventType: "skill_selected" | "mission_started" | "mission_completed" | "quiz_completed" | "reflection_completed" | "app_session" | "invite_shared"; skillSlug: string; value?: number; minutes?: number; metadata?: Record<string, unknown> }): Promise<void> {
+  const generation = sessionBoundary.capture();
   if (!API_URL || !(await getStored(ACCESS_KEY))) return;
-  await queueProgressEvent({ client_event_id: event.clientEventId.slice(0, 120), event_type: event.eventType, skill_slug: event.skillSlug.slice(0, 100), value: event.value || 0, minutes: event.minutes || 0, metadata: event.metadata || {} });
+  const owner = await AsyncStorage.getItem(LOCAL_OWNER_KEY);
+  assertCurrentSession(generation);
+  if (!owner) return;
+  await queueProgressEvent({ client_event_id: event.clientEventId.slice(0, 120), event_type: event.eventType, skill_slug: event.skillSlug.slice(0, 100), value: event.value || 0, minutes: event.minutes || 0, metadata: event.metadata || {} }, owner);
+  assertCurrentSession(generation);
   await flushCloudSyncQueue();
 }
 
@@ -272,21 +332,28 @@ let pendingOutboxFlush: Promise<{ synced: number; pending: number }> | null = nu
 
 export async function flushCloudSyncQueue(): Promise<{ synced: number; pending: number }> {
   if (pendingOutboxFlush) return pendingOutboxFlush;
-  pendingOutboxFlush = performOutboxFlush();
-  try { return await pendingOutboxFlush; }
-  finally { pendingOutboxFlush = null; }
+  const operation = performOutboxFlush();
+  pendingOutboxFlush = operation;
+  try { return await operation; }
+  finally { if (pendingOutboxFlush === operation) pendingOutboxFlush = null; }
 }
 
 async function performOutboxFlush(): Promise<{ synced: number; pending: number }> {
+  const generation = sessionBoundary.capture();
   if (!API_URL || !(await getStored(ACCESS_KEY))) return { synced: 0, pending: await getPendingSyncCount() };
+  const owner = await AsyncStorage.getItem(LOCAL_OWNER_KEY);
+  assertCurrentSession(generation);
   let synced = 0;
   for (const item of await listSyncOutbox()) {
     try {
+      assertCurrentSession(generation);
+      if (item.ownerId && item.ownerId !== owner) continue;
       if (item.kind === "profile") {
         await authenticatedRequest("/profiles/me", { method: "PUT", body: JSON.stringify(item.payload) });
       } else {
         await authenticatedRequest("/progress/events", { method: "POST", body: JSON.stringify(item.payload) });
       }
+      assertCurrentSession(generation);
       await removeSyncOutboxItem(item.id);
       synced += 1;
     } catch (error) {
@@ -311,7 +378,20 @@ export async function getProgressDashboard(): Promise<ProgressDashboard | null> 
 
 export async function getCloudDataExport(): Promise<Record<string, unknown> | null> {
   if (!API_URL || !(await getStored(ACCESS_KEY))) return null;
-  return authenticatedRequest<Record<string, unknown>>("/users/me/export");
+  const generation = sessionBoundary.capture();
+  let archive: Record<string, unknown> | null = null;
+  for (let page = 0; page < 100; page += 1) {
+    assertCurrentSession(generation);
+    const chunk = await authenticatedRequest<Record<string, unknown>>(`/users/me/export?page=${page}`);
+    if (!archive) archive = { ...chunk, skills: [], progress_events: [], product_feedback: [] };
+    for (const key of ["skills", "progress_events", "product_feedback"]) {
+      const records = chunk[key];
+      if (Array.isArray(records)) (archive[key] as unknown[]).push(...records);
+    }
+    const pagination = chunk.pagination as { more?: boolean } | undefined;
+    if (!pagination?.more) { delete archive.pagination; return archive; }
+  }
+  throw new Error("This archive needs an assisted export. Contact support for the complete file.");
 }
 
 export type FeedbackSubmissionResult = { received: boolean; emailNotified: boolean };
@@ -353,9 +433,13 @@ export async function getPublicConfig(): Promise<PublicApiConfig> {
 }
 
 export async function claimFoundingMembership(code: string): Promise<RiseUser> {
+  const generation = sessionBoundary.capture();
   const user = await authenticatedRequest<RiseUser>("/users/me/founding-claim", { method: "POST", body: JSON.stringify({ founding_code: code.trim() }) });
-  if (Platform.OS === "web" && webSession) webSession = { ...webSession, user };
-  else if (Platform.OS !== "web") await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+  await serializeSession(async () => {
+    assertCurrentSession(generation);
+    if (Platform.OS === "web" && webSession) webSession = { ...webSession, user };
+    else if (Platform.OS !== "web") await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+  });
   return user;
 }
 
@@ -372,13 +456,15 @@ export const isUsageAnalyticsEnabled = () => usageAnalyticsConsent;
 export const getUsageAnalyticsEnabledAt = () => usageAnalyticsEnabledAt;
 
 export async function getUsageAnalyticsConsent(): Promise<boolean> {
+  const generation = sessionBoundary.capture();
   if (!API_URL || !(await getStored(ACCESS_KEY))) { usageAnalyticsConsent = false; return false; }
   try {
     const result = await authenticatedRequest<{ opted_in: boolean }>("/users/me/usage-analytics");
+    assertCurrentSession(generation);
     if (result.opted_in && !usageAnalyticsConsent) usageAnalyticsEnabledAt = Date.now();
     usageAnalyticsConsent = result.opted_in;
     return usageAnalyticsConsent;
-  } catch { usageAnalyticsConsent = false; return false; }
+  } catch { if (sessionBoundary.isCurrent(generation)) usageAnalyticsConsent = false; return false; }
 }
 
 export async function setUsageAnalyticsConsent(optIn: boolean): Promise<boolean> {

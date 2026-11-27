@@ -91,14 +91,14 @@ export default function SettingsScreen() {
 
   const exportLocalData = async () => {
     try {
-      const [local, synced] = await Promise.all([createRiseDataExport(), getCloudDataExport().catch(() => null)]);
+      const [local, synced] = await Promise.all([createRiseDataExport(), getCloudDataExport()]);
       const snapshot = { exportedAt: new Date().toISOString(), local, synced };
       await Share.share({
         title: "My RISE data",
         message: JSON.stringify(snapshot, null, 2),
       });
-    } catch {
-      Alert.alert("Could not export data", "Your saved RISE data was not changed. Please try again.");
+    } catch (error) {
+      Alert.alert("Could not export data", error instanceof Error ? error.message : "Your saved RISE data was not changed. Please try again.");
     }
   };
 

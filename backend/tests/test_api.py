@@ -5,7 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 TEST_DB = Path(__file__).with_name(f"test-rise-{os.getpid()}.db")
-os.environ["RISE_DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
+os.environ["RISE_DATABASE_URL"] = os.environ.get("RISE_TEST_POSTGRES_URL", f"sqlite:///{TEST_DB.as_posix()}")
 os.environ["RISE_JWT_SECRET"] = "test-secret-that-is-long-enough-for-tests-12345"
 
 from fastapi.testclient import TestClient
@@ -73,7 +73,7 @@ def test_password_reset_is_private_single_use_and_revokes_sessions(monkeypatch) 
         assert client.post("/auth/password-reset/confirm", json={"token": delivered["token"], "new_password": "another-password"}).status_code == 400
         assert client.post("/auth/login", json={"email": "reset@example.com", "password": "original-password"}).status_code == 401
         assert client.post("/auth/login", json={"email": "reset@example.com", "password": "replacement-password"}).status_code == 200
-        assert client.get("/users/me", headers={"Authorization": f"Bearer {old_access}"}).status_code == 200
+        assert client.get("/users/me", headers={"Authorization": f"Bearer {old_access}"}).status_code == 401
         old_refresh = created.json()["refresh_token"]
         assert client.post("/auth/refresh", json={"refresh_token": old_refresh}).status_code == 401
 
@@ -171,7 +171,8 @@ def test_founding_registration_and_progress_are_idempotent(monkeypatch) -> None:
         assert dashboard["skills"][0]["improvement_points"] == 30
         assert client.get("/users/me/leaderboard", headers=headers).json()["opted_in"] is False
         leaderboard = client.put("/users/me/leaderboard", headers=headers).json()
-        assert leaderboard["rank"] == 1
+        assert leaderboard["rank"] is None
+        assert leaderboard["ranking_available"] is False
         assert leaderboard["period"] == "month"
         assert client.delete("/users/me/leaderboard", headers=headers).json()["opted_in"] is False
         export = client.get("/users/me/export", headers=headers)
@@ -504,3 +505,113 @@ def test_feedback_remains_saved_when_support_email_fails(monkeypatch) -> None:
         exported = client.get("/users/me/export", headers=headers).json()
         assert exported["product_feedback"][0]["message"] == payload["message"]
         assert len(exported["product_feedback"]) == 1
+
+
+
+def test_logout_revokes_access_even_after_refresh_rotates() -> None:
+    with TestClient(app) as client:
+        created = client.post("/auth/register", json={"email": "logout-race@example.com", "password": "very-secure-password", "display_name": "Logout Member"}).json()
+        refreshed = client.post("/auth/refresh", json={"refresh_token": created["refresh_token"]}).json()
+        old_headers = {"Authorization": f"Bearer {created['access_token']}"}
+        assert client.post("/auth/logout", json={"refresh_token": created["refresh_token"]}, headers=old_headers).status_code == 204
+        assert client.get("/users/me", headers={"Authorization": f"Bearer {refreshed['access_token']}"}).status_code == 401
+        assert client.post("/auth/refresh", json={"refresh_token": refreshed["refresh_token"]}).status_code == 401
+
+
+def test_access_claims_are_required_and_absolute_refresh_expiry_is_retained() -> None:
+    import jwt
+    with TestClient(app) as client:
+        created = client.post("/auth/register", json={"email": "claims@example.com", "password": "very-secure-password", "display_name": "Claims Member"}).json()
+        claims = jwt.decode(created["access_token"], settings.jwt_secret, algorithms=["HS256"], audience="rise-client", issuer="rise-api")
+        for missing in ("exp", "iat", "sid", "auth_time", "iss", "aud"):
+            bad = {key: value for key, value in claims.items() if key != missing}
+            token = jwt.encode(bad, settings.jwt_secret, algorithm="HS256")
+            assert client.get("/users/me", headers={"Authorization": f"Bearer {token}"}).status_code == 401
+        with SessionLocal() as db:
+            before = db.query(RefreshSession).one().expires_at
+        result = client.post("/auth/refresh", json={"refresh_token": created["refresh_token"]})
+        assert result.status_code == 200
+        with SessionLocal() as db:
+            assert db.query(RefreshSession).one().expires_at == before
+
+
+def test_shared_auth_limit_survives_process_limiter_reset() -> None:
+    with TestClient(app) as client:
+        for _ in range(6):
+            assert client.post("/auth/login", json={"email": "limited@example.com", "password": "incorrect-password"}).status_code == 401
+        with attempt_lock:
+            attempts.clear()
+        result = client.post("/auth/login", json={"email": "limited@example.com", "password": "incorrect-password"})
+        assert result.status_code == 429
+        assert int(result.headers["Retry-After"]) > 0
+
+
+def test_cumulative_minutes_are_bounded_and_duplicate_retry_is_free() -> None:
+    with TestClient(app) as client:
+        created = client.post("/auth/register", json={"email": "minutes@example.com", "password": "very-secure-password", "display_name": "Minutes Member"}).json()
+        headers = {"Authorization": f"Bearer {created['access_token']}"}
+        event = {"client_event_id": "minute:one", "event_type": "mission_completed", "skill_slug": "focus", "minutes": 1440}
+        assert client.post("/progress/events", json=event, headers=headers).status_code == 201
+        assert client.post("/progress/events", json=event, headers=headers).json() == {"created": False}
+        result = client.post("/progress/events", json={**event, "client_event_id": "minute:two", "minutes": 1}, headers=headers)
+        assert result.status_code == 429
+        assert client.get("/users/me/dashboard", headers=headers).json()["total_minutes"] == 1440
+        snapshot = client.get("/users/me/leaderboard", headers=headers).json()
+        assert snapshot["rank"] is None and snapshot["ranking_available"] is False
+
+
+def test_active_session_count_is_bounded() -> None:
+    with TestClient(app) as client:
+        created = client.post("/auth/register", json={"email": "sessions@example.com", "password": "very-secure-password", "display_name": "Session Member"}).json()
+        for _ in range(12):
+            with SessionLocal() as db:
+                main_module.issue_session(db, db.get(User, created["user"]["id"]))
+        with SessionLocal() as db:
+            assert db.query(RefreshSession).count() == 10
+        assert client.get("/users/me", headers={"Authorization": f"Bearer {created['access_token']}"}).status_code == 401
+
+
+def test_recent_login_is_required_for_export_after_refresh() -> None:
+    with TestClient(app) as client:
+        created = client.post("/auth/register", json={"email": "recent@example.com", "password": "very-secure-password", "display_name": "Recent Member"}).json()
+        with SessionLocal() as db:
+            db.query(RefreshSession).one().created_at = now_utc() - timedelta(minutes=20)
+            db.commit()
+        refreshed = client.post("/auth/refresh", json={"refresh_token": created["refresh_token"]}).json()
+        headers = {"Authorization": f"Bearer {refreshed['access_token']}"}
+        assert client.get("/users/me", headers=headers).status_code == 200
+        assert client.get("/users/me/export", headers=headers).status_code == 428
+        assert client.delete("/users/me", headers=headers).status_code == 428
+
+
+
+def test_large_export_is_paged_without_cross_account_records() -> None:
+    with TestClient(app) as client:
+        a = client.post("/auth/register", json={"email": "archive-a@example.com", "password": "very-secure-password", "display_name": "Archive A"}).json()
+        b = client.post("/auth/register", json={"email": "archive-b@example.com", "password": "very-secure-password", "display_name": "Archive B"}).json()
+        with SessionLocal() as db:
+            db.add_all(ProgressEvent(user_id=a["user"]["id"], client_event_id=f"archive:{i}", event_type="mission_started", skill_slug="focus") for i in range(501))
+            db.commit()
+        ah = {"Authorization": f"Bearer {a['access_token']}"}
+        bh = {"Authorization": f"Bearer {b['access_token']}"}
+        assert client.get("/users/me/export", headers=ah).status_code == 413
+        first = client.get("/users/me/export?page=0", headers=ah).json()
+        second = client.get("/users/me/export?page=1", headers=ah).json()
+        assert len(first["progress_events"]) == 500 and first["pagination"]["more"] is True
+        assert len(second["progress_events"]) == 1 and second["pagination"]["more"] is False
+        assert len({e["client_event_id"] for e in first["progress_events"] + second["progress_events"]}) == 501
+        assert client.get("/users/me/export?page=0", headers=bh).json()["progress_events"] == []
+
+
+def test_shared_quota_is_atomic_across_database_sessions() -> None:
+    from app.budgets import enforce_budgets
+    from fastapi import HTTPException
+    def reserve(_):
+        with SessionLocal() as db:
+            try:
+                enforce_budgets(db, [("atomic-audit-budget", 1, 3600, 1)])
+                return 200
+            except HTTPException as exc:
+                return exc.status_code
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert sorted(pool.map(reserve, range(2))) == [200, 429]

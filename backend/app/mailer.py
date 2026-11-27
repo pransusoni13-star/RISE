@@ -3,6 +3,7 @@ from html import escape
 import logging
 import re
 import smtplib
+import ssl
 
 import httpx
 
@@ -56,7 +57,7 @@ def _send_smtp(settings: Settings, recipient: str, subject: str, text_body: str,
         message.add_alternative(html_body, subtype="html")
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as client:
         if settings.smtp_use_tls:
-            client.starttls()
+            client.starttls(context=ssl.create_default_context())
         client.login(settings.smtp_username, settings.smtp_password)
         client.send_message(message)
 

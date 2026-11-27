@@ -1,0 +1,73 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+.venv/
+backend/.venv/
+backend/*.db
+backend/tests/*.db
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Expo
+.expo/
+.expo-design-audit/
+.expo-export*/
+dist/
+/dist-ios/
+dist-check/
+dist-next/
+dist-build*-check/
+dist-release-check/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# environment files (never commit secrets; use .env.example for documented names)
+.env
+.env.*
+!.env.example
+
+# Local App Store release state contains reviewer contact details and manual
+# attestations. Commit only the redacted example template.
+app-store/submission-state.json
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android
+
+.vercel
+
+# Local owner-provided exact-build captures and provenance
+app-store/screenshots/build-*/
+app-store/screenshots/manifest.json
+
+# Private local audit and owner handoff are not needed by the build service.
+CODEX_MASTER_HANDOFF_PROMPT.md
+SECURITY_AUDIT_*.md
