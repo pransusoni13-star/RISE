@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from collections import deque
 from datetime import timedelta
 from pathlib import Path
@@ -239,6 +240,25 @@ def test_login_attempts_are_rate_limited() -> None:
         for _ in range(6):
             assert client.post("/auth/login", json=payload).status_code == 401
         assert client.post("/auth/login", json=payload).status_code == 429
+
+
+def test_concurrent_refresh_consumes_a_token_only_once() -> None:
+    with TestClient(app) as client:
+        session = client.post("/auth/register", json={"email": "race-refresh@example.com", "password": "very-secure-password", "display_name": "Refresh Member"}).json()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses = list(pool.map(lambda _: client.post("/auth/refresh", json={"refresh_token": session["refresh_token"]}).status_code, range(2)))
+        assert sorted(responses) == [200, 401]
+
+
+def test_concurrent_password_reset_consumes_a_link_only_once(monkeypatch) -> None:
+    delivered = {}
+    monkeypatch.setattr(main_module, "send_password_reset", lambda _settings, _recipient, token: delivered.update(token=token))
+    with TestClient(app) as client:
+        client.post("/auth/register", json={"email": "race-reset@example.com", "password": "very-secure-password", "display_name": "Reset Member"})
+        client.post("/auth/password-reset/request", json={"email": "race-reset@example.com"})
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses = list(pool.map(lambda _: client.post("/auth/password-reset/confirm", json={"token": delivered["token"], "new_password": "new-secure-password"}).status_code, range(2)))
+        assert sorted(responses) == [204, 400]
 
 
 def test_refresh_rotation_removes_revoked_session_rows() -> None:

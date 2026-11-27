@@ -240,13 +240,13 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
 def refresh(payload: RefreshRequest, request: Request, db: Session = Depends(get_db)) -> AuthResponse:
     enforce_rate_limit(request, "refresh", limit=30)
     token_hash = hash_token(payload.refresh_token)
-    session = db.scalar(select(RefreshSession).where(RefreshSession.token_hash == token_hash, RefreshSession.revoked_at.is_(None)))
-    if not session or session.expires_at.replace(tzinfo=timezone.utc) <= now_utc():
+    claimed_at = now_utc()
+    user_id = db.scalar(update(RefreshSession).where(RefreshSession.token_hash == token_hash, RefreshSession.revoked_at.is_(None), RefreshSession.expires_at > claimed_at).values(revoked_at=claimed_at).returning(RefreshSession.user_id))
+    if not user_id:
         raise HTTPException(status_code=401, detail="Refresh session expired")
-    user = db.get(User, session.user_id)
+    user = db.get(User, user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="Account unavailable")
-    session.revoked_at = now_utc()
     db.commit()
     return issue_session(db, user)
 
@@ -281,14 +281,14 @@ def request_password_reset(payload: PasswordResetRequest, request: Request, db: 
 @app.post("/auth/password-reset/confirm", status_code=204)
 def confirm_password_reset(payload: PasswordResetConfirm, request: Request, db: Session = Depends(get_db)) -> Response:
     enforce_rate_limit(request, "password-reset-confirm", limit=8, seconds=900)
-    record = db.scalar(select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(payload.token), PasswordResetToken.used_at.is_(None)))
-    if not record or record.expires_at.replace(tzinfo=timezone.utc) <= now_utc():
+    claimed_at = now_utc()
+    user_id = db.scalar(update(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(payload.token), PasswordResetToken.used_at.is_(None), PasswordResetToken.expires_at > claimed_at).values(used_at=claimed_at).returning(PasswordResetToken.user_id))
+    if not user_id:
         raise HTTPException(status_code=400, detail="This reset link is invalid or expired")
-    user = db.get(User, record.user_id)
+    user = db.get(User, user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=400, detail="This reset link is invalid or expired")
     user.password_hash = hash_password(payload.new_password)
-    record.used_at = now_utc()
     db.execute(update(RefreshSession).where(RefreshSession.user_id == user.id, RefreshSession.revoked_at.is_(None)).values(revoked_at=now_utc()))
     db.commit()
     return Response(status_code=204)
@@ -311,12 +311,10 @@ def request_email_verification(request: Request, user: User = Depends(get_curren
 @app.post("/auth/email-verification/confirm", status_code=204)
 def confirm_email_verification(payload: EmailVerificationConfirm, request: Request, db: Session = Depends(get_db)) -> Response:
     enforce_rate_limit(request, "email-verification-confirm", limit=8, seconds=900)
-    record = db.scalar(select(EmailVerification).where(EmailVerification.token_hash == hash_token(payload.token), EmailVerification.verified_at.is_(None)))
-    if not record or not record.expires_at or record.expires_at.replace(tzinfo=timezone.utc) <= now_utc():
+    claimed_at = now_utc()
+    user_id = db.scalar(update(EmailVerification).where(EmailVerification.token_hash == hash_token(payload.token), EmailVerification.verified_at.is_(None), EmailVerification.expires_at > claimed_at).values(verified_at=claimed_at, token_hash=None, expires_at=None).returning(EmailVerification.user_id))
+    if not user_id:
         raise HTTPException(status_code=400, detail="This verification link is invalid or expired")
-    record.verified_at = now_utc()
-    record.token_hash = None
-    record.expires_at = None
     db.commit()
     return Response(status_code=204)
 
