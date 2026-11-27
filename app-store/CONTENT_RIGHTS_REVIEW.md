@@ -17,4 +17,4 @@ Apple asks about apps that contain, show, or access third-party content, includi
 
 Apple reference: https://developer.apple.com/help/app-store-connect/reference/app-information/app-and-compliance-information . Existing availability was observed as 175 countries/regions; no jurisdiction-wide clearance has been obtained.
 
-Still needed: remaining destination/use review where necessary and the operator's informed factual declaration. No content-rights answer was submitted to Apple. A new reviewed release/update is required to deliver the ACE link change and newly configured postal identity; Build 25 remains the existing TestFlight build.
+Still needed: remaining destination/use review where necessary and the operator's informed factual declaration. No content-rights answer was submitted to Apple. Build 26 now delivers the ACE link change and newly configured native postal identity and is Testing in the public TestFlight group. The separately hosted website still needs its operator environment configuration published.

@@ -1,10 +1,24 @@
 # RISE App Store release readiness
 
-Updated: 2026-11-26
+Updated: 2026-11-27
+
+## Build 26 release receipt — supersedes historical status below
+
+Build 26 (version 1.0.0) finished and uploaded successfully. Apple received it November 27 at 4:32 PM Toronto. Added RISE Internal Beta and RISE Public Beta, saved testing instructions, submitted the external beta flow, and verified Build 1.0.0 (26) has status **Testing** in the public group. Tester link: https://testflight.apple.com/join/gwYy6GNr . Build 26 is selected and saved for the App Store version, which remains **Prepare for Submission**; public App Review was not submitted.
+
+- EAS build: https://expo.dev/accounts/rise.0/projects/RISE/builds/b15ec361-f06e-40a3-a05c-feeda79a8138 . Submission: 858fe799-fe3e-4c66-a6ae-992dda006d90. Apple build: 7c397e32-5f3e-40e4-a151-4f9db83fa930.
+- Security changes merged in PR https://github.com/pransusoni13-star/RISE/pull/29 at d637aa760910f53247fd00ac800682b4d2c4004c. CI passed 71 app logic tests, 54 PostgreSQL backend tests, SQLite 53 tests with one PostgreSQL-specific skip, typecheck/lint, dependency audits, and Expo checks. iOS Hermes export and Expo Doctor passed. See SECURITY_REMEDIATION.md for changes and limits.
+- Render deployment dep-dc4vb4tg1s2s73808jp0 is Live on this merge commit. Health/configuration returned 200; private-table ACL/RLS readiness and email readiness were true; production schema documentation returned 404.
+- The postal identity is configured locally and in EAS production and is included in Build 26. Vercel's live privacy page still shows the operator fallback: connector team access returned 403, the authorization helper returned 404, and the browser required login. No website environment update was completed. Website identity and alignment of policy copy with disabled rankings remain outstanding.
+- Build 26 device QA remains unverified. The Build 24 welcome screenshot is still the only supplied capture; capture Today, Plan, and Progress from Build 26. Existing owner-reported Build 25 phone testing is historical and does not establish Build 26 upgrade retention, email, permissions/offline, or accessibility testing. All Build 26 manual QA flags remain false.
+- Still unresolved for public release: the operator's factual content-rights declaration; validated review-account access; territory/DSA and agreement checks; accessibility declarations; exact-build phone checks and app-in-use screenshots; remaining cloud operational controls described in SECURITY_REMEDIATION.md. No legal declaration or unperformed QA was marked complete.
+- Automatic approval review blocked the local web UI test launch with a localhost API override. No bypass was attempted; this does not affect the completed Apple upload.
+
+## Historical Build 25 record
 
 November 27 follow-up: owner supplied a complete Canadian postal address, stored only in ignored release configuration, and reported completing the requested Build 25 phone checks. Recorded the physical-iPhone check as owner-reported; separate upgrade, two-provider email, and accessibility checks remain unverified. Owner identified ChatGPT as the artwork source; see `app-store/CONTENT_RIGHTS_REVIEW.md`. Adjusted ACE links to the homepage expressly covered by its published linking permission. These source/configuration changes postdate Build 25 and are not yet delivered to that installed binary. Historical missing-address entries below are superseded by this update.
 
-## Current decision
+## Historical decision before Build 26
 
 Build 25 is **Testing in the RISE Public Beta TestFlight group**, verified in App Store Connect after browser access was restored. Its binary state is Validated. It is also selected for the public App Store version, which remains Prepare for Submission. Apple's latest Add for Review validation reports only missing Content Rights Information. Final Build 25 screenshots, device QA, public postal identity, and confirmation of rights remain unresolved. Historical browser-denial entries below are superseded by this verification.
 
