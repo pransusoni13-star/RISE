@@ -125,3 +125,8 @@ After the beta is processed and device QA/screenshots are complete, run `npm run
 - 45 backend tests passed after atomic refresh/reset/verification token consumption, streamed-body limits, input limits, and FastAPI 0.165.0 / Starlette 1.10.0 upgrades. Python requirements audit reports no known vulnerabilities; npm audit reports no critical/high/moderate findings.
 - Build 24 was compiled using Xcode 26.6. Build 25 intentionally opts SDK 57 into the UIKit scene lifecycle and pins macos-tahoe-26.6-xcode-27.2. Expo introspection confirms an UIApplicationSceneManifest with EXExpoAppSceneDelegate.
 - The original Build 24 welcome screenshot is 1179 x 2556 JPEG with no alpha and passes file validation. Its manifest stays marked Build 24; it must not be relabelled as Build 25.
+
+
+## Build 25 upload result
+
+EAS build 511e4f28-004a-48c1-a6bc-273f72536a1e finished and EAS submission 6d411024-f37f-4645-bd38-bcecdaeb237f successfully uploaded version 1.0.0 (25) to App Store Connect. Native build logs confirm Xcode 27.2. Apple processing, tester-group availability, and public App Review state have not been verified through the blocked Apple browser. The Build 24 screenshot remains valid only for Build 24; final Build 25 captures and exact-build device attestations are pending. The public operator mailing address remains unresolved.
