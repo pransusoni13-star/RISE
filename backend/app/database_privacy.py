@@ -19,6 +19,11 @@ def database_privacy_ready(db: Session) -> bool:
             SELECT 1 FROM aclexplode(COALESCE(c.relacl, acldefault('r', c.relowner))) acl
             LEFT JOIN pg_roles r ON r.oid = acl.grantee
             WHERE acl.grantee = 0 OR r.rolname IN ('anon', 'authenticated')
+          ) OR EXISTS (
+            SELECT 1 FROM pg_roles client_role
+            WHERE client_role.rolname IN ('anon', 'authenticated')
+              AND (has_table_privilege(client_role.oid, c.oid, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+                OR has_any_column_privilege(client_role.oid, c.oid, 'SELECT,INSERT,UPDATE,REFERENCES'))
           ) AS client_grant
         FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname = current_schema() AND c.relkind = 'r'
