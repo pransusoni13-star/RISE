@@ -10,11 +10,11 @@ export default function PrivacyChoicesScreen() {
     <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={[styles.back, { borderColor: theme.border }]}><Text style={[styles.backText, { color: theme.accent }]}>‹</Text></Pressable>
     <Text style={[styles.eyebrow, { color: theme.accent }]}>YOUR PRIVACY CHOICES</Text>
     <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>You stay in control.</Text>
-    <Text style={[styles.intro, { color: theme.muted }]}>These controls are available throughout RISE. Core missions still work when optional analytics, comparison, camera, photos, microphone, and notifications are off.</Text>
+    <Text style={[styles.intro, { color: theme.muted }]}>These controls are available throughout RISE. Core missions still work when optional analytics and notifications are off. Camera and photo access are needed only when you choose a related proof attachment.</Text>
 
     <Choice number="1" title="Export your information" text="Open Settings → Export My RISE Data to create a readable copy of local and synced account records through your device share sheet." />
     <Choice number="2" title="Delete local or account data" text="Open Settings → Delete My RISE Data to erase this device. Signed-in members can choose Delete Account Everywhere to delete the active server account and associated records." />
-    <Choice number="3" title="Turn optional sharing off" text="Usage analytics and community comparison are separate and off by default. Signed-in members can change them in Settings and Your Progress. Turning analytics off removes past usage-time and signup-time events." />
+    <Choice number="3" title="Turn optional sharing off" text="Usage analytics is off by default and can be changed in Settings. Turning it off removes past usage-time and signup-time events. Competitive rankings and new leaderboard enrollment are disabled; Your Progress lets previously enrolled members remove their earlier consent." />
     <Choice number="4" title="Control phone permissions" text="RISE asks only when a related feature is used. Change camera, photos, microphone, or notification access in phone Settings. Proof attachments and reflections remain on this device." />
     <Choice number="5" title="Access, correct, or challenge" text="Use export and plan controls for common requests. Contact privacy support for access, correction, deletion help, consent withdrawal, or a complaint. Never email passwords, tokens, or proof files." />
 

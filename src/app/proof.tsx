@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import { File } from "expo-file-system";
 import { router, useLocalSearchParams } from "expo-router";
 
 import {
@@ -134,13 +135,23 @@ export default function ProofScreen() {
   }, [missionId]);
 
   const acceptPickedAsset = (asset: ImagePicker.ImagePickerAsset, type: "photo" | "video") => {
+    let fileSize = asset.file?.size ?? asset.fileSize;
+    if (Platform.OS !== "web") {
+      try {
+        const file = new File(asset.uri);
+        if (file.exists) fileSize = file.size;
+      } catch {
+        // Some OS providers expose picker metadata but cannot be stat'ed.
+        // Validation rejects missing or invalid sizes instead of accepting them.
+      }
+    }
     const details: ProofAssetDetails = {
       type,
       uri: asset.uri,
       width: asset.width,
       height: asset.height,
       duration: asset.duration,
-      fileSize: asset.fileSize,
+      fileSize,
       fileName: asset.fileName,
       mimeType: asset.mimeType,
     };
@@ -748,8 +759,11 @@ export default function ProofScreen() {
                 ? "Video attached and ready"
                 : "Screenshot or photo attached and ready"}
             </Text>
-            {proofType === "photo" ? <Image accessible accessibilityLabel="Selected mission proof preview" source={{ uri: assetUri }} style={styles.preview} /> : null}
-            <Pressable onPress={() => { setProofType(null); setAssetUri(""); setAssetDetails(null); setMatchesMission(false); setOwnsWork(false); }}>
+            {proofType === "photo" ? <Image accessible accessibilityLabel="Selected mission proof preview" source={{ uri: assetUri }} style={styles.preview} onError={() => {
+              setAssetDetails(null);
+              setPickerError("This photo could not be opened. Remove it and choose another downloaded image.");
+            }} /> : null}
+            <Pressable accessibilityRole="button" accessibilityLabel="Remove or replace proof attachment" style={{ minHeight: 44, justifyContent: "center" }} onPress={() => { setProofType(null); setAssetUri(""); setAssetDetails(null); setMatchesMission(false); setOwnsWork(false); }}>
               <Text style={styles.replaceText}>Remove or replace</Text>
             </Pressable>
           </View>
@@ -760,6 +774,7 @@ export default function ProofScreen() {
           <Text style={[styles.reviewTitle, { color: theme.text }]}>Show how this proves the mission</Text>
           <Text style={[styles.reviewText, { color: theme.muted }]}>In one specific sentence, describe what is visible and how it connects to “{taskTitle}.”</Text>
           <TextInput
+            accessibilityLabel="Describe how your proof shows the mission result"
             value={proofDescription}
             onChangeText={setProofDescription}
             placeholder={`Describe what your attachment shows for “${taskTitle}”, including the result you recorded.`}
@@ -778,6 +793,8 @@ export default function ProofScreen() {
       </ScrollView>
       <View style={[styles.footer, { marginBottom: insets.bottom + 8, backgroundColor: theme.background, borderTopColor: theme.border }]}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !proofReview.passed || saving || pickerBusy, busy: saving }}
           onPress={submitProof}
           style={({ pressed }) => [
             styles.submitButton,
@@ -1062,7 +1079,7 @@ const styles = StyleSheet.create({
   reviewTitle: { color: "#F5FFF9", fontSize: 18, fontWeight: "900", marginTop: 7 },
   reviewText: { color: "#A7CBB7", fontSize: 12, lineHeight: 18, marginTop: 6 },
   reviewInput: { minHeight: 84, borderRadius: 14, borderWidth: 1, borderColor: "#29483B", backgroundColor: "#010807", color: "#F5FFF9", padding: 13, marginTop: 12, marginBottom: 11, textAlignVertical: "top", fontSize: 13, lineHeight: 19 },
-  attestation: { flexDirection: "row", alignItems: "center", paddingVertical: 9 },
+  attestation: { flexDirection: "row", alignItems: "center", minHeight: 44, paddingVertical: 9 },
   attestationChecked: { opacity: 1 },
   checkBox: { width: 24, height: 24, borderRadius: 7, borderWidth: 1, borderColor: "#527263", alignItems: "center", justifyContent: "center", marginRight: 10 },
   checkBoxChecked: { backgroundColor: "#7AF5B8", borderColor: "#7AF5B8" },
@@ -1083,7 +1100,9 @@ const styles = StyleSheet.create({
   },
 
   submitButton: {
-    height: 58,
+    minHeight: 58,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 30,
     backgroundColor: "#010807",
     borderWidth: 2,

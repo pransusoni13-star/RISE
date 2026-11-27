@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEY = "RISE_CONSENT";
 const LEGACY_STORAGE_KEY = "RISE_BETA_CONSENT";
-export const CURRENT_POLICY_VERSION = "2026-11-16" as const;
+export const CURRENT_POLICY_VERSION = "2026-11-27" as const;
 
 export type RiseConsent = {
   age13Plus: true;

@@ -34,6 +34,15 @@ const PHOTO_EXTENSION = /\.(jpe?g|png|webp|heic|heif)$/i;
 const VIDEO_EXTENSION = /\.(mp4|mov|webm|m4v)$/i;
 
 export function validateProofAsset(asset: ProofAssetDetails): { allowed: boolean; reason: string } {
+  if (!/^(?:file:\/\/|content:\/\/|ph:\/\/|blob:|data:(?:image|video)\/)/i.test(asset.uri.trim())) {
+    return { allowed: false, reason: "Choose a photo or video from this device using the attachment picker." };
+  }
+  if (!Number.isFinite(asset.fileSize) || !Number.isInteger(asset.fileSize) || (asset.fileSize ?? 0) <= 0) {
+    return { allowed: false, reason: "RISE could not read this file's size. Choose a downloaded photo or video and try again." };
+  }
+  if ([asset.width, asset.height, asset.duration].some(value => value != null && (!Number.isFinite(value) || value < 0))) {
+    return { allowed: false, reason: "This attachment has invalid media details. Choose another file." };
+  }
   const maxBytes = asset.type === "video" ? MAX_VIDEO_BYTES : MAX_PHOTO_BYTES;
   if (asset.fileSize != null && asset.fileSize > maxBytes) {
     return {
