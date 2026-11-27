@@ -74,7 +74,9 @@ def test_explicit_smtp_provider_does_not_use_resend(monkeypatch) -> None:
         def __exit__(self, *_args) -> None:
             return None
 
-        def starttls(self) -> None:
+        def starttls(self, *, context) -> None:
+            assert context.check_hostname
+            assert context.verify_mode == 2
             sent["tls"] = True
 
         def login(self, username: str, password: str) -> None:
@@ -221,7 +223,9 @@ def test_feedback_falls_back_to_smtp_when_dedicated_resend_sender_fails(monkeypa
         def __exit__(self, *_args) -> None:
             return None
 
-        def starttls(self) -> None:
+        def starttls(self, *, context) -> None:
+            assert context.check_hostname
+            assert context.verify_mode == 2
             sent["tls"] = True
 
         def login(self, username: str, password: str) -> None:

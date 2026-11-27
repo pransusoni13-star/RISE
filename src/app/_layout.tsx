@@ -1,9 +1,9 @@
 import "@/global.css";
 import { router, Stack, type ErrorBoundaryProps, usePathname } from "expo-router";
 import { useEffect, useState } from "react";
-import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { flushCloudSyncQueue, getUsageAnalyticsConsent, getUsageAnalyticsEnabledAt, isUsageAnalyticsEnabled, recordProgressEvent } from "../services/auth";
+import { flushCloudSyncQueue, getUsageAnalyticsConsent, getUsageAnalyticsEnabledAt, isUsageAnalyticsEnabled, recordProgressEvent, isMemberDataLocked, subscribeSessionChanges } from "../services/auth";
 import { initializeReminderNavigation } from "../services/reminders";
 import { RiseAppearanceProvider, useRiseAppearance } from "../services/appearance";
 import { hasSavedProfile } from "../services/personalization";
@@ -40,6 +40,19 @@ export default function RootLayout() {
 function ThemedRootLayout() {
   const { theme } = useRiseAppearance();
   const pathname = usePathname();
+  const [memberLocked, setMemberLocked] = useState<boolean | null>(null);
+  useEffect(() => {
+    let active = true;
+    let check = 0;
+    const refreshLock = (hide = false) => {
+      const current = ++check;
+      if (hide) setMemberLocked(null);
+      void isMemberDataLocked().then((locked) => { if (active && current === check) setMemberLocked(locked); }).catch(() => { if (active && current === check) setMemberLocked(true); });
+    };
+    refreshLock();
+    const unsubscribe = subscribeSessionChanges(() => refreshLock(true));
+    return () => { active = false; unsubscribe(); };
+  }, [pathname]);
   const [showMemberHeader, setShowMemberHeader] = useState(false);
   useEffect(() => {
     let active = true;
@@ -56,8 +69,8 @@ function ThemedRootLayout() {
     return () => { mounted = false; dispose?.(); };
   }, []);
   useEffect(() => {
-    void flushCloudSyncQueue();
-    void getUsageAnalyticsConsent();
+    void flushCloudSyncQueue().catch(() => undefined);
+    void getUsageAnalyticsConsent().catch(() => undefined);
     let activeSince = AppState.currentState === "active" ? Date.now() : 0;
     const recordElapsed = () => {
       if (!activeSince) return;
@@ -74,7 +87,7 @@ function ThemedRootLayout() {
     // partial session, so measured time remains accurate with far less load.
     const interval = setInterval(recordElapsed, ANALYTICS_FLUSH_INTERVAL_MS);
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") { activeSince = Date.now(); void getUsageAnalyticsConsent(); void flushCloudSyncQueue(); return; }
+      if (state === "active") { activeSince = Date.now(); void getUsageAnalyticsConsent().catch(() => undefined); void flushCloudSyncQueue().catch(() => undefined); return; }
       recordElapsed();
       activeSince = 0;
     });
@@ -82,7 +95,7 @@ function ThemedRootLayout() {
   }, []);
   return (<View style={{ flex: 1, backgroundColor: theme.background }}>
     <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
-    {showMemberHeader ? <AppPageHeader /> : null}
+    {showMemberHeader && memberLocked === false ? <AppPageHeader /> : null}
     <Stack
       unstable_screenErrorBoundary={ScreenErrorBoundary}
       screenOptions={{
@@ -91,68 +104,43 @@ function ThemedRootLayout() {
         contentStyle: { backgroundColor: theme.background },
       }}
     >
-      <Stack.Screen name="index" />
-
-      <Stack.Screen name="onboarding" />
-
       <Stack.Screen name="account" />
-
       <Stack.Screen name="recover" />
-
       <Stack.Screen name="verify-email" />
-
-      <Stack.Screen name="popular-skills" />
-
-      <Stack.Screen name="account-progress" />
-
-      <Stack.Screen name="goals" />
-
-      <Stack.Screen name="focus" />
-
       <Stack.Screen name="legal" />
-
       <Stack.Screen name="privacy" />
-
       <Stack.Screen name="privacy-choices" />
-
       <Stack.Screen name="terms" />
-
       <Stack.Screen name="help" />
-
-      <Stack.Screen name="tour" />
-
       <Stack.Screen name="support" />
-
-      <Stack.Screen name="settings" />
-
-      <Stack.Screen name="feedback" />
-
-      <Stack.Screen name="rewards" />
-
-      <Stack.Screen name="schedule" />
-
-      <Stack.Screen name="accountability" />
-
-      <Stack.Screen name="commitment" />
-
-      <Stack.Screen name="plan" />
-
-      <Stack.Screen name="daily" />
-
-      <Stack.Screen name="learning" />
-
-      <Stack.Screen name="quiz" />
-
-      <Stack.Screen name="action" />
-
-      <Stack.Screen name="project" />
-
-      <Stack.Screen name="proof" />
-
-      <Stack.Screen name="skilltree" />
-
-      <Stack.Screen name="progress-screen" />
+      <Stack.Protected guard={memberLocked !== true}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="popular-skills" />
+        <Stack.Screen name="account-progress" />
+        <Stack.Screen name="goals" />
+        <Stack.Screen name="focus" />
+        <Stack.Screen name="tour" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="feedback" />
+        <Stack.Screen name="rewards" />
+        <Stack.Screen name="schedule" />
+        <Stack.Screen name="accountability" />
+        <Stack.Screen name="commitment" />
+        <Stack.Screen name="plan" />
+        <Stack.Screen name="daily" />
+        <Stack.Screen name="learning" />
+        <Stack.Screen name="quiz" />
+        <Stack.Screen name="action" />
+        <Stack.Screen name="project" />
+        <Stack.Screen name="proof" />
+        <Stack.Screen name="skilltree" />
+        <Stack.Screen name="progress-screen" />
+        <Stack.Screen name="explore" />
+      </Stack.Protected>
     </Stack>
+    {memberLocked === null ? <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, alignItems: "center", justifyContent: "center" }]} accessibilityViewIsModal><ActivityIndicator color={theme.accent} accessibilityLabel="Opening your private space" /></View> : null}
   </View>);
 }
 

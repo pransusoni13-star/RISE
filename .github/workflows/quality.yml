@@ -13,6 +13,20 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: rise_test
+          POSTGRES_PASSWORD: isolated-ci-password
+          POSTGRES_DB: rise_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rise_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -36,3 +50,9 @@ jobs:
       # directory is consistently available on sys.path across platforms.
       - run: python -m pytest -q
         working-directory: backend
+      - run: python -m pytest -q
+        working-directory: backend
+        env:
+          RISE_TEST_POSTGRES_URL: postgresql+psycopg://rise_test:isolated-ci-password@localhost:5432/rise_test
+      - run: pip install pip-audit==2.10.1
+      - run: pip-audit -r backend/requirements.txt --progress-spinner off

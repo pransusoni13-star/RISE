@@ -1,5 +1,6 @@
 """Container entry point supporting a hosting provider's assigned PORT."""
 import os
+import logging
 
 import uvicorn
 
@@ -14,5 +15,6 @@ def server_port() -> int:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     upgrade_database()
     uvicorn.run("app.main:app", host="0.0.0.0", port=server_port(), proxy_headers=True)

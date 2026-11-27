@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -11,6 +11,13 @@ from .database import Base
 
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+class RequestBudget(Base):
+    __tablename__ = "request_budgets"
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    used: Mapped[int] = mapped_column(BigInteger)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 
 class User(Base):

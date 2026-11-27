@@ -86,6 +86,8 @@ class Settings(BaseSettings):
             if "@resend.dev" in sender.lower():
                 raise RuntimeError("Production Resend delivery must use an authenticated sender; resend.dev is testing-only")
         if self.env.lower() == "production" and provider == "smtp":
+            if not self.smtp_use_tls:
+                raise RuntimeError("Production SMTP requires TLS")
             if not all((self.smtp_host, self.smtp_username, self.smtp_password, self.email_from)):
                 raise RuntimeError("RISE_EMAIL_PROVIDER=smtp requires complete SMTP delivery settings")
             if "@resend.dev" in self.email_from.lower():
