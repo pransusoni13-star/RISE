@@ -89,6 +89,7 @@ export default function FocusScreen() {
         selectedGoals,
         customGoal,
         planIdentityVersion: 2,
+        practiceCycle: 1,
         weeklySkill: chosenSkills[0],
         focusSkills: chosenSkills,
         skillStartDate,

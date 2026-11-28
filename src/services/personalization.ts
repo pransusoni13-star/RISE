@@ -18,6 +18,7 @@ async function readProfile(): Promise<RiseProfile> {
   if (raw !== null && !["selectedGoals", "customGoal", "weeklySkill"].some(key => Object.hasOwn(saved,key))) throw new Error("Saved plan needs recovery. It has not been replaced.");
   if ([saved.selectedGoals,saved.focusSkills,saved.cycleBadges].some(items => items !== undefined && (!Array.isArray(items) || !items.every(item => typeof item === "string")))) throw new Error("Saved plan contains unreadable choices. It has not been replaced.");
   if ([saved.customGoal,saved.weeklySkill,saved.currentSituation,saved.experience,saved.availableTime,saved.accountability,saved.commitment,saved.skillStartDate].some(value => value !== undefined && typeof value !== "string")) throw new Error("Saved plan contains unreadable fields. It has not been replaced.");
+  if(saved.practiceCycle!==undefined && (!Number.isSafeInteger(saved.practiceCycle) || saved.practiceCycle<1)) throw new Error("Saved practice cycle could not be read. It has not been replaced.");
   const legacySensitive: SensitiveProfile = {
     spiritualTradition: saved.spiritualTradition,
     trustedSources: saved.trustedSources,

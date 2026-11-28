@@ -29,12 +29,12 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     eyebrow: "STEP 3 · PROVE",
-    title: "Save the work. Keep the lesson.",
-    description: "Record what happened and what you learned. Photos and videos are optional.",
+    title: "Do a little. Save your win.",
+    description: "Take one step at a time. A note or photo is optional.",
     previewTitle: "COMPLETE THE MISSION",
-    previewRows: ["Add photo or text proof", "Write the short reflection", "Finish once to earn XP"],
-    destination: "Proof screen",
-    destinationRoute: "/proof",
+    previewRows: ["Do one step at a time", "Add a note only if you want", "Save your win"],
+    destination: "Your current task",
+    destinationRoute: "/(tabs)/today",
   },
   {
     eyebrow: "STEP 4 · PROGRESS",

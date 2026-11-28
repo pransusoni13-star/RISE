@@ -117,6 +117,7 @@ function ThemedRootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" />
+        <Stack.Screen name="quick-start" />
         <Stack.Screen name="popular-skills" />
         <Stack.Screen name="account-progress" />
         <Stack.Screen name="goals" />

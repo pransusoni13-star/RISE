@@ -9,6 +9,8 @@ function harness() {
   const failRead=new Set(), failWrite=new Set();
   let secureFailure=false;
   let cloud=null;
+  let memberLocked=false;
+  const progressEvents=[];
   const storage={
     getItem:async key=>{if(failRead.has(key)) throw new Error('read failed'); return data.get(key)??null;},
     setItem:async(key,value)=>{if(failWrite.has(key)) throw new Error('write failed'); data.set(key,value);},
@@ -28,13 +30,13 @@ function harness() {
       if(dependency==='@react-native-async-storage/async-storage')return {__esModule:true,default:storage};
       if(dependency==='react-native')return {Platform:{OS:'ios'}};
       if(dependency==='expo-secure-store')return nativeSecure;
-      if(dependency==='./auth')return {syncUserProfile:async()=>{},getCloudProfile:async()=>cloud};
+      if(dependency==='./auth')return {syncUserProfile:async()=>{},getCloudProfile:async()=>cloud,isMemberDataLocked:async()=>memberLocked,recordProgressEvent:async event=>{progressEvents.push(event);}};
       assert.match(dependency,/^\.\/[\w]+$/);
       return load(dependency.slice(2));
     }});
     return exports;
   }
-  return {load,data,secure,failRead,failWrite,setSecureFailure:value=>{secureFailure=value;},setCloud:value=>{cloud=value;}};
+  return {load,data,secure,failRead,failWrite,progressEvents,setLocked:value=>{memberLocked=value;},setSecureFailure:value=>{secureFailure=value;},setCloud:value=>{cloud=value;}};
 }
 
 test('both progress entry points preserve unreadable data instead of inventing zero XP',async()=>{
@@ -131,4 +133,48 @@ test('unreadable profile and reward markers cannot be replaced by defaults durin
   await assert.rejects(rewards.redeemCoinReward(rewards.COIN_REWARDS[0]));
   assert.equal((await engine.progressRepository.load()).coins,100);
   assert.equal(h.data.get('RISE_REWARD_REDEMPTIONS'),'{broken');
+});
+
+async function taskHarness() {
+  const h=harness();
+  await h.load('consentRepository').consentRepository.save();
+  const profile=await h.load('personalization').updateProfile(h.load('quickStart').quickStartProfile('study',5));
+  const plan=h.load('missionPlanner').createSevenDayPlan(profile);
+  return {...h,plan,missions:h.load('missionRepository').missionRepository,completion:h.load('missionCompletion'),engine:h.load('progressEngine')};
+}
+
+test('a task completes without a required note or media and repeated taps cannot repeat rewards',async()=>{
+  const h=await taskHarness(), mission=h.plan[0];
+  await h.missions.patch(mission.id,{completedSteps:mission.steps.map((_,index)=>index),status:'proof_required'});
+  const results=await Promise.all(Array.from({length:3},()=>h.completion.completeMission(mission.id,'')));
+  assert.equal(results.reduce((sum,result)=>sum+result.xp,0),mission.reward);
+  const saved=await h.missions.get(mission.id);
+  assert.equal(saved.status,'completed');assert.equal(saved.reflection,'');assert.equal(saved.proof.type,'text');assert.equal(saved.proof.uri,'');
+  assert.equal((await h.engine.progressRepository.load()).events.length,1);
+  assert.equal(h.progressEvents.length,1);
+});
+
+test('quick completion still enforces steps, daily locks, consent and retained account ownership',async()=>{
+  const h=await taskHarness();
+  await assert.rejects(h.completion.completeMission(h.plan[0].id,''),/Finish each task step/);
+  await h.missions.patch(h.plan[1].id,{completedSteps:[0,1]});
+  await assert.rejects(h.completion.completeMission(h.plan[1].id,''),/daily wait/);
+  await h.missions.patch(h.plan[0].id,{completedSteps:[0,1]});
+  h.setLocked(true);
+  await assert.rejects(h.completion.completeMission(h.plan[0].id,''),/account that owns/);
+  h.setLocked(false);h.data.delete('RISE_CONSENT');
+  await assert.rejects(h.completion.completeMission(h.plan[0].id,''),/privacy and age/);
+  assert.equal((await h.engine.progressRepository.load()).totalXP,0);
+});
+
+test('retry after a failed completion record preserves the reward once and keeps private notes out of sync',async()=>{
+  const h=await taskHarness(), mission=h.plan[0];
+  await h.missions.patch(mission.id,{completedSteps:[0,1]});
+  h.failWrite.add('RISE_MISSION_RECORDS');
+  await assert.rejects(h.completion.completeMission(mission.id,'A private note.'),/write failed/);
+  h.failWrite.clear();
+  assert.equal((await h.completion.completeMission(mission.id,'A private note.')).xp,0);
+  assert.equal((await h.engine.progressRepository.load()).totalXP,mission.reward);
+  assert.equal((await h.missions.get(mission.id)).reflection,'A private note.');
+  assert.equal(JSON.stringify(h.progressEvents).includes('A private note.'),false);
 });

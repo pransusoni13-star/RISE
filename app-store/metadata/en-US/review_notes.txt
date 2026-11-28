@@ -2,9 +2,9 @@ RISE is a free educational self-improvement app. It has no in-app purchases, sub
 
 Review path:
 1. Use the review credentials entered separately in App Review Information, or choose the on-device path if account review is not required.
-2. Complete the growth-path and plan questions.
-3. Open Today to view the current mission, complete its action steps and reflection, then record a written result to finish. Photo/video attachments are optional and earn the same reward. Confirm both self-attestations before saving. After completion, optional feedback changes subsequent mission steps and duration.
-4. Open Learn for the mission guide and quiz, Projects for suggested work at different difficulty levels, and Progress for mission history plus saved written results and reflections.
+2. After the age/terms check, use the single quick-start screen to choose a goal and 5, 10 or 20 minutes. Full planning options and the tour are optional. Quick start opens the first task directly.
+3. The task screen shows one action step at a time. Tap after doing each step; the final button confirms completion and saves the win. Notes, reflections and photo/video attachments are optional. Default completion does not require the separate media review form. Progress is self-reported. Optional difficulty feedback adjusts the next task within the selected time budget.
+4. Open Learn for the mission guide, optional quiz and suggested projects, and Progress for mission history plus saved written results and reflections. After a completed week, Today offers a fresh week with the same goal on the next local calendar day; taking a quiz is optional.
 5. Open Settings to replay the five-step tour, change reminders or appearance, export data, send feedback, sign out, or delete the account.
 
 Proof photos and videos selected inside RISE remain on the device and are not uploaded by RISE. Account identifiers, plan choices, progress metadata, quiz activity, focused minutes, and explicitly submitted feedback are processed by the first-party account service. Camera, photo, microphone, and notification permissions are requested only when you choose to use the related feature. Account deletion is available in Settings under Delete My RISE Data, followed by Delete Account Everywhere for a signed-in member.

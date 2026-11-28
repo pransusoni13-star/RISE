@@ -13,7 +13,7 @@ function routeFile(route) {
 }
 
 test("every persistent header button points to a real screen", () => {
-  assert.deepEqual(APP_HEADER_ACTIONS.map((action) => action.label), ["Tour", "Plan", "Settings"]);
+  assert.deepEqual(APP_HEADER_ACTIONS.map((action) => action.label), ["Plan", "Settings"]);
   for (const action of APP_HEADER_ACTIONS) {
     assert.equal(existsSync(routeFile(action.route)), true, `${action.label} route is missing: ${action.route}`);
   }
@@ -21,7 +21,7 @@ test("every persistent header button points to a real screen", () => {
 
 test("member navigation is described as Settings, never Menu", () => {
   const tourSource = readFileSync(join(appRoot, "tour.tsx"), "utf8");
-  assert.match(tourSource, /Tour, Plan, and Settings stay at the top of every member screen\./);
+  assert.match(tourSource, /Replay this optional tour from Settings\./);
   assert.doesNotMatch(tourSource, /always in Menu/i);
 });
 
@@ -29,7 +29,7 @@ test("the tour explains the complete RISE loop in five concise steps", () => {
   assert.equal(TOUR_STEPS.length, 5);
   assert.deepEqual(
     TOUR_STEPS.map((step) => step.destination),
-    ["Today tab", "Learn tab", "Proof screen", "Progress tab", "Settings screen"],
+    ["Today tab", "Learn tab", "Your current task", "Progress tab", "Settings screen"],
   );
   for (const step of TOUR_STEPS) {
     assert.ok(step.description.length < 90, `${step.title} is too wordy`);
