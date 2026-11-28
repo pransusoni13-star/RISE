@@ -11,7 +11,7 @@ const resources = [
   },
   {
     title: "Fix photo or camera access",
-    text: "Open your phone Settings, choose RISE, then review Photos, Camera, and Microphone access. Return to RISE and tap the proof button again.",
+    text: "You can finish with a written result without any media permission. To attach media instead, open your phone Settings, choose RISE, then review Photos, Camera, and Microphone access.",
   },
   {
     title: "A mission feels unsafe",

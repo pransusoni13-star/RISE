@@ -49,7 +49,7 @@ export function RiseButton({
 const styles = StyleSheet.create({
   card: { borderRadius: 20, borderWidth: 1, padding: 20 },
   eyebrow: { fontSize: 10, fontWeight: "900", letterSpacing: 1.4 },
-  button: { minHeight: 54, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 18 },
+  button: { minHeight: 54, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 18, paddingVertical: 12 },
   buttonText: { fontSize: 14, fontWeight: "900", textAlign: "center" },
   disabled: { opacity: 0.52 },
   pressed: { opacity: 0.72 },

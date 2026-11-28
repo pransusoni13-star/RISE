@@ -15,9 +15,10 @@ LEARN BY DOING
 • Adapt your plan when your direction or schedule changes
 
 PROVE AND REFLECT
-• Complete missions with photo or video proof that stays on your device
+• Record a written result; photos and videos are optional and stay on your device
 • Write a short reflection about what worked and what to improve
 • Reopen completed work without losing proof state or earning duplicate rewards
+• Revisit saved attempts and lessons to compare your progress beyond XP
 
 BUILD CONSISTENCY
 • Choose optional on-device reminder times
@@ -27,6 +28,7 @@ BUILD CONSISTENCY
 
 STAY IN CONTROL
 • Change your plan at any time
+• Tune the next mission when time, tools, confidence, or clarity gets in the way
 • Replay the five-step tour from Settings
 • Choose light, dark, or system appearance
 • Export your information or delete local and account data in the app

@@ -27,7 +27,7 @@ export default function PrivacyScreen() {
           : `RISE is responsible for the information described here. For privacy questions, access requests, complaints, or deletion help, email ${SUPPORT_EMAIL}. Do not send passwords, sign-in codes, or private proof files by email. The operator’s verified legal name and mailing address must be configured before public App Store release.`}
       </Section>
       <Section title="Information kept on your device">
-        Guest plans, mission steps, reflections, feedback copies, rewards, queued sync updates, and proof-file references are stored on your device. Proof photos and videos are not uploaded by RISE. Optional faith or belief preferences use protected device storage in the native app and session-only memory on the website.
+        Guest plans, mission steps, written results, reflections, feedback copies, rewards, queued sync updates, and proof-file references are stored on your device. Written results, reflections, proof photos and videos are not uploaded by RISE. Optional faith or belief preferences use protected device storage in the native app and session-only memory on the website.
       </Section>
       <Section title="Information processed for an account">
         If you create an account, RISE processes your email address, display name, a protected password hash, email-verification status, selected goals and skills, schedule preferences, mission and quiz activity, focused minutes, progress scores, membership status, and feedback you explicitly submit. This information is used to provide sign-in, account recovery, progress syncing, personalization, and support. If the service is temporarily unavailable, eligible profile and progress updates remain queued on your device and retry later.

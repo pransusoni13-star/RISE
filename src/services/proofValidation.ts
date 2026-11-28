@@ -111,6 +111,7 @@ function missionKeywords(context: string): string[] {
 }
 
 export function reviewProof(input: {
+  evidenceType?: "media" | "text";
   asset?: ProofAssetDetails | null;
   reflection: string;
   proofDescription: string;
@@ -138,9 +139,11 @@ export function reviewProof(input: {
   const checks: ProofReview["checks"] = [
     {
       id: "attachment",
-      label: "Usable attachment",
-      passed: usableAsset && meaningfulFile,
-      detail: asset?.type === "video"
+      label: input.evidenceType === "text" ? "Specific written result" : "Usable attachment",
+      passed: input.evidenceType === "text" ? contextMatch && descriptionWords.length >= 12 : usableAsset && meaningfulFile,
+      detail: input.evidenceType === "text"
+        ? "Record what you did and an observable result in at least 12 words. A photo is optional."
+        : asset?.type === "video"
         ? assetRestriction?.allowed === false ? assetRestriction.reason : "Video must be usable and no longer than 60 seconds."
         : assetRestriction?.allowed === false ? assetRestriction.reason : "Photo or screenshot must be large enough to review.",
     },
@@ -155,7 +158,7 @@ export function reviewProof(input: {
       label: "Evidence matches this mission",
       passed: contextMatch && input.matchesMission,
       detail: contextMatch
-        ? "Your explanation connects the attachment to this mission."
+        ? "Your explanation connects the result to this mission."
         : "Use at least 8 words and name something specific from this mission.",
     },
     {

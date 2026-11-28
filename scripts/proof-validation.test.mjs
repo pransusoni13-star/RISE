@@ -44,3 +44,17 @@ test('proof rejects unreadable sizes, malformed metadata, and remote URLs', () =
   }
   assert.equal(validateProofAsset({...valid,uri:'blob:https://rise.example/owned-file'}).allowed, true);
 });
+
+test('written results complete without media permission but still require a concrete result and attestations', () => {
+  const written = {
+    evidenceType:'text', asset:null,
+    reflection:'I kept my launch angle consistent during each attempt and compared the recorded results. Next time I will change only the release height to see whether it helps.',
+    proofDescription:'I practised ten launches with the same setup and recorded six landing inside my target.',
+    missionContext:'Launch consistency with ten launches', matchesMission:true, ownsWork:true,
+  };
+  assert.equal(reviewProof(written).passed, true);
+  for (const changes of [{proofDescription:'Done.'},{proofDescription:'I wrote a long unrelated grocery list with enough words but no relevant practice result.'},{matchesMission:false},{ownsWork:false},{reflection:''}]) {
+    assert.equal(reviewProof({...written,...changes}).passed, false);
+  }
+  assert.equal(reviewProof({...written,evidenceType:'media'}).passed, false);
+});

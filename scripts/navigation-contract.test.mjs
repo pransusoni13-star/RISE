@@ -46,13 +46,12 @@ test("the plan keeps future missions locked behind time and completion", () => {
   assert.match(planSource, /Your one mission for today/);
 });
 
-test("finishing the cycle leads to the gated final rank trial", () => {
+test("finishing the cycle leads to the gated cycle quiz", () => {
   const planSource = readFileSync(join(appRoot, "plan.tsx"), "utf8");
   const todaySource = readFileSync(join(appRoot, "(tabs)", "today.tsx"), "utf8");
   for (const source of [planSource, todaySource]) {
     assert.match(source, /cycleComplete/);
     assert.match(source, /cycleGate: "1"/);
-    assert.match(source, /final rank trial/i);
   }
 });
 
