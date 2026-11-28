@@ -1,3 +1,4 @@
+import { LoadFailure, LoadPending } from "../../components/load-failure";
 import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -8,7 +9,8 @@ import { useRiseAppearance } from "../../services/appearance";
 export default function ProjectsTabScreen() {
   const { theme } = useRiseAppearance();
   const [profile, setProfile] = useState<RiseProfile | null>(null);
-  useFocusEffect(useCallback(() => { let active = true; void loadProfile().then((value) => { if (active) setProfile(value); }); return () => { active = false; }; }, []));
+  const [loadError, setLoadError] = useState(false);
+  useFocusEffect(useCallback(() => { let active = true; void loadProfile().then((value) => { if (active) {setProfile(value);setLoadError(false);} }).catch(() => { if (active) setLoadError(true); }); return () => { active = false; }; }, []));
   const storedGoals = profile?.selectedGoals?.length ? profile.selectedGoals : ["personal"];
   const primaryGoal = storedGoals[0];
   const focusSkill = profile?.weeklySkill || profile?.focusSkills?.[0];
@@ -20,6 +22,9 @@ export default function ProjectsTabScreen() {
     })),
     [levels]
   );
+
+  if (loadError) return <LoadFailure title="Your saved plan could not be opened" />;
+  if (!profile) return <LoadPending />;
 
   return (
     <ScrollView

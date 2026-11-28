@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { router, useLocalSearchParams } from "expo-router";
 
 import { CycleQuestion, getCycleQuestions, getQuizRank, QuizLearningContext } from "../services/cycleQuiz";
-import { RISEProgress, addSkillXP, addXP, getNextRecommendation } from "../services/progressEngine";
+import { addSkillXP, addXP, getNextRecommendation } from "../services/progressEngine";
 import { progressRepository } from "../services/progressRepository";
 import { createSevenDayPlan, loadProfile, updateProfile } from "../services/personalization";
 import { missionRepository } from "../services/missionRepository";
@@ -127,19 +127,21 @@ export default function QuizScreen() {
         }
       }
 
-      let progress: RISEProgress = await progressRepository.load();
-      const source = cycleGate ? `cycle-quiz:${cycleId}` : `practice-quiz:${primaryGoal}:${skillId}`;
-      const alreadyRewarded = progress.events.some((event) => event.type === "quiz" && event.metadata?.source === source && event.amount > 0);
+      let alreadyRewarded = false;
+      const progress = await progressRepository.update(current => {
+        let progress = current;
+        const source = cycleGate ? `cycle-quiz:${cycleId}` : `practice-quiz:${primaryGoal}:${skillId}`;
+        alreadyRewarded = progress.events.some((event) => event.type === "quiz" && event.metadata?.source === source && event.amount > 0);
 
-      if (!alreadyRewarded && (!cycleGate || passed)) {
-        progress = addXP(progress, earnedXP, "quiz", cycleGate ? `Rank trial passed — ${percentage}%` : `Mastery check — ${percentage}%`, cycleGate ? 50 : earnedCoins, {
-          skillId,
-          goal: primaryGoal,
-          score: percentage,
-          difficulty: "Rank Trial",
-          source,
-          passed,
-          rank: masteryRank.name,
+        if (!alreadyRewarded && (!cycleGate || passed)) {
+          progress = addXP(progress, earnedXP, "quiz", cycleGate ? `Rank trial passed — ${percentage}%` : `Mastery check — ${percentage}%`, cycleGate ? 50 : earnedCoins, {
+            skillId,
+            goal: primaryGoal,
+            score: percentage,
+            difficulty: "Rank Trial",
+            source,
+            passed,
+            rank: masteryRank.name,
         });
         progress = addSkillXP(progress, skillId, earnedXP, primaryGoal);
       } else {
@@ -154,11 +156,13 @@ export default function QuizScreen() {
         });
       }
 
+      return progress;
+      });
+
       const earnedBadge = cycleGate && passed ? `${displayName(skillId)} ${masteryRank.name}` : undefined;
       const badge = alreadyRewarded ? undefined : earnedBadge;
       const nextRecommendation = getNextRecommendation(progress, primaryGoal) as Recommendation;
 
-      await progressRepository.save(progress);
       if (earnedBadge) {
         const profile = await loadProfile();
         await updateProfile({ cycleBadges: Array.from(new Set([...(profile.cycleBadges || []), earnedBadge])) });

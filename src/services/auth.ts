@@ -309,7 +309,8 @@ export async function syncUserProfile(profile: { selectedGoals: string[]; custom
   if (!owner) return;
   await queueProfile({ selected_goals: profile.selectedGoals.slice(0, 64), custom_goal: profile.customGoal.slice(0, 200), weekly_skill: (profile.weeklySkill || "").slice(0, 100), focus_skills: (profile.focusSkills || []).slice(0, 3), commitment: profile.commitment || "Every 7 days", available_time: profile.availableTime || "30 minutes", experience: (profile.experience || "").slice(0, 160) }, owner);
   assertCurrentSession(generation);
-  await flushCloudSyncQueue();
+  // The queue is durable before returning; a slow service must not block the local UI.
+  void flushCloudSyncQueue().catch(() => undefined);
 }
 
 export async function getCloudProfile(): Promise<CloudProfile | null> {
@@ -325,7 +326,8 @@ export async function recordProgressEvent(event: { clientEventId: string; eventT
   if (!owner) return;
   await queueProgressEvent({ client_event_id: event.clientEventId.slice(0, 120), event_type: event.eventType, skill_slug: event.skillSlug.slice(0, 100), value: event.value || 0, minutes: event.minutes || 0, metadata: event.metadata || {} }, owner);
   assertCurrentSession(generation);
-  await flushCloudSyncQueue();
+  // The queue is durable before returning; a slow service must not block the local UI.
+  void flushCloudSyncQueue().catch(() => undefined);
 }
 
 let pendingOutboxFlush: Promise<{ synced: number; pending: number }> | null = null;

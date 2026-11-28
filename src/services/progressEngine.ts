@@ -5,6 +5,9 @@
 // ============================================================
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createSerializedMutationQueue } from "./serializedMutations";
+
+const runProgressMutation = createSerializedMutationQueue();
 
 // ============================================================
 // TYPES
@@ -2055,54 +2058,37 @@ export function getLatestActivity(
 // ============================================================
 
 export async function loadStoredProgress(): Promise<RISEProgress> {
-  try {
-    const stored =
-      await AsyncStorage.getItem(
-        STORAGE_KEY
-      );
-
-    if (!stored) {
-      return createDefaultProgress();
-    }
-
-    const parsed =
-      JSON.parse(stored);
-
-    return normalizeProgress(
-      parsed
-    );
-  } catch (error) {
-    console.warn(
-      "RISE: Failed to load progress",
-      error
-    );
-
-    return createDefaultProgress();
+  const stored = await AsyncStorage.getItem(STORAGE_KEY);
+  if (stored === null) return createDefaultProgress();
+  const parsed = JSON.parse(stored);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)
+    || !["totalXP", "coins", "events", "skills"].some(key => Object.hasOwn(parsed, key))
+    || ["totalXP", "coins"].some(key => parsed[key] !== undefined && (typeof parsed[key] !== "number" || !Number.isFinite(parsed[key]) || parsed[key] < 0))
+    || ["events", "skills"].some(key => parsed[key] !== undefined && !Array.isArray(parsed[key]))) {
+    throw new Error("Saved progress could not be read. It has not been replaced.");
   }
+  return normalizeProgress(parsed);
+}
+
+async function writeProgress(progress: RISEProgress): Promise<RISEProgress> {
+  const normalized = normalizeProgress(progress);
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+/** Keep the read, reward decision and write together across every progress screen. */
+export async function updateStoredProgress(change: (current: RISEProgress) => RISEProgress): Promise<RISEProgress> {
+  return runProgressMutation(async () => {
+    const current = await loadStoredProgress();
+    const next = change(current);
+    return next === current ? current : writeProgress(next);
+  });
 }
 
 export async function saveStoredProgress(
   progress: RISEProgress
 ): Promise<void> {
-  try {
-    const normalized =
-      normalizeProgress(
-        progress
-      );
-
-    await AsyncStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        normalized
-      )
-    );
-  } catch (error) {
-    console.warn(
-      "RISE: Failed to save progress",
-      error
-    );
-    throw new Error("Your progress could not be saved. Please try again.");
-  }
+  await runProgressMutation(() => writeProgress(progress));
 }
 
 // ============================================================
@@ -2110,6 +2096,7 @@ export async function saveStoredProgress(
 // ============================================================
 
 export const progressRepository = {
+  update: updateStoredProgress,
   async load(): Promise<RISEProgress> {
     return loadStoredProgress();
   },
@@ -2123,16 +2110,7 @@ export const progressRepository = {
   },
 
   async clear(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem(
-        STORAGE_KEY
-      );
-    } catch (error) {
-      console.warn(
-        "RISE: Failed to clear progress",
-        error
-      );
-    }
+    await runProgressMutation(() => AsyncStorage.removeItem(STORAGE_KEY));
   },
 };
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +23,8 @@ export default function ScheduleScreen() {
   const [reminderCount, setReminderCount] = useState<1 | 2 | 3>(1);
   const [reminderTimesSelected, setReminderTimesSelected] = useState<ReminderTime[]>(["20:00"]);
   const [reminderMenuOpen, setReminderMenuOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const saveLock = useRef(false);
 
   const chooseReminderCount = (count: 1 | 2 | 3) => {
     const defaults: ReminderTime[] = ["08:00", "12:00", "20:00"];
@@ -43,7 +45,10 @@ export default function ScheduleScreen() {
   };
 
   const continueNext = async () => {
-    if (!selected) return;
+    if (!selected || saveLock.current) return;
+    saveLock.current = true;
+    setSaving(true);
+    try {
     await updateProfile({ availableTime: selected });
     if (reminderEnabled) {
       try {
@@ -54,6 +59,9 @@ export default function ScheduleScreen() {
       }
     }
     router.push({ pathname: "/plan", params: { ...params, time: selected, availableTime: selected } } as any);
+    } catch {
+      Alert.alert("Plan was not saved", "RISE could not read or save your plan. Your previous saved data has not been replaced. Try again before continuing.");
+    } finally {saveLock.current=false;setSaving(false);}
   };
 
   return (
@@ -92,7 +100,7 @@ export default function ScheduleScreen() {
         </View> : null}
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: theme.background }]}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !selected }} disabled={!selected} onPress={continueNext} style={[styles.button, { backgroundColor: theme.accent }, !selected && styles.disabled]}><Text style={[styles.buttonText, { color: theme.accentInk }]}>Create my plan</Text></Pressable></View>
+      <View style={[styles.footer, { backgroundColor: theme.background }]}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !selected || saving, busy:saving }} disabled={!selected || saving} onPress={continueNext} style={[styles.button, { backgroundColor: theme.accent }, (!selected || saving) && styles.disabled]}><Text style={[styles.buttonText, { color: theme.accentInk }]}>{saving ? "Saving plan…" : "Create my plan"}</Text></Pressable></View>
     </View>
   );
 }

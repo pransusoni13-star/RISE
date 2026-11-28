@@ -1055,71 +1055,65 @@ export default function DailyScreen() {
             task
           );
 
-        let updatedProgress =
-          await progressRepository.load();
+        const updatedProgress = await progressRepository.update(current => {
+          let updatedProgress = current;
 
-        if (!updatedProgress) {
-          updatedProgress =
-            createDefaultProgress();
-        }
+          // ----------------------------------------------------
+          // SAFETY CHECK
+          // ----------------------------------------------------
 
-        // ----------------------------------------------------
-        // SAFETY CHECK
-        // ----------------------------------------------------
-
-        const alreadyRewarded =
-          updatedProgress.events.some(
-            (event) =>
-              event.metadata?.source ===
-              rewardSource
-          );
-
-        // ----------------------------------------------------
-        // REWARD
-        // ----------------------------------------------------
-
-        if (!alreadyRewarded) {
-          updatedProgress =
-            addXP(
-              updatedProgress,
-
-              task.xp,
-
-              "learning",
-
-              `Daily Task: ${task.task}`,
-
-              task.coins,
-
-              {
-                goal: task.goal,
-
-                skillId:
-                  task.skillId,
-
-                durationMinutes:
-                  task.duration,
-
-                source:
-                  rewardSource,
-              }
+          const alreadyRewarded =
+            updatedProgress.events.some(
+              (event) =>
+                event.metadata?.source ===
+                rewardSource
             );
 
-          updatedProgress =
-            addSkillXP(
-              updatedProgress,
+          // ----------------------------------------------------
+          // REWARD
+          // ----------------------------------------------------
 
-              task.skillId,
+          if (!alreadyRewarded) {
+            updatedProgress =
+              addXP(
+                updatedProgress,
 
-              task.xp,
+                task.xp,
 
-              task.goal
-            );
+                "learning",
 
-          await progressRepository.save(
-            updatedProgress
-          );
-        }
+                `Daily Task: ${task.task}`,
+
+                task.coins,
+
+                {
+                  goal: task.goal,
+
+                  skillId:
+                    task.skillId,
+
+                  durationMinutes:
+                    task.duration,
+
+                  source:
+                    rewardSource,
+                }
+              );
+
+            updatedProgress =
+              addSkillXP(
+                updatedProgress,
+
+                task.skillId,
+
+                task.xp,
+
+                task.goal
+              );
+
+          }
+          return updatedProgress;
+        });
 
         // ----------------------------------------------------
         // UPDATE SCREEN

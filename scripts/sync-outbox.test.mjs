@@ -22,7 +22,7 @@ function harness() {
     assert.equal(name, '@react-native-async-storage/async-storage');
     return { __esModule: true, default: storage };
   }});
-  return { outbox: exports, fail: () => { failNext = true; } };
+  return { outbox: exports, data, fail: () => { failNext = true; } };
 }
 
 test('acknowledging an older in-flight profile retains the newer offline edit', async () => {
@@ -53,4 +53,16 @@ test('a failed device write is reported and does not poison the next sync save',
   await assert.rejects(outbox.queueProfile({custom_goal:'first'}, 'alice'), /storage full/);
   await outbox.queueProfile({custom_goal:'retry'}, 'alice');
   assert.equal((await outbox.listSyncOutbox())[0].payload.custom_goal, 'retry');
+});
+
+test('a malformed sync queue cannot be silently overwritten by a new profile', async () => {
+  const {outbox,data}=harness();
+  for(const raw of ['{broken','{}','[null]','[{"id":"event:old"}]']) {
+    data.set('RISE_CLOUD_SYNC_OUTBOX',raw);
+    await assert.rejects(outbox.queueProfile({custom_goal:'new'},'alice'));
+    assert.equal(data.get('RISE_CLOUD_SYNC_OUTBOX'),raw);
+  }
+  data.delete('RISE_CLOUD_SYNC_OUTBOX');
+  await outbox.queueProfile({custom_goal:'retry'},'alice');
+  assert.equal((await outbox.listSyncOutbox())[0].payload.custom_goal,'retry');
 });

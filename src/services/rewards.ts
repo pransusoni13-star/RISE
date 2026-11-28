@@ -38,58 +38,44 @@ export const COIN_REWARDS: CoinReward[] = [
 ];
 
 export async function loadRedemptions(): Promise<string[]> {
-  try {
-    const raw = await AsyncStorage.getItem(REDEMPTIONS_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : [];
-  } catch {
-    return [];
+  const raw = await AsyncStorage.getItem(REDEMPTIONS_KEY);
+  if (raw === null) return [];
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed) || !parsed.every(item => typeof item === "string")) {
+    throw new Error("Saved rewards could not be read. They have not been replaced.");
   }
+  return parsed;
 }
 
-export async function redeemCoinReward(reward: CoinReward) {
+export async function redeemCoinReward(requested: CoinReward) {
+  const reward = COIN_REWARDS.find(item => item.id === requested.id);
+  if (!reward) throw new Error("Choose a reward from the current rewards list.");
   return runRedemption(async () => {
-    const [progress, redeemed] = await Promise.all([
-      progressRepository.load(),
-      loadRedemptions(),
-    ]);
-
-    const eventSource = `reward:${reward.id}`;
-    const alreadyRecorded = progress.events.some((event) => event.metadata?.source === eventSource);
-    if (redeemed.includes(reward.id) || alreadyRecorded) {
-      if (alreadyRecorded && !redeemed.includes(reward.id)) {
-        const repaired = [...redeemed, reward.id];
-        await AsyncStorage.setItem(REDEMPTIONS_KEY, JSON.stringify(repaired));
-        return { ok: false as const, reason: "already" as const, progress, redeemed: repaired };
+    const redeemed = await loadRedemptions();
+    let reason: "already" | "coins" | null = null;
+    const progress = await progressRepository.update(current => {
+      const eventSource = `reward:${reward.id}`;
+      if (redeemed.includes(reward.id) || current.events.some(event => event.metadata?.source === eventSource)) {
+        reason = "already";
+        return current;
       }
-      return { ok: false as const, reason: "already" as const, progress, redeemed };
-    }
-    if (progress.coins < reward.cost) {
-      return { ok: false as const, reason: "coins" as const, progress, redeemed };
-    }
-
-    const nextProgress = {
-      ...progress,
-      coins: progress.coins - reward.cost,
-      events: [
-        ...progress.events,
-        {
-          id: `reward-${reward.id}-${Date.now()}`,
-          type: "milestone" as const,
-          amount: 0,
-          title: `Reward unlocked: ${reward.title}`,
-          timestamp: Date.now(),
-          metadata: { coins: -reward.cost, source: eventSource },
-        },
-      ],
-    };
-    const nextRedeemed = [...redeemed, reward.id];
-
-    await Promise.all([
-      progressRepository.save(nextProgress),
-      AsyncStorage.setItem(REDEMPTIONS_KEY, JSON.stringify(nextRedeemed)),
-    ]);
-
-    return { ok: true as const, progress: nextProgress, redeemed: nextRedeemed };
+      if (current.coins < reward.cost) {
+        reason = "coins";
+        return current;
+      }
+      return {...current, coins:current.coins-reward.cost, events:[...current.events, {
+        id:`reward-${reward.id}-${Date.now()}`, type:"milestone", amount:0,
+        title:`Reward unlocked: ${reward.title}`, timestamp:Date.now(),
+        metadata:{coins:-reward.cost,source:eventSource},
+      }]};
+    });
+    if (reason === "coins") return {ok:false as const, reason:"coins" as const, progress, redeemed};
+    const nextRedeemed = redeemed.includes(reward.id) ? redeemed : [...redeemed,reward.id];
+    // The durable deduction/event comes first. If this marker write fails,
+    // retry repairs the marker from the event without charging a second time.
+    if (nextRedeemed !== redeemed) await AsyncStorage.setItem(REDEMPTIONS_KEY,JSON.stringify(nextRedeemed));
+    return reason === "already"
+      ? {ok:false as const,reason:"already" as const,progress,redeemed:nextRedeemed}
+      : {ok:true as const,progress,redeemed:nextRedeemed};
   });
 }

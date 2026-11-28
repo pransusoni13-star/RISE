@@ -1,3 +1,4 @@
+import { LoadFailure, LoadPending } from "../components/load-failure";
 import React, { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
@@ -11,6 +12,7 @@ export default function RewardsScreen() {
   const [progress, setProgress] = useState<RISEProgress>(createDefaultProgress());
   const [redeemed, setRedeemed] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
 
   useFocusEffect(useCallback(() => {
@@ -19,11 +21,12 @@ export default function RewardsScreen() {
     void Promise.all([progressRepository.load(), loadRedemptions()])
       .then(([nextProgress, nextRedeemed]) => {
         if (!active) return;
+        setLoadError(false);
         setProgress(nextProgress);
         setRedeemed(nextRedeemed);
       })
       .catch(() => {
-        if (active) Alert.alert("Rewards need another try", "Your progress is safe. Reopen Rewards to load it again.");
+        if (active) setLoadError(true);
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -53,6 +56,9 @@ export default function RewardsScreen() {
       setRedeemingId(null);
     }
   };
+
+  if (loadError) return <LoadFailure title="Your rewards could not be opened" />;
+  if (loading) return <LoadPending />;
 
   return <ScrollView style={[styles.page, { backgroundColor: theme.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
     <Text style={[styles.eyebrow, { color: theme.accent }]}>PROOF EARNS PROGRESS</Text>

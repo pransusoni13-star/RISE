@@ -23,10 +23,10 @@ export default function SettingsScreen() {
   const [pendingSync, setPendingSync] = useState(0);
   const [syncBusy, setSyncBusy] = useState(false);
   const [serviceStatus, setServiceStatus] = useState<PublicApiConfig | null>(null);
-  useEffect(() => { void loadProfile().then(setProfile); }, []);
+  useEffect(() => { void loadProfile().then(setProfile).catch(() => Alert.alert("Plan could not be opened", "Your saved plan has not been changed. Reopen Settings to try again before changing your plan.")); }, []);
   useEffect(() => { void getCurrentUser().then(setUser); void getUsageAnalyticsConsent().then(setUsageAnalyticsOptIn); }, []);
   useEffect(() => { void getReminderState().then((saved) => { setReminder(saved); setSelectedReminderTimes(saved.times); }); }, []);
-  useEffect(() => { void getPendingSyncCount().then(setPendingSync); }, []);
+  useEffect(() => { void getPendingSyncCount().then(setPendingSync).catch(() => Alert.alert("Sync queue needs another try", "Your queued records have not been replaced. Reopen Settings or export your local data before retrying.")); }, []);
   useEffect(() => { void getPublicConfig().then(setServiceStatus); }, []);
 
   const retrySync = async () => {
@@ -185,8 +185,6 @@ export default function SettingsScreen() {
       skillStartDate: profile?.skillStartDate,
       commitment: profile?.commitment,
       experience: profile?.experience,
-      spiritualTradition: profile?.spiritualTradition,
-      trustedSources: profile?.trustedSources,
       availableTime: profile?.availableTime,
     } } as any)} />
 

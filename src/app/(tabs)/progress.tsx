@@ -1,3 +1,4 @@
+import { LoadFailure, LoadPending } from "../../components/load-failure";
 import React, { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
@@ -25,6 +26,8 @@ export default function ProgressTabScreen() {
   const [profile, setProfile] = useState<RiseProfile | null>(null);
   const [missionRecords, setMissionRecords] = useState<MissionRecord[]>([]);
   const [showRewards, setShowRewards] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [showWins, setShowWins] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
@@ -38,6 +41,8 @@ export default function ProgressTabScreen() {
         missionRepository.list(),
       ]);
       if (active) {
+        setLoadError(false);
+        setLoaded(true);
         setProgress(storedProgress);
         setRedeemed(storedRedemptions);
         setProfile(storedProfile);
@@ -46,7 +51,7 @@ export default function ProgressTabScreen() {
     };
 
     void loadProgress().catch(() => {
-      if (active) Alert.alert("Couldn’t load progress", "Please reopen this screen to try again. Your saved progress has not been changed.");
+      if (active) setLoadError(true);
     });
     return () => { active = false; };
   }, []));
@@ -96,6 +101,9 @@ export default function ProgressTabScreen() {
       Alert.alert("Couldn’t save reward", "Please reopen Progress and check your balance before trying again.");
     }
   };
+
+  if (loadError) return <LoadFailure title="Your progress could not be opened" />;
+  if (!loaded) return <LoadPending />;
 
   return (
     <ScrollView
