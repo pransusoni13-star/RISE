@@ -13,7 +13,15 @@ Build 28 is the next candidate after 27. This pass improves concrete product beh
 
 ## Verification
 
-New regressions cover written completion without media, required attestations, practical feedback adaptation, stable mission identities, later-round comparison, unreadable/corrupt storage preservation, concurrent saves, reopening written results, and retry after failed writes. All 86 app tests passed locally. Type checking, lint and Expo dependency checks passed during the pass; an iOS Hermes export also passed. CI verifies the final committed revision before merge. Build receipts will be recorded after completion.
+New regressions cover written completion without media, required attestations, practical feedback adaptation, stable mission identities, later-round comparison, unreadable/corrupt storage preservation, concurrent saves, reopening written results, and retry after failed writes. All 86 app tests passed locally. Type checking, lint and Expo dependency checks passed; an iOS Hermes export also passed. PR and main CI passed app/backend verification, history secret scanning and container scanning.
+
+- Source: https://github.com/pransusoni13-star/RISE/pull/39 — merge `daa33f22f17a1a0890ab2e16389233f4ccf322b1`.
+- Main verification: https://github.com/pransusoni13-star/RISE/actions/runs/46090494798 .
+- EAS Build 28: https://expo.dev/accounts/rise.0/projects/RISE/builds/468faf2b-603d-4888-8762-a778fa301843 — finished successfully.
+- Apple submission: `77617f60-c6f5-4fa3-b241-4b980e30afce` — upload succeeded. Apple's API reports Build 28 `VALID`, internal state `IN_BETA_TESTING`, external state `READY_FOR_BETA_SUBMISSION`, not expired. Received November 27 at 8:02 PM Toronto. The existing internal beta group was configured in the submit profile; public beta distribution and App Store candidate selection are not claimed for 28.
+- Actual IPA SHA-256: `1ad7f582db6bcfa098613ee8534779b4171453e9d5541677edb04ce98f48d6f1`.
+- Actual artifact: expected bundle/version 1.0.0 (28), SDK iphoneos27.2, minimum iOS 16.4, debug entitlement false, file sharing false, no arbitrary ATS loads, and no bundled privacy-manifest tracking declarations. This is metadata inspection, not cryptographic signature verification or runtime testing.
+- Artifact pattern scan raised 238 generic matches. Context review identified 237 signature-digest contexts and one previously observed native SDWebImage device-info string. No confirmed credential was identified; this is not a zero-hit or exhaustive secret-clearance claim. Raw artifacts and scan reports remain ignored local audit files.
 
 ## Boundaries
 

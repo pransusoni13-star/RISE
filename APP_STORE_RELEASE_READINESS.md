@@ -2,7 +2,13 @@
 
 Updated: 2026-11-27
 
-## Current result — Build 27 supersedes the historical records below
+## Current result — Build 28
+
+Build 1.0.0 (28) is built, uploaded and processed as VALID in Apple's API, with internal state IN_BETA_TESTING. It delivers written completion with optional media, practical feedback adaptation, saved-result history, Today improvements and storage-failure protection. All 86 app tests passed; PR and main CI passed app/backend verification, secret scanning and container scanning. See [Build 28 product changes and receipts](PRODUCT_QUALITY_BUILD_28.md).
+
+Build 28's external state is READY_FOR_BETA_SUBMISSION. Build 27 is still the last verified public beta and selected App Store candidate. External distribution of 28, its App Store selection and saving revised listing/reviewer text await browser control returning from the pending Apple address-verification handoff. Public App Review has not been submitted. Exact-build 28 phone QA, screenshots and reviewer-login validation remain. Content rights, two-provider email testing and operator MFA/backup work were subsequently reported complete by the owner; these are attestations rather than independent retests. No supplied contact details need to be requested again.
+
+## Historical result — Build 27
 
 Version 1.0.0 (27) finished and uploaded, is **Testing** in RISE Public Beta, and is selected/saved as the App Store candidate. Public App Review remains **Prepare for Submission**. The additional offline-sync, goal-matching, proof-file and privacy corrections are shipped in 27. The updated website and patched backend are live. Supabase SSL enforcement and a narrow direct-database network allowlist are enabled; API database-backed health and catalog reads pass after the changes. Canada-only App Store availability is saved; Mac/Vision Pro distribution is disabled. The Free Apps Agreement is Active.
 

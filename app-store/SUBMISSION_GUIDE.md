@@ -1,6 +1,6 @@
 # RISE App Store Connect submission pack
 
-Updated: 2026-11-27 — current candidate: 1.0.0 (27)
+Updated: 2026-11-27 — current candidate: 1.0.0 (28)
 
 This pack contains final-quality copy based on features verified in the repository. It is not proof that Apple will approve the app, and it does not replace exact-build device testing, truthful App Store Connect answers, or qualified legal review.
 
@@ -47,7 +47,7 @@ Answer Apple's current questionnaire literally. If the final build, links, or co
 
 ## Accessibility questionnaire baseline
 
-The code provides accessibility roles and labels on key controls, system light/dark appearance, and ordinary React Native text scaling. Do not claim full support until the exact Build 27 binary passes the physical-device checks below:
+The code provides accessibility roles and labels on key controls, system light/dark appearance, and ordinary React Native text scaling. Do not claim full support until the exact Build 28 binary passes the physical-device checks below:
 
 - VoiceOver focus order, names, values, hints, and modal behavior on every primary flow.
 - Dynamic Type at the largest accessibility sizes without clipped controls or unreachable actions.
@@ -70,11 +70,11 @@ Required App Review contact fields:
 - Last name: **Soni**
 - Monitored email: **rise.app13@gmail.com (owner confirmed)**
 - Reachable phone number: **Already supplied and recorded in local submission state/App Store Connect**
-- Active reviewer account: **Credentials are entered in App Store Connect; successful access to Build 27 still needs validation**
+- Active reviewer account: **Credentials are entered in App Store Connect; successful access to Build 28 still needs validation**
 
 ## Screenshot capture plan
 
-Screenshots must come from the exact processed Build 27 binary on the required iPhone display sizes shown by App Store Connect. Do not use a design mock, web build, an older build, placeholder legal text, developer menus, or personally identifying test data. The existing Build 24 welcome capture is historical.
+Screenshots must come from the exact processed Build 28 binary on the required iPhone display sizes shown by App Store Connect. Do not use a design mock, web build, an older build, placeholder legal text, developer menus, or personally identifying test data. The existing Build 24 welcome capture is historical.
 
 Recommended sequence:
 
@@ -106,13 +106,13 @@ Never replace these with a brand name, guessed address, timezone-derived jurisdi
 
 ## Current release gates
 
-Build 27 has already finished, uploaded, processed, reached Testing in the public TestFlight group and been selected/saved for the public version. Do not create another binary merely to complete metadata or this checklist.
+Build 28 has finished, uploaded, processed as VALID and reached IN_BETA_TESTING internally. Its external state is READY_FOR_BETA_SUBMISSION. Build 27 remains the last verified public-beta and selected App Store build; external release, selection of 28 and updated listing/reviewer text must be completed when browser control returns. Do not create another binary merely to complete metadata or this checklist.
 
 1. Production backend and website checks passed on November 27; see `../RELEASE_VERIFICATION_2026-11-27.md`. SMTP is the active email provider. The owner subsequently reported completing two-provider email testing, content-rights confirmation and operator MFA/backup work. These are owner attestations, not independently repeated tests.
 2. Complete Apple's pending business-address 2FA correction. The previously entered code was rejected; no successful save is recorded.
-3. Install TestFlight 1.0.0 (27) over the existing installation and complete the physical-iPhone upgrade, account, permission, notification, offline and accessibility checklist.
+3. Install TestFlight 1.0.0 (28) over the existing installation and complete the physical-iPhone upgrade, account, permission, notification, offline and accessibility checklist.
 4. Validate the existing App Review credentials against the current app. Apple requires full reviewer access to account features; the guest path alone does not demonstrate that access.
-5. Capture final Build 27 screenshots, retain honest provenance, and upload the required display-size set. Verify the content-rights declaration is saved in Apple after the owner's confirmation. Complete other required metadata truthfully; optional accessibility labels can be deferred.
-6. Run `npm run appstore:preflight` plus `npm run appstore:submission:preflight`. Submit selected Build 27 only after the remaining gates pass.
+5. Capture final Build 28 screenshots, retain honest provenance, and upload the required display-size set. Verify the content-rights declaration is saved in Apple after the owner's confirmation. Complete other required metadata truthfully; optional accessibility labels can be deferred.
+6. Run `npm run appstore:preflight` plus `npm run appstore:submission:preflight`. Submit selected Build 28 only after the remaining gates pass.
 
 Do not submit merely because the binary processed successfully.
