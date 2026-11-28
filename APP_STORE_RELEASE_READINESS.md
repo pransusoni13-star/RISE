@@ -2,7 +2,15 @@
 
 Updated: 2026-11-27
 
-## Current result — Build 29
+## Current result — Build 30
+
+Version 1.0.0 (30) built, uploaded and processed successfully. Apple's API reports VALID, IN_BETA_TESTING internally, and READY_FOR_BETA_SUBMISSION externally. The default flow now uses one quick-start screen, one action step at a time, direct self-reported completion, a focused Today view and three visible tabs. Detailed planning, the tour, media and quizzes are optional. Time budgets remain bounded, next-week continuation retains the goal, and daily unlocks handle daylight-saving changes.
+
+All 104 app tests, local TypeScript/lint/dependency checks and PR/main CI passed, including backend tests, iOS export, dependency audits, secret scanning and the container scan. Actual IPA metadata and scan contexts were reviewed. See [Build 30 changes and receipts](SIMPLE_FLOW_BUILD_30.md).
+
+Build 27 remains the last verified public beta and selected App Store candidate. External release of 30, final listing/reviewer text and App Store selection await return of browser control after Apple verification. Public App Review is not submitted. Exact-build phone QA/screenshots and reviewer-login validation remain; owner-reported rights, email and MFA/backup completion are preserved. Visual browser QA is still pending. No engagement or 10/10 rating is established by automated checks.
+
+## Historical result — Build 29
 
 Version 1.0.0 (29) built, uploaded and processed successfully. Apple's API reports VALID and IN_BETA_TESTING internally, with external state READY_FOR_BETA_SUBMISSION. It includes the Build 28 product improvements plus protected-preference restoration/migration fixes, shared atomic XP/coin updates, recovery for unreadable storage, background delivery after durable sync queueing and correct ten-/twenty-minute plans. All 96 app tests, final TypeScript/lint/dependency checks and PR/main CI verification and security jobs passed. Actual IPA metadata and pattern-scan contexts were inspected; see [Build 29 changes and receipts](RELIABILITY_BUILD_29.md).
 
