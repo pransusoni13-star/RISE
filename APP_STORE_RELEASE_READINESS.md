@@ -2,7 +2,13 @@
 
 Updated: 2026-11-27
 
-## Current result — Build 28
+## Current result — Build 29
+
+Version 1.0.0 (29) built, uploaded and processed successfully. Apple's API reports VALID and IN_BETA_TESTING internally, with external state READY_FOR_BETA_SUBMISSION. It includes the Build 28 product improvements plus protected-preference restoration/migration fixes, shared atomic XP/coin updates, recovery for unreadable storage, background delivery after durable sync queueing and correct ten-/twenty-minute plans. All 96 app tests, final TypeScript/lint/dependency checks and PR/main CI verification and security jobs passed. Actual IPA metadata and pattern-scan contexts were inspected; see [Build 29 changes and receipts](RELIABILITY_BUILD_29.md).
+
+Build 27 remains the last verified public beta and selected App Store version. External release of 29, revised listing/reviewer text and selecting 29 await browser control returning after Apple verification. Public App Review is not submitted. Exact-build phone QA/screenshots and reviewer-login validation remain; owner-reported rights, email and MFA/backup completion are preserved.
+
+## Historical result — Build 28
 
 Build 1.0.0 (28) is built, uploaded and processed as VALID in Apple's API, with internal state IN_BETA_TESTING. It delivers written completion with optional media, practical feedback adaptation, saved-result history, Today improvements and storage-failure protection. All 86 app tests passed; PR and main CI passed app/backend verification, secret scanning and container scanning. See [Build 28 product changes and receipts](PRODUCT_QUALITY_BUILD_28.md).
 

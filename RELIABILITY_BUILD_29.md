@@ -18,3 +18,12 @@ Build 28 is already processed and testing internally. These further fixes change
 All 96 app tests passed locally. Regressions exercise real service modules against controlled storage: concurrent reward mutations across both repository imports; failed reads/writes and retry; reward-marker interruption and canonical pricing; cloud restoration/migration privacy; malformed-data preservation and deletion; concurrent profile fields; all selectable time budgets; and durable queueing while the cloud request remains unresolved. Tests do not execute a native phone or prove engagement/retention.
 
 Exact-build upgrade, native storage lock behavior, camera/video, VoiceOver, large text and screenshot capture remain to be checked on a device. Apple verification is still under manual handoff. External TestFlight distribution, updated Store metadata/build selection and public App Review are not claimed by this source change.
+
+## Release receipts
+
+- Source: https://github.com/pransusoni13-star/RISE/pull/40 — merge `7a181cd4205dc87cf88659d8d85c776f00363d48`.
+- Main CI: https://github.com/pransusoni13-star/RISE/actions/runs/46093028363 — verify, secrets and container jobs passed. Production API health, email readiness and database privacy readiness passed; Vercel reports successful production deployment for this commit.
+- Build: https://expo.dev/accounts/rise.0/projects/RISE/builds/f8dc8511-2673-40b5-95f5-760ad8c7dc71 — finished successfully. Apple submission `084417f8-e347-4195-bac5-0eabf725b73f` uploaded successfully. Apple's API reports 1.0.0 (29) VALID, IN_BETA_TESTING internally, READY_FOR_BETA_SUBMISSION externally and not expired. Received November 27 at 8:31 PM Toronto. Internal beta assignment is configured; external distribution and App Store candidate selection are not claimed for 29.
+- Actual IPA SHA-256: `652c0bac68c71d65522d70724fd720e15d323851d659ff023d1ed65e046765b6`.
+- Artifact metadata: expected bundle and version 1.0.0 (29), SDK iphoneos27.2, minimum iOS 16.4, debug entitlement false, no arbitrary ATS loads or document sharing, expected update project/runtime, and no tracking declarations in inspected bundled privacy manifests. No metadata problems were reported.
+- Pattern scan: 238 generic matches; context review classified 237 signature-digest contexts and one previously observed native SDWebImage device-info string. No confirmed credential identified. This is not a zero-hit or exhaustive scan and does not verify code signatures or native runtime behavior. Raw artifacts/reports remain ignored local audit files.
