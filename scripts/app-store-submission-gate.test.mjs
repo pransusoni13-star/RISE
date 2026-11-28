@@ -81,6 +81,14 @@ test("submission state accepts complete non-secret markers and local review cont
   assert.deepEqual(validateSubmissionState(completeState(), "23"), []);
 });
 
+test("voluntary accessibility labels may be deferred without bypassing device accessibility QA", () => {
+  const state = completeState();
+  state.appStoreConnect.accessibilityCompleted = false;
+  assert.deepEqual(validateSubmissionState(state, "23"), []);
+  state.qa.permissionsNotificationsOfflineAccessibilityCompleted = false;
+  assert.ok(validateSubmissionState(state, "23").some(problem => problem.includes("qa.permissionsNotificationsOfflineAccessibilityCompleted")));
+});
+
 test("metadata limits and HTTPS URLs are enforced", () => {
   const root = mkdtempSync(join(tmpdir(), "rise-metadata-"));
   mkdirSync(root, { recursive: true });
