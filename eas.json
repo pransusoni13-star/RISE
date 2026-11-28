@@ -31,7 +31,8 @@
     "testflight": {
       "ios": {
         "ascAppId": "6817547191",
-        "appleTeamId": "C428XF4X3T"
+        "appleTeamId": "C428XF4X3T",
+        "groups": ["RISE Internal Beta"]
       }
     },
     "production": {
