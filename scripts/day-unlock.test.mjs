@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { daysUntilMission, getAvailableMissionDay, getUnlockedDay, isMissionAvailable } from "../src/services/dayUnlock.ts";
 
 test("only day one is available on the plan start date", () => {
@@ -26,4 +27,16 @@ test("finishing today never opens tomorrow early", () => {
   const now = new Date("2026-10-01T20:00:00Z");
   assert.equal(getAvailableMissionDay("2026-10-01T08:00:00Z", 7, [1], now), 1);
   assert.equal(isMissionAvailable(2, "2026-10-01T08:00:00Z", 7, [1], now), false);
+});
+
+test("Toronto daily unlocks count calendar days across both daylight-saving changes", () => {
+  const moduleUrl = new URL("../src/services/dayUnlock.ts", import.meta.url).href;
+  const result = execFileSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", `
+    import {getUnlockedDay} from ${JSON.stringify(moduleUrl)};
+    console.log(JSON.stringify([
+      getUnlockedDay("2026-03-08T12:00:00-04:00",7,new Date("2026-03-09T09:00:00-04:00")),
+      getUnlockedDay("2026-11-01T12:00:00-05:00",7,new Date("2026-11-02T09:00:00-05:00"))
+    ]));
+  `], {env: {...process.env, TZ:"America/Toronto"},encoding:"utf8"});
+  assert.deepEqual(JSON.parse(result.trim()),[2,2]);
 });

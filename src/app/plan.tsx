@@ -9,7 +9,6 @@ import {
 } from "../services/personalization";
 import { missionRepository } from "../services/missionRepository";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { hasCompletedRequiredTour } from "../services/tourState";
 import { daysUntilMission, getAvailableMissionDay, isMissionAvailable } from "../services/dayUnlock";
 import { useRiseAppearance } from "../services/appearance";
 import { consentRepository } from "../services/consentRepository";
@@ -23,14 +22,10 @@ export default function PlanScreen() {
   useFocusEffect(React.useCallback(() => {
     let active = true;
     setLoadError(false);
-    void Promise.all([loadProfile(), missionRepository.list(), hasCompletedRequiredTour(), consentRepository.hasCurrentConsent()]).then(([storedProfile, records, tourComplete, hasCurrentConsent]) => {
+    void Promise.all([loadProfile(), missionRepository.list(), consentRepository.hasCurrentConsent()]).then(([storedProfile, records, hasCurrentConsent]) => {
       if (!active) return;
       if (!hasCurrentConsent) {
         router.replace({ pathname: "/onboarding", params: { next: "plan", reacknowledge: "1" } } as never);
-        return;
-      }
-      if (!tourComplete) {
-        router.replace({ pathname: "/tour", params: { required: "1" } } as never);
         return;
       }
       setSavedProfile(storedProfile);

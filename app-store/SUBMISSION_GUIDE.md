@@ -1,6 +1,6 @@
 # RISE App Store Connect submission pack
 
-Updated: 2026-11-27 — current candidate: 1.0.0 (29)
+Updated: 2026-11-27 — current candidate: 1.0.0 (30)
 
 This pack contains final-quality copy based on features verified in the repository. It is not proof that Apple will approve the app, and it does not replace exact-build device testing, truthful App Store Connect answers, or qualified legal review.
 

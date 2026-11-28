@@ -1,7 +1,8 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function localDayStamp(value: Date): number {
-  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  // Compare calendar dates rather than elapsed hours across daylight saving.
+  return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate());
 }
 
 export function getUnlockedDay(skillStartDate: string | undefined, cycleLength: number, now = new Date()): number {

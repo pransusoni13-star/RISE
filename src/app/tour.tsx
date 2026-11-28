@@ -25,7 +25,7 @@ export default function TourScreen() {
 
   return <SafeAreaView style={[styles.page, { backgroundColor: theme.background }]} edges={["top", "bottom"]}>
     <View style={styles.header}>
-      {required ? <View style={[styles.requiredBadge, { backgroundColor: theme.surfaceStrong }]}><Text style={[styles.requiredText, { color: theme.accent }]}>QUICK START · REQUIRED ONCE</Text></View> : <Pressable accessibilityRole="button" accessibilityLabel="Close RISE tour" onPress={() => router.back()} style={[styles.close, { borderColor: theme.border }]}><Text style={[styles.closeText, { color: theme.text }]}>×</Text></Pressable>}
+      <Pressable accessibilityRole="button" accessibilityLabel="Skip or close the optional tour" onPress={()=>router.replace("/(tabs)/today" as never)} style={{minHeight:44,minWidth:60,justifyContent:"center"}}><Text style={{color:theme.muted,fontSize:15}}>Skip tour</Text></Pressable>
       <Text style={[styles.counter, { color: theme.muted }]}>{index + 1} / {TOUR_STEPS.length}</Text>
     </View>
     <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
@@ -53,7 +53,7 @@ export default function TourScreen() {
       {TOUR_STEPS.length > 1 ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: index === 0 }} disabled={index === 0} onPress={() => setIndex((value) => value - 1)} style={[styles.secondary, { borderColor: theme.border }, index === 0 && styles.disabled]}><Text style={[styles.secondaryText, { color: theme.text }]}>Back</Text></Pressable> : null}
       <Pressable accessibilityRole="button" accessibilityState={{ disabled: finishing }} disabled={finishing} onPress={() => void finish()} style={({ pressed }) => [styles.primary, { backgroundColor: theme.accent }, (pressed || finishing) && styles.pressed]}><Text style={[styles.primaryText, { color: theme.accentInk }]}>{last ? (finishing ? "Saving…" : required ? "Start my first mission" : "Finish tour") : `Next: ${TOUR_STEPS[index + 1].destination}`}</Text></Pressable>
     </View>
-    <Text style={[styles.replay, { color: theme.muted }]}>Tour, Plan, and Settings stay at the top of every member screen.</Text>
+    <Text style={[styles.replay, { color: theme.muted }]}>Plan and Settings stay at the top. Replay this optional tour from Settings.</Text>
   </SafeAreaView>;
 }
 

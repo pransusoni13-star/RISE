@@ -1,70 +1,244 @@
-import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useRef, useState } from "react";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { consentRepository } from "../services/consentRepository";
+import { useRiseAppearance } from "../services/appearance";
 
 export default function OnboardingScreen() {
-  const params = useLocalSearchParams<{ next?: string; reacknowledge?: string }>();
-  const reacknowledging = params.reacknowledge === "1";
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [limitsConfirmed, setLimitsConfirmed] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const valid = ageConfirmed && limitsConfirmed;
-
-  const continueNext = async () => {
-    if (!valid || saving) return;
+  const params = useLocalSearchParams<{
+    next?: string;
+    reacknowledge?: string;
+  }>();
+  const { theme } = useRiseAppearance();
+  const [age, setAge] = useState(false),
+    [terms, setTerms] = useState(false),
+    [saving, setSaving] = useState(false);
+  const lock = useRef(false);
+  const next = async () => {
+    if (!age || !terms || lock.current) return;
+    lock.current = true;
     setSaving(true);
     try {
       await consentRepository.save();
-      const nextRoute = params.next === "popular-skills"
-        ? "/popular-skills"
-        : params.next === "today"
+      const route =
+        params.next === "today"
           ? "/(tabs)/today"
           : params.next === "plan"
             ? "/plan"
-            : "/goals";
-      router.replace(nextRoute as never);
-    } finally { setSaving(false); }
+            : params.next === "popular-skills"
+              ? "/popular-skills"
+              : "/quick-start";
+      router.replace(route as never);
+    } catch {
+      Alert.alert(
+        "That didn’t save",
+        "Your choices are still here. Try again.",
+      );
+    } finally {
+      lock.current = false;
+      setSaving(false);
+    }
   };
-
-  return <View style={styles.page}>
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.top}><Text style={styles.logo}>RISE</Text><Text style={styles.beta}>FREE TO START</Text></View>
-      <Text style={styles.eyebrow}>{reacknowledging ? "A QUICK PRIVACY CHECK" : "ONE DIRECTION. ONE DAILY WIN."}</Text>
-      <Text style={styles.title}>{reacknowledging ? "Review the current terms." : "Start with what matters now."}</Text>
-      <Text style={styles.subtitle}>{reacknowledging ? "RISE updated its Privacy Policy and Terms. Review and confirm them to continue with your saved plan." : "Choose one area to improve. RISE turns it into a focused mission you can finish today."}</Text>
-
-      <View style={styles.path}>
-        <Path number="1" title="Choose" text="What matters now." />
-        <Path number="2" title="Do" text="One focused mission." />
-        <Path number="3" title="Prove" text="Show the work. See growth." />
+  return (
+    <SafeAreaView style={[styles.page, { backgroundColor: theme.background }]}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={[styles.brand, { color: theme.accent }]}>RISE</Text>
+        <Text style={[styles.eyebrow, { color: theme.muted }]}>
+          {params.reacknowledge === "1"
+            ? "A QUICK PRIVACY CHECK"
+            : "BEFORE YOUR FIRST SMALL WIN"}
+        </Text>
+        <Text
+          accessibilityRole="header"
+          style={[styles.title, { color: theme.text }]}
+        >
+          {params.reacknowledge === "1"
+            ? "A quick check, then back to you."
+            : "Your pace. Your progress."}
+        </Text>
+        <Text style={[styles.body, { color: theme.muted }]}>
+          Your written notes and proof stay on this device. An account is
+          optional. Signed-in members can sync their task and quiz activity.
+        </Text>
+        <Check
+          checked={age}
+          disabled={saving}
+          onPress={() => setAge((value) => !value)}
+          title="I’m 13 or older"
+          detail="RISE is intended for ages 13 and up."
+        />
+        <Check
+          checked={terms}
+          disabled={saving}
+          onPress={() => setTerms((value) => !value)}
+          title="I agree to the Terms and understand the limits"
+          detail="Tasks are educational suggestions, not professional advice."
+        />
+        <View style={styles.links}>
+          {(
+            [
+              ["/privacy", "Privacy Policy"],
+              ["/terms", "Terms of Use"],
+              ["/legal", "Safety"],
+            ] as const
+          ).map(([route, label]) => (
+            <Pressable
+              accessibilityRole="link"
+              key={route}
+              onPress={() => router.push(route as never)}
+              style={styles.link}
+            >
+              <Text
+                style={{ color: theme.accent, fontSize: 14, fontWeight: "600" }}
+              >
+                {label} ↗
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
+      <View style={styles.footer}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{
+            disabled: !age || !terms || saving,
+            busy: saving,
+          }}
+          disabled={!age || !terms || saving}
+          onPress={() => void next()}
+          style={[
+            styles.primary,
+            {
+              backgroundColor: theme.accent,
+              opacity: !age || !terms || saving ? 0.45 : 1,
+            },
+          ]}
+        >
+          <Text style={[styles.primaryText, { color: theme.accentInk }]}>
+            {saving
+              ? "Saving…"
+              : params.reacknowledge === "1"
+                ? "Agree and continue"
+                : "Agree & find my task  →"}
+          </Text>
+        </Pressable>
       </View>
-
-      <View style={styles.privacy}><Text style={styles.privacyTitle}>PRIVATE BY DEFAULT</Text><Text style={styles.privacyText}>Proof stays on this device. Signed-in members can sync selected skills and progress. No advertising tracker.</Text></View>
-
-      <Check checked={ageConfirmed} onPress={() => setAgeConfirmed((value) => !value)} title="I am 13 or older" text="RISE is not designed for children under 13." />
-      <Check checked={limitsConfirmed} onPress={() => setLimitsConfirmed((value) => !value)} title="I agree to the Terms and understand the limits" text="RISE provides educational suggestions, not medical, legal, financial, religious, or other professional advice." />
-
-      <View style={styles.policyLinks}>
-        <Pressable accessibilityRole="link" onPress={() => router.push("/privacy" as any)} style={styles.policyLink}><Text style={styles.policyText}>Privacy Policy</Text></Pressable>
-        <Text style={styles.policyDot}>·</Text>
-        <Pressable accessibilityRole="link" onPress={() => router.push("/terms" as any)} style={styles.policyLink}><Text style={styles.policyText}>Terms of Use</Text></Pressable>
-        <Text style={styles.policyDot}>·</Text>
-        <Pressable accessibilityRole="link" onPress={() => router.push("/legal" as any)} style={styles.policyLink}><Text style={styles.policyText}>Safety</Text></Pressable>
+    </SafeAreaView>
+  );
+}
+function Check({
+  checked,
+  disabled,
+  onPress,
+  title,
+  detail,
+}: {
+  checked: boolean;
+  disabled: boolean;
+  onPress: () => void;
+  title: string;
+  detail: string;
+}) {
+  const { theme } = useRiseAppearance();
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked, disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={[
+        styles.check,
+        {
+          borderColor: checked ? theme.accent : theme.border,
+          backgroundColor: checked ? theme.surfaceStrong : theme.surface,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.box,
+          {
+            borderColor: checked ? theme.accent : theme.border,
+            backgroundColor: checked ? theme.accent : "transparent",
+          },
+        ]}
+      >
+        <Text style={{ color: theme.accentInk, fontWeight: "800" }}>
+          {checked ? "✓" : ""}
+        </Text>
       </View>
-    </ScrollView>
-    <View style={styles.footer}><Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid || saving }} disabled={!valid || saving} onPress={continueNext} style={[styles.button, (!valid || saving) && styles.disabled]}><Text style={styles.buttonText}>{saving ? "Saving..." : reacknowledging ? "Agree and continue →" : "Personalize My RISE →"}</Text></Pressable></View>
-  </View>;
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.checkTitle, { color: theme.text }]}>{title}</Text>
+        <Text style={[styles.detail, { color: theme.muted }]}>{detail}</Text>
+      </View>
+    </Pressable>
+  );
 }
-
-function Path({ number, title, text }: { number: string; title: string; text: string }) {
-  return <View style={styles.pathRow}><View style={styles.number}><Text style={styles.numberText}>{number}</Text></View><View style={styles.pathBody}><Text style={styles.pathTitle}>{title}</Text><Text style={styles.pathText}>{text}</Text></View></View>;
-}
-
-function Check({ checked, onPress, title, text }: { checked: boolean; onPress: () => void; title: string; text: string }) {
-  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={onPress} style={[styles.check, checked && styles.checkActive]}><View style={[styles.box, checked && styles.boxActive]}><Text style={styles.checkmark}>{checked ? "✓" : ""}</Text></View><View style={styles.pathBody}><Text style={styles.checkTitle}>{title}</Text><Text style={styles.checkText}>{text}</Text></View></Pressable>;
-}
-
 const styles = StyleSheet.create({
-  page:{flex:1,backgroundColor:"#010807"},content:{padding:22,paddingTop:40,paddingBottom:145},top:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:35},logo:{color:"#7AF5B8",fontSize:22,fontWeight:"900",letterSpacing:6},beta:{color:"#8FB6A2",fontSize:9,fontWeight:"900",letterSpacing:1.2},eyebrow:{color:"#7AF5B8",fontSize:10,fontWeight:"900",letterSpacing:1.4},title:{color:"#F5FFF9",fontSize:38,lineHeight:44,fontWeight:"900",marginTop:11},subtitle:{color:"#BBD8C8",fontSize:15,lineHeight:23,marginTop:13,marginBottom:25},path:{backgroundColor:"#071B16",borderRadius:21,borderWidth:1,borderColor:"#1E3A31",padding:16,marginBottom:14},pathRow:{flexDirection:"row",marginBottom:15},number:{width:32,height:32,borderRadius:16,backgroundColor:"#11382B",alignItems:"center",justifyContent:"center",marginRight:12},numberText:{color:"#7AF5B8",fontSize:11,fontWeight:"900"},pathBody:{flex:1},pathTitle:{color:"#F5FFF9",fontSize:14,fontWeight:"900"},pathText:{color:"#8FB6A2",fontSize:11,lineHeight:17,marginTop:4},privacy:{backgroundColor:"rgba(122,245,184,0.07)",borderRadius:17,borderWidth:1,borderColor:"rgba(122,245,184,0.2)",padding:15,marginBottom:18},privacyTitle:{color:"#7AF5B8",fontSize:13,fontWeight:"900"},privacyText:{color:"#C8EED9",fontSize:11,lineHeight:18,marginTop:5},check:{flexDirection:"row",borderRadius:17,borderWidth:1,borderColor:"#29483B",backgroundColor:"#071B16",padding:14,marginBottom:9},checkActive:{borderColor:"#4FA77E",backgroundColor:"#0B281E"},box:{width:24,height:24,borderRadius:7,borderWidth:1,borderColor:"#527263",alignItems:"center",justifyContent:"center",marginRight:11},boxActive:{backgroundColor:"#7AF5B8",borderColor:"#7AF5B8"},checkmark:{color:"#010807",fontWeight:"900"},checkTitle:{color:"#F5FFF9",fontSize:13,fontWeight:"900"},checkText:{color:"#8FB6A2",fontSize:10,lineHeight:16,marginTop:3},policyLinks:{flexDirection:"row",flexWrap:"wrap",alignItems:"center",justifyContent:"center",gap:8,marginTop:2},policyLink:{alignItems:"center",paddingVertical:12},policyText:{color:"#9FC3AF",fontSize:11,fontWeight:"800"},policyDot:{color:"#527263"},footer:{position:"absolute",left:18,right:18,bottom:14,padding:10,borderRadius:28,backgroundColor:"rgba(1,8,7,0.97)"},button:{height:58,borderRadius:29,backgroundColor:"#7AF5B8",alignItems:"center",justifyContent:"center"},disabled:{opacity:.35},buttonText:{color:"#010807",fontSize:15,fontWeight:"900"},
+  page: { flex: 1 },
+  content: {
+    width: "100%",
+    maxWidth: 580,
+    alignSelf: "center",
+    padding: 26,
+    paddingBottom: 20,
+  },
+  brand: {
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: 5,
+    marginTop: 16,
+    marginBottom: 48,
+  },
+  eyebrow: { fontSize: 10, fontWeight: "800", letterSpacing: 1.6 },
+  title: {
+    fontSize: 39,
+    lineHeight: 46,
+    fontWeight: "800",
+    letterSpacing: -1,
+    marginTop: 14,
+  },
+  body: { fontSize: 16, lineHeight: 25, marginTop: 18, marginBottom: 30 },
+  check: {
+    borderWidth: 1,
+    borderRadius: 19,
+    padding: 18,
+    flexDirection: "row",
+    gap: 14,
+    marginBottom: 12,
+    minHeight: 90,
+  },
+  box: {
+    height: 26,
+    width: 26,
+    borderWidth: 1,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  checkTitle: { fontSize: 16, lineHeight: 23, fontWeight: "700" },
+  detail: { fontSize: 13, lineHeight: 20, marginTop: 5 },
+  links: { marginTop: 10, flexDirection: "row", flexWrap: "wrap", gap: 18 },
+  link: { minHeight: 44, justifyContent: "center" },
+  footer: { paddingHorizontal: 26, paddingBottom: 12, paddingTop: 10 },
+  primary: {
+    minHeight: 58,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  primaryText: { fontSize: 17, fontWeight: "800", textAlign: "center" },
 });

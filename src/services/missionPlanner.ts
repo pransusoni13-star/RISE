@@ -17,6 +17,7 @@ export type RiseProfile = {
   trustedSources?: string;
   cycleBadges?: string[];
   planIdentityVersion?: 2;
+  practiceCycle?: number;
 };
 
 export type PersonalizedMission = {
@@ -537,9 +538,9 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
   const adaptiveDuration = profile.lastBlocker === "time"
     ? Math.min(10, duration)
     : adaptation === "too_hard"
-    ? Math.max(10, Math.round(duration * 0.7))
+    ? Math.max(1, Math.round(duration * 0.7))
     : adaptation === "too_easy"
-      ? Math.min(90, Math.round(duration * 1.15))
+      ? duration
       : duration;
 
   const careerGoals = selectedGoals.filter((selectedGoal) => goalTrack(selectedGoal) === "career");
@@ -564,7 +565,7 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
     const template = resolveTemplate(missionGoal, `${missionFocusSkill} ${isCustom ? goalContext : ""}`);
     const goalDay = Array.from({ length: index }, (_, previous) => balancedGoals[previous % balancedGoals.length]).filter((item) => item === missionGoal).length;
     const templateIndex = goalDay % template.titles.length;
-    const round = Math.floor(goalDay / template.titles.length) + 1;
+    const round = Math.floor(goalDay / template.titles.length) + Math.max(1, Math.floor(profile.practiceCycle || 1));
     const baseTitle = template === genericTemplate
       ? [ `Measure your ${missionFocusSkill} baseline`, `Study one ${missionFocusSkill} technique`, `Repeat your ${missionFocusSkill} drill`, `Get feedback on ${missionFocusSkill}`, `Apply ${missionFocusSkill} in practice`, `Correct one ${missionFocusSkill} mistake`, `Retest your ${missionFocusSkill} baseline` ][templateIndex]
       : template.titles[templateIndex];
