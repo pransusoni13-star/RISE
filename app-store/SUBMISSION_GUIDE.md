@@ -1,6 +1,6 @@
 # RISE App Store Connect submission pack
 
-Updated: 2026-11-26
+Updated: 2026-11-27 — current candidate: 1.0.0 (27)
 
 This pack contains final-quality copy based on features verified in the repository. It is not proof that Apple will approve the app, and it does not replace exact-build device testing, truthful App Store Connect answers, or qualified legal review.
 
@@ -47,7 +47,7 @@ Answer Apple's current questionnaire literally. If the final build, links, or co
 
 ## Accessibility questionnaire baseline
 
-The code provides accessibility roles and labels on key controls, system light/dark appearance, and ordinary React Native text scaling. Do not claim full support until the exact Build 25 binary passes the physical-device checks below:
+The code provides accessibility roles and labels on key controls, system light/dark appearance, and ordinary React Native text scaling. Do not claim full support until the exact Build 27 binary passes the physical-device checks below:
 
 - VoiceOver focus order, names, values, hints, and modal behavior on every primary flow.
 - Dynamic Type at the largest accessibility sizes without clipped controls or unreachable actions.
@@ -58,6 +58,8 @@ The code provides accessibility roles and labels on key controls, system light/d
 
 Only select accessibility features in App Store Connect that the tested binary genuinely supports.
 
+Apple's current Accessibility Nutrition Labels guidance says the labels are voluntary initially. They may remain unpublished while support is evaluated; do not invent support or treat an uncompleted optional label as a mandatory submission field. Exact-build device accessibility QA remains part of RISE's release checklist. Source: https://developer.apple.com/help/app-store-connect/manage-app-accessibility/overview-of-accessibility-nutrition-labels/ . Recheck the live requirements before each release.
+
 ## Final App Review notes
 
 Copy `app-store/metadata/en-US/review_notes.txt` into Review Notes. Enter the reviewer credentials only in Apple's protected App Review Information fields, never in this repository, source control, screenshots, or review-note copy.
@@ -67,12 +69,12 @@ Required App Review contact fields:
 - First name: **Aayush**
 - Last name: **Soni**
 - Monitored email: **rise.app13@gmail.com (owner confirmed)**
-- Reachable phone number: **OWNER MUST SUPPLY**
-- Non-expiring reviewer account: **OWNER MUST CREATE AND TEST**
+- Reachable phone number: **Already supplied and recorded in local submission state/App Store Connect**
+- Active reviewer account: **Credentials are entered in App Store Connect; successful access to Build 27 still needs validation**
 
 ## Screenshot capture plan
 
-Screenshots must come from the exact processed Build 25 binary on the required iPhone display sizes shown by App Store Connect. Do not use a design mock, web build, Build 23, placeholder legal text, developer menus, or personally identifying test data.
+Screenshots must come from the exact processed Build 27 binary on the required iPhone display sizes shown by App Store Connect. Do not use a design mock, web build, an older build, placeholder legal text, developer menus, or personally identifying test data. The existing Build 24 welcome capture is historical.
 
 Recommended sequence:
 
@@ -87,9 +89,9 @@ Recommended sequence:
 
 Capture with a clean status bar, no notifications, no real email address, no private proof, and no unsupported claim added as overlay text. Verify every visible feature works in the submitted build.
 
-## Owner/legal fields that cannot be inferred
+## Recorded owner/legal facts
 
-The following must be supplied as verified facts before the binary is built because they appear in the in-app legal pages:
+The operator name, complete mailing address, launch jurisdiction, review contact and monitored inbox have already been supplied. The production app and website contain the configured public identity. Keep the exact private release values in ignored local configuration and provider settings. Do not request them again. Relevant configuration and declarations include:
 
 - `EXPO_PUBLIC_OPERATOR_LEGAL_NAME`
 - `EXPO_PUBLIC_OPERATOR_MAILING_ADDRESS`
@@ -97,22 +99,20 @@ The following must be supplied as verified facts before the binary is built beca
 - Copyright owner text for App Store Connect
 - Monitored privacy/deletion contact confirmation
 - Availability territories and price (current code baseline: free)
-- EU Digital Services Act trader-status declaration by the Account Holder or Admin
+- EU Digital Services Act trader-status declaration if EU availability is added; the current saved launch is Canada only
 - Any required tax, banking, or agreements information shown in App Store Connect
 
 Never replace these with a brand name, guessed address, timezone-derived jurisdiction, or placeholder.
 
-## Release gates
+## Current release gates
 
-Before uploading Build 25:
+Build 27 has already finished, uploaded, processed, reached Testing in the public TestFlight group and been selected/saved for the public version. Do not create another binary merely to complete metadata or this checklist.
 
-1. Confirm `/config/public` reports `email_delivery_ready: true` (passed on November 26). The connected Render workspace does not expose the RISE service, so deployment control still needs the correct account/workspace.
-2. Verify actual signup and password-reset delivery with at least two non-owner email providers. The API readiness flag passes, but successful delivery and sender-domain ownership have not been demonstrated in this audit.
-3. Add the three verified public legal values to the EAS production environment.
-4. Run `npm run testflight:preflight` until it passes without bypasses, then run the automated checks documented in `APP_STORE_RELEASE_READINESS.md`.
-5. Run `npm run testflight:build-upload -- --execute` to build and upload Build 25 to TestFlight only.
-6. Install the processed build over Build 24 and complete the physical-iPhone upgrade and feature checklist.
-7. Capture final screenshots from Build 25, complete every truthful App Store Connect questionnaire, and run `npm run appstore:preflight` plus `npm run appstore:submission:preflight`.
-8. Select Build 25 in App Store Connect and submit it for App Review only after every public-release gate passes.
+1. Production backend and website checks passed on November 27; see `../RELEASE_VERIFICATION_2026-11-27.md`. SMTP is the active email provider. The owner subsequently reported completing two-provider email testing, content-rights confirmation and operator MFA/backup work. These are owner attestations, not independently repeated tests.
+2. Complete Apple's pending business-address 2FA correction. The previously entered code was rejected; no successful save is recorded.
+3. Install TestFlight 1.0.0 (27) over the existing installation and complete the physical-iPhone upgrade, account, permission, notification, offline and accessibility checklist.
+4. Validate the existing App Review credentials against the current app. Apple requires full reviewer access to account features; the guest path alone does not demonstrate that access.
+5. Capture final Build 27 screenshots, retain honest provenance, and upload the required display-size set. Verify the content-rights declaration is saved in Apple after the owner's confirmation. Complete other required metadata truthfully; optional accessibility labels can be deferred.
+6. Run `npm run appstore:preflight` plus `npm run appstore:submission:preflight`. Submit selected Build 27 only after the remaining gates pass.
 
 Do not submit merely because the binary processed successfully.

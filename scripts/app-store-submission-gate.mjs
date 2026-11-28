@@ -25,7 +25,6 @@ const REQUIRED_TRUE_PATHS = [
   "reviewAccount.instructionsReviewed",
   "appStoreConnect.privacyCompleted",
   "appStoreConnect.ageRatingCompleted",
-  "appStoreConnect.accessibilityCompleted",
   "appStoreConnect.privacyChoicesUrlEntered",
   "appStoreConnect.agreementsCurrent",
   "appStoreConnect.dsaTraderStatusCompletedOrNotDistributingInEU",
