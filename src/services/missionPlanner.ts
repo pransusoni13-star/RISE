@@ -537,7 +537,9 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
     ? [...selectedGoals, customGoal, ...focusSkills] : selectedGoals);
   const cycleKey = (profile.skillStartDate || "current").slice(0, 10);
   const adaptation = profile.lastDifficultyFeedback;
-  const adaptiveDuration = adaptation === "too_hard"
+  const adaptiveDuration = profile.lastBlocker === "time"
+    ? Math.min(10, duration)
+    : adaptation === "too_hard"
     ? Math.max(10, Math.round(duration * 0.7))
     : adaptation === "too_easy"
       ? Math.min(90, Math.round(duration * 1.15))
@@ -585,7 +587,7 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
     const isSpiritual = template === templates.spirituality;
     const isBeyblade = template === templates.beyblade;
     const isFirstCustomerResearchMission = template === templates["customer-research"] && templateIndex === 0;
-    const steps = isFirstCustomerResearchMission
+    const baseSteps = isFirstCustomerResearchMission
       ? [
           "Choose one audience and problem, then draft three neutral, open-ended questions about a recent experience, current workaround, and desired outcome.",
           "Read the questions aloud, remove leading or private wording, and save a clearly labelled final draft.",
@@ -596,6 +598,28 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
             : template.actions[templateIndex],
           "Review the result against today’s success criteria, improve the weakest part once, and save the final version.",
         ];
+
+    if (round > 1) {
+      baseSteps[0] += ` Use your saved result from round ${round - 1} as the baseline. Choose one safe quality constraint, such as accuracy or consistency, and keep the other conditions comparable.`;
+      baseSteps[1] = "Compare this attempt with your earlier result. Record the constraint, what improved or regressed, and one correction for the next round.";
+    }
+    const adjustment = profile.lastBlocker;
+    const steps = adjustment === "tools"
+      ? [
+          `Prepare a safe alternative for “${title}”: use a paper sketch, a dry run, or a worked example to practise ${missionFocusSkill} without the missing equipment. Do not imitate hazardous equipment or claim you performed the real task.`,
+          "Save the preparation, name the missing tool, and record the exact step you will test when it is available.",
+        ]
+      : adjustment === "time"
+        ? [`Set a ${adaptiveDuration}-minute limit. Do only one small attempt from this task: ${baseSteps[0]}`, "Stop at the time limit. Record what you tried, one observable result, and the next step; a partial attempt is useful evidence."]
+        : adjustment === "instructions"
+          ? [`Read today's success criteria, then describe one small result in your own words. Follow just this first action: ${baseSteps[0]}`, "Compare your attempt with the success criteria. Write the specific part that is still unclear and one change you can test."]
+          : adjustment === "confidence" || adaptation === "too_hard"
+            ? [`Read the task below, then try only one repetition or the first small substep. Stop there; you do not need the full set, to publish, or to show anyone. Task: ${baseSteps[0]}`, "Keep the rough result, name one thing that worked, and repeat only the hardest part once if comfortable."]
+            : profile.lastMissionUseful === false
+              ? [`Choose a real, small situation where ${missionFocusSkill} would help you today. Use this task to make something useful for that situation: ${baseSteps[0]}`, "Test whether the result helps with your chosen situation. Record what worked or why it did not, then choose one concrete correction."]
+              : adaptation === "too_easy"
+                ? [baseSteps[0], "Make a second controlled attempt with one safe variable changed. Compare both results against the same quality measure and explain which change helped; do not add risk or rush the task."]
+                : baseSteps;
 
     return {
       id: `plan-${planKey}-${(skillSlug || "focus").slice(0, 32)}-${cycleKey}-day-${day}`,
@@ -608,9 +632,7 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       difficulty,
       reward: 30 + day * 10,
       coinReward: 10 + Math.min(day, 5),
-      proof: isFirstCustomerResearchMission
-        ? "Attach a screenshot or photo showing the audience, problem, and all three draft interview questions."
-        : "Attach a screenshot/photo or a short video showing the work and its result.",
+      proof: "Record what you tried and one observable result. A written log is enough; a photo or short video is optional.",
       skillId: (missionFocusSkill.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || skillSlug || "focused-practice").slice(0, 48),
       goal: missionGoal,
       track,
@@ -624,11 +646,17 @@ export function createSevenDayPlan(profile: RiseProfile): PersonalizedMission[] 
       mapQuery: isSpiritual ? undefined : template.mapQuery,
       why: `${day === 1 ? "This creates a clear baseline for the rest of your cycle." : `Day ${day} builds on the previous step so you improve one measurable part at a time.`}${adaptation === "too_hard" ? " Your last mission felt hard, so this version is smaller and more guided." : adaptation === "too_easy" ? " Your last mission felt easy, so this version raises the challenge." : ""}${profile.lastMissionUseful === false ? " The focus has been made more practical because the last mission was not useful enough." : ""}${personalizedContext}`,
       onePercent: `Today you are not trying to master ${missionFocusSkill}. You are improving one specific part: ${title.toLowerCase()}.`,
-      successCriteria: isBeyblade
+      successCriteria: adjustment === "tools"
+        ? "Save a clearly labelled preparation or simulation, the missing tool, and the next real test. Do not record a simulated result as a real-world outcome."
+        : adjustment === "time"
+        ? `Record one honest attempt within ${adaptiveDuration} minutes, its observed result, and where you will continue. A full-size result is not required for this smaller session.`
+        : adjustment === "confidence" || adaptation === "too_hard"
+        ? "Record one safe practice attempt or small substep, one observation, and a manageable next move. The full set is not required for this smaller session."
+        : isBeyblade
         ? "Your log records the equipment, conditions, every trial's result, and one next adjustment. Include spin times or battle outcomes as directed; compare averages only under the same conditions."
         : isFirstCustomerResearchMission
-        ? "Your proof clearly shows one audience, one problem, and three neutral, open-ended draft questions. It proves a prepared draft—not completed interviews or validated demand."
-        : `Finish the mission steps and attach clear evidence that shows your ${missionFocusSkill} work.`,
+        ? "Your saved result records one audience, one problem, and three neutral, open-ended draft questions. It records a prepared draft—not completed interviews or validated demand."
+        : `Finish the mission steps and record an observable result from your ${missionFocusSkill} work.`,
       coachTip: isFirstCustomerResearchMission
         ? "Worked example (draft only): Audience—students who struggle to start homework. Ask: “Tell me about the last time starting homework felt difficult.” “What did you do next?” “What would have made starting easier?”"
         : level.includes("advanced")

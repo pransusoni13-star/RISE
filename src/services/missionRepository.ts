@@ -13,7 +13,7 @@ export type MissionStatus =
 
 export type ProofMetadata = {
   uri: string;
-  type: "photo" | "video";
+  type: "photo" | "video" | "text";
   missionId: string;
   submittedAt: string;
   description?: string;
@@ -44,13 +44,19 @@ export type MissionRecord = {
 };
 
 async function loadAll(): Promise<Record<string, MissionRecord>> {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  if (raw === null) return Object.create(null);
+  const parsed: unknown = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Saved mission history could not be read. It has not been replaced.");
   }
+  for (const [id, value] of Object.entries(parsed)) {
+    const record = value as Partial<MissionRecord> | null;
+    if (!record || record.missionId !== id || !["not_started", "in_progress", "proof_required", "proof_submitted", "completed"].includes(record.status || "") || !Array.isArray(record.completedSteps) || !record.completedSteps.every(step => Number.isInteger(step) && step >= 0)) {
+      throw new Error("Saved mission history needs recovery. It has not been replaced.");
+    }
+  }
+  return Object.assign(Object.create(null), parsed);
 }
 
 async function saveAll(records: Record<string, MissionRecord>) {

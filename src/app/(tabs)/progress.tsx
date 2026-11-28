@@ -26,6 +26,7 @@ export default function ProgressTabScreen() {
   const [missionRecords, setMissionRecords] = useState<MissionRecord[]>([]);
   const [showRewards, setShowRewards] = useState(false);
   const [showWins, setShowWins] = useState(false);
+  const [showResults, setShowResults] = useState(false);
 
   useFocusEffect(React.useCallback(() => {
     let active = true;
@@ -67,6 +68,8 @@ export default function ProgressTabScreen() {
   const hardCount = feedbackRecords.filter((record) => record.feedback?.difficulty === "too_hard").length;
   const photoCount = completedRecords.filter((record) => record.proof?.type === "photo").length;
   const videoCount = completedRecords.filter((record) => record.proof?.type === "video").length;
+  const textCount = completedRecords.filter((record) => record.proof?.type === "text").length;
+  const recentResults = [...completedRecords].sort((a, b) => (b.completedAt || "").localeCompare(a.completedAt || "")).slice(0, showResults ? 10 : 3);
   const cyclePercent = Math.min(100, Math.round((cycleCompleted / cycleTotal) * 100));
   const reviewInsight = hardCount > Math.max(1, feedbackRecords.length / 2)
     ? "Your recent missions have felt demanding. RISE is reducing the next step and adding more guidance."
@@ -121,7 +124,7 @@ export default function ProgressTabScreen() {
       </View>
 
       <View style={[styles.reviewCard, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }]}>
-        <View style={styles.reviewHeader}><View><Text style={[styles.sectionTitle, { color: theme.accent }]}>THIS CYCLE</Text><Text style={[styles.reviewTitle, { color: theme.text }]}>{cyclePercent}% complete</Text></View><Text style={[styles.reviewProof, { color: theme.muted }]}>{photoCount + videoCount} proofs</Text></View>
+        <View style={styles.reviewHeader}><View><Text style={[styles.sectionTitle, { color: theme.accent }]}>THIS CYCLE</Text><Text style={[styles.reviewTitle, { color: theme.text }]}>{cyclePercent}% complete</Text></View><Text style={[styles.reviewProof, { color: theme.muted }]}>{photoCount + videoCount + textCount} saved results</Text></View>
         <View style={[styles.track, { backgroundColor: theme.surface }]}><View style={[styles.trackFill, { backgroundColor: theme.accent, width: `${cyclePercent}%` }]} /></View>
         <Text style={[styles.reviewInsight, { color: theme.muted }]}>{reviewInsight}</Text>
         <View style={styles.skillWrap}>{profile?.focusSkills?.map((skill, index) => <View key={skill} style={[styles.skillPill, { backgroundColor: theme.surface }]}><Text style={[styles.skillText, { color: theme.text }]}>{index === 0 ? `Primary · ${skill}` : skill}</Text></View>)}</View>
@@ -155,7 +158,19 @@ export default function ProgressTabScreen() {
         {COIN_REWARDS.length > 2 ? <Pressable accessibilityRole="button" onPress={() => setShowRewards((value) => !value)} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={[styles.moreButtonText, { color: theme.text }]}>{showRewards ? "Show less" : `See all ${COIN_REWARDS.length} rewards`} {showRewards ? "↑" : "↓"}</Text></Pressable> : null}
       </View>
 
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showWins }} onPress={() => setShowWins((value) => !value)} style={[styles.winsToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
+      <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.accent }]}>WHAT YOU ACTUALLY DID</Text>
+        <Text style={[styles.listSubtitle, { color: theme.muted }]}>Compare your attempts and lessons. XP reflects participation, not measured mastery.</Text>
+        {recentResults.length ? recentResults.map(record => <View key={record.missionId} style={[styles.listItem, { backgroundColor: theme.surfaceStrong }]}><View style={styles.listTextWrap}>
+          <Text style={[styles.listTitle, { color: theme.text }]}>{record.chosenResult || "Completed practice"}</Text>
+          {record.proof?.description ? <Text selectable style={[styles.listSubtitle, { color: theme.text }]}>{record.proof.description}</Text> : null}
+          {record.reflection && record.reflection !== record.proof?.description ? <Text selectable style={[styles.listSubtitle, { color: theme.muted }]}>{record.reflection}</Text> : null}
+          <Text style={[styles.listSubtitle, { color: theme.muted }]}>{record.proof?.type === "text" ? "Written result" : "Practice result"} · {record.completedAt && !Number.isNaN(Date.parse(record.completedAt)) ? new Date(record.completedAt).toLocaleDateString() : "Saved on this device"}</Text>
+        </View></View>) : <Text style={[styles.emptyState, { color: theme.muted }]}>Your first saved result will appear here. Start small: one attempt, one observation, one next step.</Text>}
+        {completedRecords.length > 3 ? <Pressable accessibilityRole="button" accessibilityState={{ expanded: showResults }} onPress={() => setShowResults(value => !value)} style={[styles.moreButton, { borderColor: theme.border }]}><Text style={[styles.moreButtonText, { color: theme.text }]}>{showResults ? "Show fewer results" : "See recent results"}</Text></Pressable> : null}
+      </View>
+
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showWins }} onPress={() => setShowWins((value) => !value)} style={[styles.winsToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View><Text style={[styles.winsToggleLabel, { color: theme.accent }]}>BADGES & MILESTONES</Text><Text style={[styles.winsToggleValue, { color: theme.text }]}>{(profile?.cycleBadges || []).length + achievements.length} unlocked</Text></View>
         <Text style={[styles.winsToggleArrow, { color: theme.accent }]}>{showWins ? "↑" : "↓"}</Text>
       </Pressable>

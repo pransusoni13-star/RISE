@@ -88,7 +88,7 @@ export default function ActionScreen() {
       ? `${mission.steps.length - completedSteps.length} move${mission.steps.length - completedSteps.length === 1 ? "" : "s"} left. Keep going.`
       : !reflectionReady
         ? "Capture what changed in 2–3 sentences."
-        : "You earned proof time. Show the work.";
+        : "Save your result. A written record is enough.";
 
   useEffect(() => {
     if (!isSpiritual) return;
@@ -318,7 +318,7 @@ export default function ActionScreen() {
       </ScrollView>
 
       <View onLayout={(event) => setFooterHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: theme.background, borderTopColor: theme.border }]}>
-        <View style={styles.footerTop}><Text style={[styles.footerProgress, { color: theme.accent }]}>{completedMilestones}/3 READY</Text><Text accessibilityRole="alert" style={[styles.footerReason, { color: theme.muted }]}>{readyForProof ? "Add proof to claim your XP." : nextMove}</Text></View>
+          <View style={styles.footerTop}><Text style={[styles.footerProgress, { color: theme.accent }]}>{completedMilestones}/3 READY</Text><Text accessibilityRole="alert" style={[styles.footerReason, { color: theme.muted }]}>{readyForProof ? "Save a written result or add optional media." : nextMove}</Text></View>
         <Pressable
           style={({ pressed }) => [styles.button, { backgroundColor: theme.accent, borderColor: theme.accent }, pressed && styles.pressed, saving && styles.disabled]}
           onPress={handlePrimaryAction}
@@ -326,7 +326,7 @@ export default function ActionScreen() {
           accessibilityState={{ disabled: saving }}
           disabled={saving}
         >
-          <Text style={[styles.buttonText, { color: theme.accentInk }]}>{saving ? "Saving…" : readyForProof ? status === "completed" ? "Review my proof →" : "Add proof + finish →" : !resultReady ? "Choose my win ↓" : !stepsReady ? "Keep moving ↓" : "Write reflection ↓"}</Text>
+            <Text style={[styles.buttonText, { color: theme.accentInk }]}>{saving ? "Saving…" : readyForProof ? status === "completed" ? "Review my result →" : "Save result + finish →" : !resultReady ? "Choose my win ↓" : !stepsReady ? "Keep moving ↓" : "Write reflection ↓"}</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

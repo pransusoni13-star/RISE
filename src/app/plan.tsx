@@ -151,7 +151,7 @@ export default function PlanScreen() {
 
       <View style={[styles.footer, { bottom: insets.bottom + 12 }]}>
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: activeMissionComplete && !cycleComplete }} disabled={activeMissionComplete && !cycleComplete} style={({ pressed }) => [styles.button, { backgroundColor: theme.accent }, activeMissionComplete && !cycleComplete && styles.buttonDisabled, pressed && styles.pressed]} onPress={() => cycleComplete ? openCycleQuiz() : activeMission ? openMission(activeMission) : router.push("/(tabs)/progress" as never)}>
-          <Text style={[styles.buttonText, { color: theme.accentInk }]}>{cycleComplete ? "Take final rank trial →" : activeMissionComplete ? "Today complete — return tomorrow" : activeMission ? `${completedCount ? "Continue" : "Start"} Day ${activeMission.day} →` : "View my progress →"}</Text>
+          <Text style={[styles.buttonText, { color: theme.accentInk }]}>{cycleComplete ? "Take cycle quiz →" : activeMissionComplete ? "Today complete — return tomorrow" : activeMission ? `${completedCount ? "Continue" : "Start"} Day ${activeMission.day} →` : "View my progress →"}</Text>
         </Pressable>
       </View>
     </View>

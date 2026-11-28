@@ -3,8 +3,8 @@ RISE is a free educational self-improvement app. It has no in-app purchases, sub
 Review path:
 1. Use the review credentials entered separately in App Review Information, or choose the on-device path if account review is not required.
 2. Complete the growth-path and plan questions.
-3. Open Today to view the current mission, complete its action steps, attach photo or video proof to finish the mission, and submit a reflection.
-4. Open Learn for the mission guide and quiz, Projects for suggested work at different difficulty levels, and Progress for mission and focused-time history.
+3. Open Today to view the current mission, complete its action steps and reflection, then record a written result to finish. Photo/video attachments are optional and earn the same reward. Confirm both self-attestations before saving. After completion, optional feedback changes subsequent mission steps and duration.
+4. Open Learn for the mission guide and quiz, Projects for suggested work at different difficulty levels, and Progress for mission history plus saved written results and reflections.
 5. Open Settings to replay the five-step tour, change reminders or appearance, export data, send feedback, sign out, or delete the account.
 
 Proof photos and videos selected inside RISE remain on the device and are not uploaded by RISE. Account identifiers, plan choices, progress metadata, quiz activity, focused minutes, and explicitly submitted feedback are processed by the first-party account service. Camera, photo, microphone, and notification permissions are requested only when you choose to use the related feature. Account deletion is available in Settings under Delete My RISE Data, followed by Delete Account Everywhere for a signed-in member.

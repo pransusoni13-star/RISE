@@ -8,6 +8,37 @@ const profile = (changes = {}) => ({
   skillStartDate: '2026-11-26T12:00:00Z', planIdentityVersion: 2, ...changes,
 });
 
+test('time and equipment feedback change the work while preserving saved mission identities', () => {
+  const original = createSevenDayPlan(profile({availableTime:'30 minutes'}));
+  const short = createSevenDayPlan(profile({availableTime:'30 minutes',lastBlocker:'time'}));
+  const noTools = createSevenDayPlan(profile({availableTime:'30 minutes',lastBlocker:'tools'}));
+  assert.deepEqual(short.map(m => m.id), original.map(m => m.id));
+  assert.deepEqual(noTools.map(m => m.id), original.map(m => m.id));
+  assert.equal(short[0].duration,10);
+  assert.match(short[0].steps[1], /partial attempt/);
+  assert.match(short[0].successCriteria, /10 minutes/);
+  assert.match(noTools[0].steps[0], /without the missing equipment/);
+  assert.match(noTools[0].successCriteria, /Do not record a simulated result/);
+});
+
+test('usefulness and confidence feedback produce distinct practical instructions', () => {
+  const normal = createSevenDayPlan(profile());
+  const useful = createSevenDayPlan(profile({lastMissionUseful:false}));
+  const confidence = createSevenDayPlan(profile({lastBlocker:'confidence'}));
+  assert.notDeepEqual(useful[0].steps,normal[0].steps);
+  assert.match(useful[0].steps[1], /why it did not/);
+  assert.match(confidence[0].steps[0], /do not need the full set, to publish/);
+  assert.match(normal[0].proof, /written log is enough/);
+});
+
+test('later rounds and easy feedback introduce controlled comparisons rather than repeated labels alone', () => {
+  const longPlan = createSevenDayPlan(profile({commitment:'Every 30 days'}));
+  assert.match(longPlan[7].steps[0], /round 1 as the baseline/);
+  assert.match(longPlan[7].steps[1], /improved or regressed/);
+  const stretch = createSevenDayPlan(profile({lastDifficultyFeedback:'too_easy'}));
+  assert.match(stretch[0].steps[1], /second controlled attempt/);
+});
+
 test('a custom Beyblade goal starts with a measurable launch drill, not coding or vague foundations', () => {
   for (const goal of ['custom-life', 'custom-career', 'personal']) {
     const plan = createSevenDayPlan(profile({ selectedGoals: [goal] }));

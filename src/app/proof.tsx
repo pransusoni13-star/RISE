@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -32,6 +32,11 @@ import { getAvailableMissionDay } from "../services/dayUnlock";
 import { useRiseAppearance } from "../services/appearance";
 
 export default function ProofScreen() {
+  const params = useLocalSearchParams();
+  return <ProofContent key={JSON.stringify([params.missionId, params.task, params.goal])} />;
+}
+
+function ProofContent() {
   const insets = useSafeAreaInsets();
   const { theme } = useRiseAppearance();
   const params = useLocalSearchParams();
@@ -54,8 +59,8 @@ export default function ProofScreen() {
   const missionContext = typeof params.missionContext === "string" ? params.missionContext : `${taskTitle} ${goal}`;
 
   const [proofType, setProofType] = useState<
-    "photo" | "video" | null
-  >(null);
+    "photo" | "video" | "text" | null
+  >("text");
   const [assetUri, setAssetUri] = useState("");
   const [assetDetails, setAssetDetails] = useState<ProofAssetDetails | null>(null);
   const [reflection, setReflection] = useState(typeof params.reflection === "string" ? params.reflection : "");
@@ -64,6 +69,7 @@ export default function ProofScreen() {
   const [ownsWork, setOwnsWork] = useState(false);
   const [nextMission, setNextMission] = useState<PersonalizedMission | null>(null);
   const [hasRemainingMissions, setHasRemainingMissions] = useState(false);
+  const [isCycleMission, setIsCycleMission] = useState(false);
 
   const [submitted, setSubmitted] = useState(false);
   const [coins, setCoins] = useState(0);
@@ -75,6 +81,10 @@ export default function ProofScreen() {
   const [usefulFeedback, setUsefulFeedback] = useState<boolean>();
   const [blockerFeedback, setBlockerFeedback] = useState<MissionFeedback["blocker"]>();
   const [feedbackSaving, setFeedbackSaving] = useState(false);
+  const [recordReady, setRecordReady] = useState(false);
+  const [recordLoadError, setRecordLoadError] = useState("");
+  const submitLock = useRef(false);
+  const feedbackLock = useRef(false);
 
   const refreshNextMission = async (currentMissionId: string) => {
     const profile = await loadProfile();
@@ -83,6 +93,7 @@ export default function ProofScreen() {
     const completedDays = plan.filter((mission) => records.some((record) => record.missionId === mission.id && record.status === "completed")).map((mission) => mission.day);
     const availableDay = getAvailableMissionDay(profile.skillStartDate, plan.length || 1, completedDays);
     const index = plan.findIndex((mission) => mission.id === currentMissionId);
+    setIsCycleMission(index >= 0);
     const candidate = index >= 0 ? plan[index + 1] || null : null;
     setHasRemainingMissions(Boolean(candidate));
     setNextMission(candidate && candidate.day <= availableDay ? candidate : null);
@@ -103,24 +114,28 @@ export default function ProofScreen() {
         setProofType(record.proof.type);
         setAssetUri(record.proof.uri);
         setProofDescription(record.proof.description || "");
-        setMatchesMission(record.proof.review?.checks.some((check) => check.id === "matches_mission" && check.passed) ?? true);
-        setOwnsWork(record.proof.review?.checks.some((check) => check.id === "owns_work" && check.passed) ?? true);
+        setMatchesMission(record.proof.review?.checks.some((check) => check.id === "match" && check.passed) ?? true);
+        setOwnsWork(record.proof.review?.checks.some((check) => check.id === "ownership" && check.passed) ?? true);
         await refreshNextMission(missionId);
         if (!active) return;
         setSubmitted(true);
       }
+    }).then(() => { if (active) setRecordReady(true); }).catch(() => {
+      if (active) setRecordLoadError("Your saved result could not be opened. Return to Today and try again. Your history has not been replaced.");
     });
     return () => { active = false; };
   }, [missionId]);
 
+  const resultDescription = proofType === "text" ? reflection : proofDescription;
   const proofReview = useMemo(() => reviewProof({
+    evidenceType: proofType === "text" ? "text" : "media",
     asset: assetDetails,
     reflection,
-    proofDescription,
+    proofDescription: resultDescription,
     missionContext,
     matchesMission,
     ownsWork,
-  }), [assetDetails, reflection, proofDescription, missionContext, matchesMission, ownsWork]);
+  }), [proofType, assetDetails, reflection, resultDescription, missionContext, matchesMission, ownsWork]);
 
   /*
    * A deterministic source makes proof rewards idempotent.
@@ -295,7 +310,7 @@ export default function ProofScreen() {
   };
 
   const submitProof = async () => {
-    if (!proofType || !assetUri) {
+    if (!proofType || (proofType !== "text" && !assetUri)) {
       Alert.alert(
         "Add proof",
         "Choose a photo or record a video first."
@@ -309,15 +324,16 @@ export default function ProofScreen() {
       return;
     }
 
-    if (saving || submitted) {
+    if (!recordReady || saving || submitted || submitLock.current) {
       return;
     }
 
+    submitLock.current = true;
     setSaving(true);
 
     try {
       const existingRecords = await missionRepository.list();
-      if (isProofUriReused(existingRecords, assetUri, missionId)) {
+      if (proofType !== "text" && isProofUriReused(existingRecords, assetUri, missionId)) {
         Alert.alert("Use new proof for this mission", "This exact attachment was already used for another mission. Add a new photo, screenshot, or video that shows today’s work.");
         return;
       }
@@ -355,7 +371,7 @@ export default function ProofScreen() {
       await missionRepository.patch(missionId, {
         status: "completed",
         reflection,
-        proof: { uri: assetUri, type: proofType, missionId, submittedAt, description: proofDescription.trim(), review: proofReview },
+        proof: { uri: assetUri, type: proofType, missionId, submittedAt, description: resultDescription.trim(), review: proofReview },
         completedAt: submittedAt,
       });
       const missionMinutes = Number(typeof params.duration === "string" ? params.duration : "0");
@@ -379,18 +395,17 @@ export default function ProofScreen() {
         "Your proof could not be saved. Please try again."
       );
     } finally {
+      submitLock.current = false;
       setSaving(false);
     }
   };
 
   const saveFeedback = async (changes: Partial<MissionFeedback>) => {
-    if (feedbackSaving) return;
+    if (feedbackLock.current) return;
+    feedbackLock.current = true;
     const difficulty = changes.difficulty ?? difficultyFeedback;
     const useful = changes.useful ?? usefulFeedback;
     const blocker = changes.blocker ?? blockerFeedback;
-    setDifficultyFeedback(difficulty);
-    setUsefulFeedback(useful);
-    setBlockerFeedback(blocker);
     setFeedbackSaving(true);
     try {
       const feedback: MissionFeedback = {
@@ -407,10 +422,14 @@ export default function ProofScreen() {
         lastBlocker: blocker,
         feedbackCount: (currentProfile.feedbackCount || 0) + (!difficultyFeedback && difficulty ? 1 : 0),
       });
+      setDifficultyFeedback(difficulty);
+      setUsefulFeedback(useful);
+      setBlockerFeedback(blocker);
       await refreshNextMission(missionId);
     } catch {
       Alert.alert("Feedback was not saved", "Your mission is complete. You can continue and try feedback again later.");
     } finally {
+      feedbackLock.current = false;
       setFeedbackSaving(false);
     }
   };
@@ -447,7 +466,7 @@ export default function ProofScreen() {
                   +{earnedXP} XP
                 </Text>
 
-                <Text style={styles.xpText}>
+                <Text style={[styles.xpText, { color: theme.muted }]}>
                   Your progress has been updated.
                 </Text>
               </View>
@@ -463,8 +482,8 @@ export default function ProofScreen() {
                   Proof saved
                 </Text>
 
-                <Text style={styles.xpText}>
-                  Your evidence and reward are already safe. You do not need to upload again.
+                <Text style={[styles.xpText, { color: theme.muted }]}>
+                  Your result is saved. Reopening it does not earn the reward again.
                 </Text>
               </View>
             </View>
@@ -481,7 +500,7 @@ export default function ProofScreen() {
                   +{coins} RISE Coins
                 </Text>
 
-                <Text style={styles.coinText}>
+                <Text style={[styles.coinText, { color: theme.muted }]}>
                   Keep building your momentum.
                 </Text>
               </View>
@@ -493,16 +512,16 @@ export default function ProofScreen() {
               <Text style={styles.verifiedIcon}>
                 {proofType === "video"
                   ? "🎥"
-                  : "📸"}
+                  : proofType === "text" ? "✍️" : "📸"}
               </Text>
 
               <View style={styles.verifiedContent}>
-                <Text style={styles.verifiedTitle}>
+                <Text style={[styles.verifiedTitle, { color: theme.text }]}>
                   Submission checks passed
                 </Text>
 
-                <Text style={styles.verifiedText}>
-                  File, explanation, self-attestation, and reflection checks passed. RISE does not inspect the image or video itself in this release.
+                <Text style={[styles.verifiedText, { color: theme.muted }]}>
+                  Your result and reflection are saved. Progress is self-reported; RISE does not independently verify your work.
                 </Text>
               </View>
             </View>
@@ -517,26 +536,20 @@ export default function ProofScreen() {
                 ["right", "Right level"],
                 ["too_hard", "Too hard"],
               ] as const).map(([value, label]) => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: difficultyFeedback === value }}
-                  key={value}
-                  onPress={() => void saveFeedback({ difficulty: value })}
-                  style={[styles.feedbackChip, difficultyFeedback === value && styles.feedbackChipActive]}
-                ><Text style={[styles.feedbackChipText, difficultyFeedback === value && styles.feedbackChipTextActive]}>{label}</Text></Pressable>
+                <FeedbackChoice key={value} selected={difficultyFeedback === value} disabled={feedbackSaving} label={label} onPress={() => void saveFeedback({ difficulty: value })} />
               ))}
             </View>
-            <Text style={styles.feedbackQuestion}>Was it useful?</Text>
+            <Text style={[styles.feedbackQuestion, { color: theme.muted }]}>Was it useful?</Text>
             <View style={styles.feedbackRow}>
-              <Pressable onPress={() => void saveFeedback({ useful: true })} style={[styles.feedbackChip, usefulFeedback === true && styles.feedbackChipActive]}><Text style={[styles.feedbackChipText, usefulFeedback === true && styles.feedbackChipTextActive]}>Yes</Text></Pressable>
-              <Pressable onPress={() => void saveFeedback({ useful: false })} style={[styles.feedbackChip, usefulFeedback === false && styles.feedbackChipActive]}><Text style={[styles.feedbackChipText, usefulFeedback === false && styles.feedbackChipTextActive]}>Not yet</Text></Pressable>
+              <FeedbackChoice selected={usefulFeedback === true} disabled={feedbackSaving} label="Yes, useful" onPress={() => void saveFeedback({ useful: true })} />
+              <FeedbackChoice selected={usefulFeedback === false} disabled={feedbackSaving} label="Not useful yet" onPress={() => void saveFeedback({ useful: false })} />
             </View>
             {(difficultyFeedback === "too_hard" || usefulFeedback === false) ? <>
-              <Text style={styles.feedbackQuestion}>What got in the way?</Text>
+              <Text style={[styles.feedbackQuestion, { color: theme.muted }]}>What got in the way?</Text>
               <View style={styles.feedbackRow}>
                 {([[
                   "time", "Time"], ["instructions", "Clarity"], ["tools", "Tools"], ["confidence", "Confidence"], ["none", "Nothing"]] as const).map(([value, label]) => (
-                  <Pressable key={value} onPress={() => void saveFeedback({ blocker: value })} style={[styles.feedbackChip, blockerFeedback === value && styles.feedbackChipActive]}><Text style={[styles.feedbackChipText, blockerFeedback === value && styles.feedbackChipTextActive]}>{label}</Text></Pressable>
+                  <FeedbackChoice key={value} selected={blockerFeedback === value} disabled={feedbackSaving} label={label} onPress={() => void saveFeedback({ blocker: value })} />
                 ))}
               </View>
             </> : null}
@@ -545,12 +558,12 @@ export default function ProofScreen() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Choose a photo, screenshot, or video from this phone"
+            accessibilityLabel={!isCycleMission ? "View my progress" : nextMission ? "Start next mission" : hasRemainingMissions ? "Return to Today" : "Take cycle quiz"}
             style={({ pressed }) => [
               styles.continueButton,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => nextMission
+            onPress={() => !isCycleMission ? router.replace("/(tabs)/progress" as any) : nextMission
               ? router.replace({ pathname: "/action", params: { mission: JSON.stringify(nextMission) } } as any)
               : hasRemainingMissions
                 ? router.replace("/(tabs)/today" as any)
@@ -576,7 +589,7 @@ export default function ProofScreen() {
                   })}
           >
             <Text style={styles.continueButtonText}>
-              {nextMission ? "Start Next Mission" : hasRemainingMissions ? "Done for today — come back tomorrow" : "Take Cycle Quiz to Unlock"}
+              {!isCycleMission ? "View my saved progress" : nextMission ? "Start Next Mission" : hasRemainingMissions ? "Done for today — come back tomorrow" : "Take Cycle Quiz to Unlock"}
             </Text>
 
             <Text style={styles.arrow}>
@@ -586,7 +599,7 @@ export default function ProofScreen() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Use the camera for mission proof"
+            accessibilityLabel="View my progress"
             style={styles.todayButton}
             onPress={() =>
               router.push("/progress-screen" as any)
@@ -635,17 +648,18 @@ export default function ProofScreen() {
         </Text>
 
         <Text style={[styles.title, { color: theme.text }]}>
-          Prove your{"\n"}
+          Save your{"\n"}
           <Text style={styles.greenText}>
             progress.
           </Text>
         </Text>
 
         <Text style={[styles.subtitle, { color: theme.muted }]}>
-          You did the work. Now show RISE.
-          Submit a photo or video and earn
-          extra RISE Coins.
+          Record what changed. A written result is enough;
+          photos and videos are optional. Every format earns the same reward.
         </Text>
+        {!recordReady && !recordLoadError ? <ActivityIndicator accessibilityLabel="Opening your saved result" color={theme.accent} /> : null}
+        {recordLoadError ? <Text accessibilityRole="alert" style={[styles.reviewText, { color: theme.text }]}>{recordLoadError}</Text> : null}
 
         <View style={[styles.taskCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={styles.taskLabel}>
@@ -666,19 +680,23 @@ export default function ProofScreen() {
 
           <View style={styles.xpInfoContent}>
             <Text style={[styles.xpInfoTitle, { color: theme.text }]}>
-              Proof = progress
+              Keep a useful record
             </Text>
 
             <Text style={[styles.xpInfoText, { color: theme.muted }]}>
-              Submit proof to earn XP and
-              develop your skill.
+              Save an honest result you can compare with your next attempt.
             </Text>
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>
-          Choose your proof
+          Choose how to record it
         </Text>
+
+        <Pressable accessibilityRole="radio" accessibilityState={{ selected: proofType === "text", disabled: saving || pickerBusy }} disabled={saving || pickerBusy} onPress={() => { setProofType("text"); setAssetUri(""); setAssetDetails(null); setPickerError(""); setMatchesMission(false); setOwnsWork(false); }} style={[styles.reviewCard, { backgroundColor: theme.surface, borderColor: proofType === "text" ? theme.accent : theme.border }]}>
+          <Text style={[styles.reviewTitle, { color: theme.text }]}>✍️ Written result</Text>
+          <Text style={[styles.reviewText, { color: theme.muted }]}>Describe your attempt and what happened. No camera or photo permission needed.</Text>
+        </Pressable>
 
         <View style={styles.options}>
           <Pressable
@@ -701,7 +719,7 @@ export default function ProofScreen() {
               Choose from phone
             </Text>
 
-            <Text style={styles.optionDescription}>
+            <Text style={[styles.optionDescription, { color: theme.muted }]}>
               Photo, screenshot, or video
             </Text>
 
@@ -730,7 +748,7 @@ export default function ProofScreen() {
               Use camera
             </Text>
 
-            <Text style={styles.optionDescription}>
+            <Text style={[styles.optionDescription, { color: theme.muted }]}>
               Take a photo or record video
             </Text>
 
@@ -754,7 +772,7 @@ export default function ProofScreen() {
               ✓
             </Text>
 
-            <Text style={styles.selectedText}>
+            <Text style={[styles.selectedText, { color: theme.text }]}>
               {proofType === "video"
                 ? "Video attached and ready"
                 : "Screenshot or photo attached and ready"}
@@ -770,23 +788,26 @@ export default function ProofScreen() {
         ) : null}
 
         <View style={[styles.reviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={styles.reviewEyebrow}>PROOF REVIEW</Text>
-          <Text style={[styles.reviewTitle, { color: theme.text }]}>Show how this proves the mission</Text>
-          <Text style={[styles.reviewText, { color: theme.muted }]}>In one specific sentence, describe what is visible and how it connects to “{taskTitle}.”</Text>
+          <Text style={styles.reviewEyebrow}>YOUR RESULT</Text>
+          <Text style={[styles.reviewTitle, { color: theme.text }]}>{proofType === "text" ? "Your result and lesson" : "What does your attachment show?"}</Text>
+          <Text style={[styles.reviewText, { color: theme.muted }]}>Name the attempt, a result you observed, and how it connects to “{taskTitle}.” Include a count, time or concrete change when useful.</Text>
           <TextInput
-            accessibilityLabel="Describe how your proof shows the mission result"
-            value={proofDescription}
-            onChangeText={setProofDescription}
-            placeholder={`Describe what your attachment shows for “${taskTitle}”, including the result you recorded.`}
-            placeholderTextColor="#668577"
+            accessibilityLabel={proofType === "text" ? "Written mission result and reflection" : "Describe how your attachment shows the mission result"}
+            value={resultDescription}
+            editable={!saving}
+            onChangeText={proofType === "text" ? setReflection : setProofDescription}
+            placeholder={proofType === "text" ? "In 2–3 sentences: what did you try, what happened, and what will you change next?" : `Describe what your attachment shows for “${taskTitle}”, including the result you recorded.`}
+            placeholderTextColor={theme.muted}
             multiline
-            maxLength={500}
+            maxLength={proofType === "text" ? 1200 : 500}
             style={[styles.reviewInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
           />
-          <ReviewCheck checked={matchesMission} onPress={() => setMatchesMission((value) => !value)} text="The attachment clearly shows the result of this mission." />
+          {proofType === "text" ? <Text style={[styles.reviewText, { color: theme.muted }]}>Your mission reflection is reused here so you don’t need to write it twice. Check that it includes an observed result.</Text> : <><Text style={[styles.reviewTitle, { color: theme.text }]}>What did you learn, and what will you try next?</Text>
+          <TextInput accessibilityLabel="Mission reflection" value={reflection} editable={!saving} onChangeText={setReflection} placeholder="Keep your reflection to 2–3 honest sentences." placeholderTextColor={theme.muted} multiline maxLength={1200} style={[styles.reviewInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]} /></>}
+          <ReviewCheck checked={matchesMission} onPress={() => setMatchesMission((value) => !value)} text="This is an honest record of my attempt at this mission." />
           <ReviewCheck checked={ownsWork} onPress={() => setOwnsWork((value) => !value)} text="I created this work or have permission to submit it." />
-          <View style={styles.reviewList}>{proofReview.checks.map((check) => <View key={check.id} style={styles.reviewRow}><Text style={[styles.reviewMark, check.passed && styles.reviewMarkPassed]}>{check.passed ? "✓" : "○"}</Text><View style={styles.reviewBody}><Text style={[styles.reviewCheckTitle, check.passed && styles.reviewCheckPassed]}>{check.label}</Text><Text style={styles.reviewCheckDetail}>{check.detail}</Text></View></View>)}</View>
-          <Text style={styles.localNote}>RISE performs local consistency checks. It does not use biometric recognition or claim that an image is independently authenticated.</Text>
+          <View style={styles.reviewList}>{proofReview.checks.map((check) => <View key={check.id} style={styles.reviewRow}><Text style={[styles.reviewMark, check.passed && styles.reviewMarkPassed]}>{check.passed ? "✓" : "○"}</Text><View style={styles.reviewBody}><Text style={[styles.reviewCheckTitle, check.passed && styles.reviewCheckPassed]}>{check.label}</Text><Text style={[styles.reviewCheckDetail, { color: theme.muted }]}>{check.detail}</Text></View></View>)}</View>
+          <Text style={[styles.localNote, { color: theme.muted }]}>RISE performs local consistency checks. It does not use biometric recognition or claim that an image is independently authenticated.</Text>
         </View>
 
         <View style={styles.bottomSpace} />
@@ -794,23 +815,23 @@ export default function ProofScreen() {
       <View style={[styles.footer, { marginBottom: insets.bottom + 8, backgroundColor: theme.background, borderTopColor: theme.border }]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityState={{ disabled: !proofReview.passed || saving || pickerBusy, busy: saving }}
+          accessibilityState={{ disabled: !recordReady || !proofReview.passed || saving || pickerBusy, busy: saving }}
           onPress={submitProof}
           style={({ pressed }) => [
             styles.submitButton,
-            (!proofReview.passed || saving || pickerBusy) &&
+            (!recordReady || !proofReview.passed || saving || pickerBusy) &&
               styles.submitButtonDisabled,
             pressed &&
               proofType &&
               !saving &&
               styles.buttonPressed,
           ]}
-          disabled={!proofReview.passed || saving || pickerBusy}
+          disabled={!recordReady || !proofReview.passed || saving || pickerBusy}
         >
           <Text style={styles.submitText}>
-            {saving
+            {!recordReady ? "Opening saved result…" : saving
               ? "Saving..."
-              : proofReview.passed ? "Submit Reviewed Proof" : `Finish ${proofReview.checks.filter((check) => !check.passed).length} Proof Checks`}
+              : proofReview.passed ? "Save result + finish" : `Finish ${proofReview.checks.filter((check) => !check.passed).length} result checks`}
           </Text>
 
           <Text style={styles.arrow}>
@@ -818,7 +839,7 @@ export default function ProofScreen() {
           </Text>
         </Pressable>
 
-        <Text style={styles.requiredText}>
+        <Text style={[styles.requiredText, { color: theme.muted }]}>
           Proof stays on this device in this version of RISE.
         </Text>
       </View>
@@ -829,6 +850,11 @@ export default function ProofScreen() {
 function ReviewCheck({ checked, onPress, text }: { checked: boolean; onPress: () => void; text: string }) {
   const { theme } = useRiseAppearance();
   return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} onPress={onPress} style={[styles.attestation, { backgroundColor: theme.surfaceStrong, borderColor: theme.border }, checked && styles.attestationChecked]}><View style={[styles.checkBox, checked && styles.checkBoxChecked]}><Text style={styles.checkBoxText}>{checked ? "✓" : ""}</Text></View><Text style={[styles.attestationText, { color: theme.text }]}>{text}</Text></Pressable>;
+}
+
+function FeedbackChoice({selected, disabled, label, onPress}: {selected:boolean; disabled:boolean; label:string; onPress:()=>void}) {
+  const {theme} = useRiseAppearance();
+  return <Pressable accessibilityRole="button" accessibilityState={{selected,disabled}} disabled={disabled} onPress={onPress} style={[styles.feedbackChip, {backgroundColor:selected ? theme.accent : theme.surfaceStrong,borderColor:selected ? theme.accent : theme.border}]}><Text style={[styles.feedbackChipText,{color:selected ? theme.accentInk : theme.text}]}>{label}</Text></Pressable>;
 }
 
 const styles = StyleSheet.create({
@@ -1307,7 +1333,7 @@ const styles = StyleSheet.create({
   feedbackTitle: { color: "#F5FFF9", fontSize: 18, fontWeight: "900", marginTop: 7, marginBottom: 11 },
   feedbackQuestion: { color: "#BBD8C8", fontSize: 12, fontWeight: "800", marginTop: 13, marginBottom: 8 },
   feedbackRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  feedbackChip: { minHeight: 38, borderRadius: 19, borderWidth: 1, borderColor: "#36594A", paddingHorizontal: 12, alignItems: "center", justifyContent: "center" },
+  feedbackChip: { minHeight: 44, borderRadius: 19, borderWidth: 1, borderColor: "#36594A", paddingHorizontal: 12, paddingVertical: 9, alignItems: "center", justifyContent: "center" },
   feedbackChipActive: { backgroundColor: "#7AF5B8", borderColor: "#7AF5B8" },
   feedbackChipText: { color: "#C8EED9", fontSize: 11, fontWeight: "800" },
   feedbackChipTextActive: { color: "#010807" },

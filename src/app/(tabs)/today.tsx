@@ -107,10 +107,10 @@ export default function TodayTabScreen() {
       <Text style={[styles.greeting, { color: theme.text }]}>
         {greeting}{firstName ? `, ${firstName}` : ""}.
       </Text>
-      <Text style={[styles.intro, { color: theme.muted }]}>{cycleComplete ? "Your cycle is complete. Take the final rank trial to prove what you learned." : todayComplete ? "Today’s work is saved. Your next mission opens tomorrow." : "This is the one step that matters today."}</Text>
+      <Text style={[styles.intro, { color: theme.muted }]}>{cycleComplete ? "You finished your practice cycle. Review what you learned with the cycle quiz." : todayComplete ? "Today’s work is saved. Take a moment to notice what changed." : "One useful attempt is enough to get moving."}</Text>
 
       <View accessibilityRole="progressbar" accessibilityLabel={`${completedDays.length} of ${plan.length} missions complete`} accessibilityValue={{ min: 0, max: plan.length, now: completedDays.length }} style={styles.cycleRow}>
-        <Text style={[styles.cycleLabel, { color: theme.muted }]}>7-DAY RISE</Text>
+        <Text style={[styles.cycleLabel, { color: theme.muted }]}>{plan.length}-DAY RISE</Text>
         <View style={[styles.cycleTrack, { backgroundColor: theme.surfaceStrong }]}><View style={[styles.cycleFill, { backgroundColor: theme.accent, width: `${cycleProgress}%` }]} /></View>
         <Text style={[styles.cycleValue, { color: theme.text }]}>{completedDays.length}/{plan.length}</Text>
       </View>
@@ -138,7 +138,7 @@ export default function TodayTabScreen() {
         </View>
 
         <View style={styles.trail} accessibilityLabel={`${missionStage} of 3 mission stages complete`}>
-          {["Choose", "Do", "Prove"].map((label, index) => {
+          {["Choose", "Practise", "Save"].map((label, index) => {
             const reached = missionStage > index || todayComplete;
             const active = !todayComplete && missionStage === index;
             return <View key={label} style={styles.trailStep}><View style={[styles.trailDot, { borderColor: reached || active ? theme.accent : theme.border, backgroundColor: reached ? theme.accent : active ? theme.surfaceStrong : theme.surface }]}><Text style={[styles.trailDotText, { color: reached ? theme.accentInk : active ? theme.accent : theme.muted }]}>{reached ? "✓" : index + 1}</Text></View><Text style={[styles.trailLabel, { color: active || reached ? theme.text : theme.muted }]}>{label}</Text>{index < 2 ? <View style={[styles.trailLine, { backgroundColor: missionStage > index ? theme.accent : theme.border }]} /> : null}</View>;
@@ -147,20 +147,26 @@ export default function TodayTabScreen() {
 
         <View style={styles.primaryAction}>
           <RiseButton
-            disabled={todayComplete && !cycleComplete}
-            label={cycleComplete ? "Take my final rank trial" : todayComplete ? "Complete — come back tomorrow" : hasStarted ? "Continue my mission" : "Start today’s mission"}
-            onPress={() => cycleComplete ? openCycleQuiz() : router.push({ pathname: "/action", params: todayMission ? { mission: JSON.stringify(todayMission) } : {} } as any)}
+            label={cycleComplete ? "Take my cycle quiz" : todayComplete ? "Review today’s result" : hasStarted ? "Continue my mission" : "Start today’s mission"}
+            onPress={() => cycleComplete ? openCycleQuiz() : todayComplete && todayMission ? router.push({ pathname: "/proof", params: { missionId: todayMission.id, task: todayMission.title, skillId: todayMission.skillId, goal: todayMission.goal } } as any) : router.push({ pathname: "/action", params: todayMission ? { mission: JSON.stringify(todayMission) } : {} } as any)}
           />
         </View>
         <Text style={[styles.progressNote, { color: theme.muted }]}>{todayComplete ? `${completedDays.length} of ${plan.length || 7} missions complete` : "RISE saves each step as you go."}</Text>
       </RiseCard>
+      {todayComplete ? <RiseCard style={{ marginTop: 16 }}>
+        <RiseEyebrow>TODAY’S WIN</RiseEyebrow>
+        <Text selectable style={[styles.valueText, { color: theme.text }]}>{todayRecord?.proof?.description || todayRecord?.chosenResult || "You made time for one practice session."}</Text>
+        {todayRecord?.reflection && todayRecord.reflection !== todayRecord.proof?.description ? <Text selectable style={[styles.missionSummary, { color: theme.muted }]}>{todayRecord.reflection}</Text> : null}
+        <View style={styles.primaryAction}><RiseButton variant="secondary" label="See my saved progress" onPress={() => router.push("/(tabs)/progress" as any)} /></View>
+        {!cycleComplete ? <Text style={[styles.progressNote, { color: theme.muted }]}>You’re done for today. Your next mission opens tomorrow.</Text> : null}
+      </RiseCard> : null}
     </ScrollView>
   );
 }
 
 function MissionStat({ label, value }: { label: string; value: string }) {
   const { theme } = useRiseAppearance();
-  return <View style={[styles.stat, { backgroundColor: theme.surfaceStrong }]}><Text style={[styles.statLabel, { color: theme.muted }]}>{label}</Text><Text numberOfLines={1} style={[styles.statValue, { color: theme.text }]}>{value}</Text></View>;
+  return <View style={[styles.stat, { backgroundColor: theme.surfaceStrong }]}><Text style={[styles.statLabel, { color: theme.muted }]}>{label}</Text><Text style={[styles.statValue, { color: theme.text }]}>{value}</Text></View>;
 }
 
 const styles = StyleSheet.create({
@@ -173,28 +179,28 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 34, lineHeight: 40, fontWeight: "800", letterSpacing: -0.8 },
   intro: { fontSize: 15, lineHeight: 22, marginTop: 8, marginBottom: 18 },
   cycleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
-  cycleLabel: { fontSize: 8, fontWeight: "900", letterSpacing: 1.1 },
+  cycleLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 1.1 },
   cycleTrack: { flex: 1, height: 5, borderRadius: 999, overflow: "hidden" },
   cycleFill: { height: "100%", borderRadius: 999 },
   cycleValue: { fontSize: 10, fontWeight: "900" },
   missionCard: { padding: 22 },
   missionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 19 },
   readyPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7 },
-  readyText: { fontSize: 8, fontWeight: "900", letterSpacing: 1 },
+  readyText: { fontSize: 10, fontWeight: "900", letterSpacing: 1 },
   missionTitle: { fontSize: 30, lineHeight: 36, fontWeight: "800", letterSpacing: -0.6 },
   missionSummary: { fontSize: 15, lineHeight: 23, marginTop: 12 },
   valueStrip: { borderRadius: 15, padding: 14, marginTop: 20 },
-  valueLabel: { fontSize: 8, fontWeight: "900", letterSpacing: 1.1 },
+  valueLabel: { fontSize: 10, fontWeight: "900", letterSpacing: 1.1 },
   valueText: { fontSize: 12, lineHeight: 18, fontWeight: "700", marginTop: 5 },
   statsRow: { flexDirection: "row", gap: 8, marginTop: 22 },
   stat: { flex: 1, minWidth: 68, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 10 },
-  statLabel: { fontSize: 7, fontWeight: "900", letterSpacing: .9 },
+  statLabel: { fontSize: 10, fontWeight: "900", letterSpacing: .9 },
   statValue: { fontSize: 11, fontWeight: "900", marginTop: 4 },
   trail: { flexDirection: "row", alignItems: "flex-start", marginTop: 22 },
   trailStep: { flex: 1, alignItems: "center", position: "relative" },
   trailDot: { width: 32, height: 32, borderRadius: 11, borderWidth: 1, alignItems: "center", justifyContent: "center", zIndex: 2 },
   trailDotText: { fontSize: 11, fontWeight: "900" },
-  trailLabel: { fontSize: 9, fontWeight: "800", marginTop: 7 },
+  trailLabel: { fontSize: 11, fontWeight: "800", marginTop: 7 },
   trailLine: { position: "absolute", height: 2, width: "66%", top: 15, left: "67%", zIndex: 1 },
   primaryAction: { marginTop: 22 },
   progressNote: { fontSize: 10, textAlign: "center", marginTop: 13 },
