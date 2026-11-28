@@ -1,3 +1,4 @@
+import { LoadFailure } from "../components/load-failure";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -7,6 +8,8 @@ import { hasSavedProfile } from "../services/personalization";
 
 export default function HomeScreen() {
   const [checkingPlan, setCheckingPlan] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -24,10 +27,12 @@ export default function HomeScreen() {
         setCheckingPlan(false);
       })
       .catch(() => {
-        if (active) setCheckingPlan(false);
+        if (active) { setLoadError(true); setCheckingPlan(false); }
       });
     return () => { active = false; };
-  }, []);
+  }, [loadAttempt]);
+
+  if (loadError) return <LoadFailure title="Your saved plan could not be opened" onRetry={() => {setLoadError(false);setCheckingPlan(true);setLoadAttempt(value => value+1);}} />;
 
   if (checkingPlan) {
     return <SafeAreaView style={styles.loadingPage}><ActivityIndicator color="#7AF5B8" /><Text style={styles.loadingText}>Opening your RISE home…</Text></SafeAreaView>;

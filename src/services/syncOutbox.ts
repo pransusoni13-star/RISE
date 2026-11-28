@@ -30,13 +30,13 @@ export type SyncOutboxItem =
   | { id: string; ownerId?: string; kind: "event"; createdAt: string; payload: QueuedProgressEvent };
 
 async function read(): Promise<SyncOutboxItem[]> {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item.id === "string") : [];
-  } catch {
-    return [];
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  if (raw === null) return [];
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed) || !parsed.every(item => item && typeof item.id === "string" && ["profile", "event"].includes(item.kind) && item.payload && typeof item.payload === "object" && !Array.isArray(item.payload))) {
+    throw new Error("Queued sync updates could not be read. They have not been replaced.");
   }
+  return parsed;
 }
 
 async function write(items: SyncOutboxItem[]): Promise<void> {

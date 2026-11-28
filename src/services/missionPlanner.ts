@@ -124,12 +124,9 @@ export function getRecommendedSkills(goal: string, customGoal = ""): string[] {
 }
 
 export function minutesForTime(value?: string): number {
-  const normalized = (value || "").toLowerCase();
-  if (normalized.includes("15")) return 15;
-  if (normalized.includes("30") && !normalized.includes("60")) return 30;
-  if (normalized.includes("60")) return 60;
-  if (normalized.includes("90")) return 90;
-  return 30;
+  const match = (value || "").match(/^\s*(\d+)(?:\s*[–-]\s*(\d+))?\s*(?:minutes?|mins?)?\s*$/i);
+  const values = match ? match.slice(1).filter(Boolean).map(Number) : [];
+  return values.length && values.every(minutes => minutes >= 1 && minutes <= 90) ? Math.max(...values) : 30;
 }
 
 type MissionTemplate = {

@@ -93,7 +93,7 @@ export default function ActionScreen() {
   useEffect(() => {
     if (!isSpiritual) return;
     let active = true;
-    void loadProfile().then((profile) => { if (active) setFaithProfile(profile); });
+    void loadProfile().then((profile) => { if (active) setFaithProfile(profile); }).catch(() => { if (active) Alert.alert("Preferences could not be opened", "Your protected preferences have not been changed. Reopen this mission to try again."); });
     return () => { active = false; };
   }, [isSpiritual]);
 

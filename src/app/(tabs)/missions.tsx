@@ -1,3 +1,4 @@
+import { LoadFailure } from "../../components/load-failure";
 import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -14,15 +15,17 @@ import { useRiseAppearance } from "../../services/appearance";
 export default function MissionsTabScreen() {
   const { theme } = useRiseAppearance();
   const [profile, setProfile] = useState<RiseProfile | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [records, setRecords] = useState<Record<string, MissionRecord>>({});
 
   useFocusEffect(useCallback(() => {
     let active = true;
     void Promise.all([loadProfile(), missionRepository.list()]).then(([savedProfile, savedRecords]) => {
       if (!active) return;
+      setLoadError(false);
       setProfile(savedProfile);
       setRecords(Object.fromEntries(savedRecords.map((record) => [record.missionId, record])));
-    });
+    }).catch(() => {if(active) setLoadError(true);});
     return () => { active = false; };
   }, []));
 
@@ -38,6 +41,9 @@ export default function MissionsTabScreen() {
   const openMission = (mission: PersonalizedMission) => {
     router.push({ pathname: "/action", params: { mission: JSON.stringify(mission) } } as any);
   };
+
+
+  if (loadError) return <LoadFailure title="Your saved plan could not be opened" />;
 
   if (!profile) {
     return <View style={[styles.loading, { backgroundColor: theme.background }]}><ActivityIndicator color={theme.accent} /></View>;

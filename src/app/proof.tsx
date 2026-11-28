@@ -21,7 +21,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import {
   addXP,
   addSkillXP,
-  RISEProgress,
   progressRepository,
 } from "../services/progressEngine";
 import { MissionFeedback, missionRepository } from "../services/missionRepository";
@@ -261,52 +260,15 @@ function ProofContent() {
     coinReward: number,
     title: string
   ) => {
-    let progress: RISEProgress =
-      await progressRepository.load();
-
-    /*
-     * Prevent duplicate proof rewards.
-     *
-     * We search the existing event history for this exact
-     * proof reward source.
-     */
-    const alreadyRewarded = progress.events.some(
-      (event) =>
-        event.type === "proof" &&
-        event.metadata?.source === rewardSource
-    );
-
-    if (alreadyRewarded) {
-      setEarnedXP(0);
-      setCoins(0);
-      return;
-    }
-
-    progress = addXP(
-      progress,
-      xp,
-      "proof",
-      title,
-      coinReward,
-      {
-        goal,
-        skillId,
-        source: rewardSource,
-        passed: true,
-      }
-    );
-
-    progress = addSkillXP(
-      progress,
-      skillId,
-      xp,
-      goal
-    );
-
-    await progressRepository.save(progress);
-
-    setEarnedXP(xp);
-    setCoins(coinReward);
+    let credited = false;
+    await progressRepository.update(current => {
+      if (current.events.some(event => event.type === "proof" && event.metadata?.source === rewardSource)) return current;
+      credited = true;
+      const rewarded = addXP(current, xp, "proof", title, coinReward, {goal, skillId, source:rewardSource, passed:true});
+      return addSkillXP(rewarded, skillId, xp, goal);
+    });
+    setEarnedXP(credited ? xp : 0);
+    setCoins(credited ? coinReward : 0);
   };
 
   const submitProof = async () => {
@@ -586,7 +548,7 @@ function ProofContent() {
                         reflectionPrompt: finalMission?.reflectionPrompt || "",
                       },
                     } as any);
-                  })}
+                  }).catch(() => Alert.alert("Plan could not be opened", "Your result is saved. Return to Today and try again."))}
           >
             <Text style={styles.continueButtonText}>
               {!isCycleMission ? "View my saved progress" : nextMission ? "Start Next Mission" : hasRemainingMissions ? "Done for today — come back tomorrow" : "Take Cycle Quiz to Unlock"}

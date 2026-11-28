@@ -6,9 +6,13 @@ import ts from "typescript";
 import { createSessionBoundary } from "../src/services/sessionBoundary.ts";
 import { createSerializedMutationQueue } from "../src/services/serializedMutations.ts";
 
-function harness({ exportPages = [], failExportPage = null } = {}) {
+function harness({ exportPages = [], failExportPage = null, holdProfileWrites = false } = {}) {
   const local = new Map();
   const secure = new Map();
+  const queued = [];
+  let finishProfile;
+  let profileWriteStarted;
+  const profileStarted = new Promise(resolve => {profileWriteStarted=resolve;});
   let profileExpired = false;
   let finishRefresh;
   let refreshStarted;
@@ -28,7 +32,13 @@ function harness({ exportPages = [], failExportPage = null } = {}) {
     if (path === "/auth/login") return reply(session(JSON.parse(init.body).email.split("@")[0]));
     if (path === "/auth/logout") return reply(null, 204);
     if (path === "/auth/refresh") { refreshStarted(); return refresh; }
-    if (path === "/profiles/me") return profileExpired ? reply({ detail: "expired" }, 401) : reply(null);
+    if (path === "/profiles/me") {
+      if(holdProfileWrites && init.method === "PUT") {
+        profileWriteStarted();
+        return new Promise(resolve => {finishProfile=()=>resolve(reply(null));});
+      }
+      return profileExpired ? reply({ detail: "expired" }, 401) : reply(null);
+    }
     if (path === "/users/me/usage-analytics") return reply({ opted_in: false });
     if (path === "/users/me") return reply(user("alice"));
     throw new Error(`Unexpected mock request ${path}`);
@@ -40,12 +50,18 @@ function harness({ exportPages = [], failExportPage = null } = {}) {
     "@react-native-async-storage/async-storage": { __esModule: true, default: storage(local) },
     "./sessionBoundary": { createSessionBoundary },
     "./serializedMutations": { createSerializedMutationQueue },
-    "./syncOutbox": { getPendingSyncCount: async () => 0, listSyncOutbox: async () => [], discardQueuedUsageAnalytics: async () => undefined },
+    "./syncOutbox": {
+      getPendingSyncCount: async () => queued.length,
+      listSyncOutbox: async () => [...queued],
+      queueProfile: async (payload,ownerId) => {queued.push({id:'profile:latest',kind:'profile',ownerId,payload});},
+      removeSyncOutboxItem: async id => {const i=queued.findIndex(item=>item.id===id);if(i>=0)queued.splice(i,1);},
+      discardQueuedUsageAnalytics: async () => undefined,
+    },
   };
   const source = ts.transpileModule(readFileSync(new URL("../src/services/auth.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const exports = {};
   vm.runInNewContext(source, { exports, require: name => { assert.ok(dependencies[name], name); return dependencies[name]; }, process: { env: { EXPO_PUBLIC_API_URL: "https://api.example.com" } }, __DEV__: false, fetch, URL, AbortController, setTimeout, clearTimeout, console });
-  return { auth: exports, local, secure, started, expire: () => { profileExpired = true; }, release: () => finishRefresh(reply(session("alice"))) };
+  return { auth: exports, local, secure, started, queued, profileStarted, releaseProfile:()=>finishProfile?.(), expire: () => { profileExpired = true; }, release: () => finishRefresh(reply(session("alice"))) };
 }
 
 test("a refresh response arriving after logout cannot restore credentials", async () => {
@@ -102,4 +118,20 @@ test("a failed later export page rejects the export without returning a partial 
   const h = harness({exportPages:[{skills:[],progress_events:[{id:'event-a'}],product_feedback:[],pagination:{more:true}}],failExportPage:1});
   await h.auth.login('alice@example.com', 'password');
   await assert.rejects(h.auth.getCloudDataExport(), /Cloud export unavailable/);
+});
+
+test("profile changes are durably queued without waiting for a slow account service", {timeout:3000}, async () => {
+  const h=harness({holdProfileWrites:true});
+  await h.auth.login('alice@example.com','password');
+  try {
+    await h.auth.syncUserProfile({selectedGoals:['music'],customGoal:'Practise piano',availableTime:'10 minutes'});
+    await h.profileStarted;
+    assert.equal(h.queued.length,1);
+    assert.equal(h.queued[0].ownerId,'alice');
+    assert.equal(h.queued[0].payload.available_time,'10 minutes');
+  } finally {
+    h.releaseProfile();
+  }
+  const flushed=await h.auth.flushCloudSyncQueue();
+  assert.equal(flushed.pending,0);
 });

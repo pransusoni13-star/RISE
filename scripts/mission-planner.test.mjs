@@ -1,11 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSevenDayPlan, getRecommendedSkills, parseMissionPayload } from '../src/services/missionPlanner.ts';
+import { createSevenDayPlan, getRecommendedSkills, minutesForTime, parseMissionPayload } from '../src/services/missionPlanner.ts';
 
 const profile = (changes = {}) => ({
   selectedGoals: ['custom-life'], customGoal: 'Can I become the best Beyblader of all time?',
   weeklySkill: 'Launch control', focusSkills: ['Launch control'],
   skillStartDate: '2026-11-26T12:00:00Z', planIdentityVersion: 2, ...changes,
+});
+
+test('all selectable daily time budgets are respected, including ten and twenty minutes', () => {
+  for(const minutes of [10,15,20,30,60,90]) {
+    assert.equal(minutesForTime(`${minutes} minutes`),minutes);
+    assert.equal(createSevenDayPlan(profile({availableTime:`${minutes} minutes`}))[0].duration,minutes);
+  }
+  assert.equal(minutesForTime('30–60 minutes'),60);
+  assert.equal(minutesForTime('not selected'),30);
+  assert.equal(minutesForTime('99 years'),30);
 });
 
 test('time and equipment feedback change the work while preserving saved mission identities', () => {

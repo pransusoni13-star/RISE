@@ -12,7 +12,6 @@ import {
   addSkillXP,
   addXP,
 } from "../services/progressEngine";
-import type { RISEProgress } from "../services/progressEngine";
 import { progressRepository } from "../services/progressRepository";
 
 type LearningStep = {
@@ -312,8 +311,6 @@ export default function LearningScreen() {
   const params = useLocalSearchParams();
 
   const [completed, setCompleted] = useState<number[]>([]);
-  const [savedProgress, setSavedProgress] =
-    useState<RISEProgress | null>(null);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
 
   const selectedGoals = useMemo(() => {
@@ -359,7 +356,6 @@ export default function LearningScreen() {
 
         if (!active) return;
 
-        setSavedProgress(progress);
 
         // Restore completed learning steps from saved XP events.
         const completedIndexes = steps.reduce<number[]>(
@@ -409,43 +405,11 @@ export default function LearningScreen() {
     setSavingIndex(index);
 
     try {
-      let progress =
-        savedProgress ??
-        (await progressRepository.load());
+      await progressRepository.update(current => {
+        if (current.events.some(event => event.type === "learning" && event.title === eventTitle)) return current;
+        return addSkillXP(addXP(current, step.reward, "learning", eventTitle), step.skillId, step.reward);
+      });
 
-      // Safety check: never award XP twice for the same learning step.
-      const alreadySaved = progress.events.some(
-        (event) =>
-          event.type === "learning" &&
-          event.title === eventTitle
-      );
-
-      if (alreadySaved) {
-        setSavedProgress(progress);
-        setCompleted((current) =>
-          current.includes(index)
-            ? current
-            : [...current, index]
-        );
-        return;
-      }
-
-      progress = addXP(
-        progress,
-        step.reward,
-        "learning",
-        eventTitle
-      );
-
-      progress = addSkillXP(
-        progress,
-        step.skillId,
-        step.reward
-      );
-
-      await progressRepository.save(progress);
-
-      setSavedProgress(progress);
 
       setCompleted((current) =>
         current.includes(index)

@@ -1,3 +1,4 @@
+import { LoadFailure, LoadPending } from "../components/load-failure";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -551,9 +552,10 @@ export default function ProjectScreen() {
   const { theme } = useRiseAppearance();
   const params = useLocalSearchParams();
   const [storedProfile, setStoredProfile] = useState<RiseProfile | null>(null);
+  const [loadError, setLoadError] = useState(false);
   useEffect(() => {
     let active = true;
-    void loadProfile().then((profile) => { if (active) setStoredProfile(profile); });
+    void loadProfile().then((profile) => { if (active) setStoredProfile(profile); }).catch(() => { if (active) setLoadError(true); });
     return () => { active = false; };
   }, []);
   const storedGoals = useMemo(() => storedProfile?.selectedGoals || [], [storedProfile]);
@@ -621,6 +623,9 @@ export default function ProjectScreen() {
       Alert.alert("Couldn’t save your draft", "Your reflection is still here. Please try again.");
     } finally { setSavingDraft(false); }
   };
+
+  if (loadError) return <LoadFailure title="Your saved plan could not be opened" />;
+  if (!storedProfile) return <LoadPending />;
 
   return (
     <KeyboardAvoidingView style={[styles.page, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
